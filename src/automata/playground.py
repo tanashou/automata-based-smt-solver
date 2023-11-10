@@ -1,4 +1,4 @@
-from src.automata.automata import NFA
+from src.automata.automata import MutableNFA as NFA
 
 nfa = NFA(
     states={'q0', 'q1', 'q2'},
@@ -14,13 +14,13 @@ nfa = NFA(
 )
 
 nfa2 = NFA(
-    states={'q0', 'q1', 'q2'},
+    states={'q0', 'q1', 'q200'},
     input_symbols={'a', 'b'},
     transitions={
         'q0': {'a': {'q1'}},
         # Use '' as the key name for empty string (lambda/epsilon) transitions
-        'q1': {'a': {'q1'}, '': {'q2'}},
-        'q2': {'b': {'q0'}}
+        'q1': {'a': {'q1'}, '': {'q200'}},
+        'q200': {'b': {'q0'}}
     },
     initial_state='q0',
     final_states={'q1'}
