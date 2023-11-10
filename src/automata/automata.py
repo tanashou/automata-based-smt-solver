@@ -17,3 +17,12 @@ class NFA:
         self.final_states = final_states
         self.transitions = transitions
         self.input_symbols = input_symbols
+
+    def add_transition(self, current_state, symbol, next_state):
+        if current_state not in self.transitions:
+            self.transitions[current_state] = {}
+
+        if symbol not in self.transitions[current_state]:
+            self.transitions[current_state][symbol] = set()
+
+        self.transitions[current_state][symbol].add(next_state)
