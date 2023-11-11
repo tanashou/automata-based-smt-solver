@@ -1,7 +1,8 @@
 from itertools import product
-from src.automata.automata import NFA
+from src.my_automata.my_automata import MutableNFA as NFA
 
 
+# TODO: ワイルドカードを使用できるようにする
 def binary_strings(n):
     # Generate all possible combinations of 0 and 1 of length n
     combinations = product("01", repeat=n)
@@ -20,13 +21,15 @@ def dot_product(vector1, vector2):
     return result
 
 
-def eq_to_nfa(a, c):
-    states = {"q0", f"{c}"}
+def eq_to_nfa(a, c: int):
+    initial_state = "q0"
+    states = {initial_state, f"{c}"}
     input_symbols = binary_strings(len(a))
-    transitions = {}
-    final_states = {c}
-    work_list = [c]
+    transitions = dict()
+    final_states = set([f"{c}"])
+    work_list = [c]  # TODO: queue を使用するか検討
 
+    nfa = NFA(states, input_symbols, transitions, initial_state, final_states)
     while work_list:
         q = work_list.pop()
         for b in input_symbols:  # b もワイルドカードを含む
@@ -35,17 +38,14 @@ def eq_to_nfa(a, c):
             if q_prime.is_integer():
                 q_prime = int(q_prime)
                 if q_prime not in states:
-                    states.add(f'{q_prime}')
+                    nfa.add_state(f"{q_prime}")
                     work_list.append(q_prime)
-                transitions.setdefault(f"{q_prime}", {})[b] = {f"{q}"} # FIXME: うまく追加できない。
+                nfa.add_transition(f"{q_prime}", b, f"{q}")
             if q == -dot:
-                transitions.setdefault("q0", {})[b] = {f"{q}"}
-                return NFA(states, input_symbols, transitions, "q0", final_states)
+                nfa.add_transition(initial_state, b, f"{q}")
+                return nfa
 
-    return NFA(states, input_symbols, transitions, "q0", final_states)
+    return nfa
 
 
 print(eq_to_nfa([1, -1], 2).input_symbols)
-
-
-

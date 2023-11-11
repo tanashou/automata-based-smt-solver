@@ -1,5 +1,5 @@
 from typing import AbstractSet, List, Mapping, Tuple
-from automata.fa.nfa import NFA as BaseNFA
+# from automata.fa.nfa import NFA as BaseNFA
 import automata.fa.fa as fa
 
 NFAStateT = fa.FAStateT
@@ -14,7 +14,6 @@ InputPathListT = List[Tuple[NFAStateT, NFAStateT, str]]
 class MutableNFA:
     def __init__(
         self,
-        *,
         states: AbstractSet[NFAStateT],
         input_symbols: AbstractSet[str],  # TODO: 全てのアルファベットを保存しておく必要はないので、正規表現などにしたい
         transitions: NFATransitionsT,
