@@ -1,4 +1,5 @@
 from typing import AbstractSet, List, Mapping, Tuple
+
 # from automata.fa.nfa import NFA as BaseNFA
 import automata.fa.fa as fa
 
@@ -9,8 +10,10 @@ NFATransitionsT = Mapping[NFAStateT, NFAPathT]
 InputPathListT = List[Tuple[NFAStateT, NFAStateT, str]]
 
 
-# Explanation: The instance variables, such as 'states', in the NFA class from automata-lib are immutable by default.
-# I needed a mutable version of these variables to modify them during runtime, so I created a separate mutable object.
+"""
+The instance variables, such as 'states', in the NFA class from automata-lib are immutable by default.
+I needed a mutable version of these variables to modify them during runtime, so I created a separate mutable object.
+"""
 class MutableNFA:
     def __init__(
         self,
