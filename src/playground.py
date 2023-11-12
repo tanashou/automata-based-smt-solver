@@ -28,8 +28,4 @@ nfa2 = NFA(
 )
 
 test_nfa = eq_to_nfa([1, -1], 2)
-print(test_nfa.states)
-print(test_nfa.input_symbols)
-print(test_nfa.transitions)
-print(test_nfa.initial_state)
-print(test_nfa.final_states)
+test_nfa.show_diagram(path="test_nfa.png")
