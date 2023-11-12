@@ -9,8 +9,7 @@ wheels/
 # venv
 .venv
 
+
 .DS_Store
-
 *.log
-
 *.png
