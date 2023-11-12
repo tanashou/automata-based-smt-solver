@@ -1,6 +1,5 @@
 from typing import AbstractSet, List, Mapping, Tuple
-
-# from automata.fa.nfa import NFA as BaseNFA
+from automata.fa.nfa import NFA as BaseNFA
 import automata.fa.fa as fa
 
 NFAStateT = fa.FAStateT
@@ -14,6 +13,8 @@ InputPathListT = List[Tuple[NFAStateT, NFAStateT, str]]
 The instance variables, such as 'states', in the NFA class from automata-lib are immutable by default.
 I needed a mutable version of these variables to modify them during runtime, so I created a separate mutable object.
 """
+
+
 class MutableNFA:
     def __init__(
         self,
@@ -30,6 +31,15 @@ class MutableNFA:
         self.transitions = transitions
         self.initial_state = initial_state
         self.final_states = final_states
+
+    def __make_base_nfa(self):
+        self.__base_nfa = BaseNFA(
+            states=self.states,
+            input_symbols=self.input_symbols,
+            transitions=self.transitions,
+            initial_state=self.initial_state,
+            final_states=self.final_states,
+        )
 
     def add_state(self, new_state: NFAStateT):
         self.states.add(new_state)
@@ -51,5 +61,6 @@ class MutableNFA:
     def add_final_state(self, new_final_state: NFAStateT):
         self.final_states.add(new_final_state)
 
-    # def show_diagram(self):
-    #     BaseNFA(self.states, self.input_symbols, self.transitions, self.initial_state, self.final_states).show_diagram()
+    def show_diagram(self, path=None):
+        self.__make_base_nfa()
+        self.__base_nfa.show_diagram(path=path)
