@@ -1,17 +1,17 @@
 from itertools import product
 from src.my_automata.my_automata import MutableNFA as NFA
-from typing import List
+from typing import List, AbstractSet
 
 
 # TODO: ワイルドカードを使用できるようにする
-def binary_strings(n) -> set[str]:
+def binary_strings(n) -> AbstractSet[str]:
     # Generate all possible combinations of 0 and 1 of length n
     combinations = product("01", repeat=n)
     # Join the tuples to form binary strings
     return set("".join(x) for x in combinations)
 
 
-def dot_product(vector1, vector2):
+def dot_product(vector1, vector2) -> int:
     if len(vector1) != len(vector2):
         raise ValueError("Vectors must have the same length")
 
@@ -28,7 +28,7 @@ c: constant of the linear equation
 """
 
 
-def eq_to_nfa(a: List[int], c: int):
+def eq_to_nfa(a: List[int], c: int) -> NFA:
     initial_state = "q0"
     nfa = NFA(
         states={initial_state, str(c)},
@@ -62,13 +62,13 @@ def neq_to_nfa(a: List[int], c: int):
 
 
 # wildcard を使用するため、自作する必要がある
-def nfa_intersection(nfa1: NFA, nfa2: NFA):
+def nfa_intersection(nfa1: NFA, nfa2: NFA) -> NFA:
     initial_state = (nfa1.initial_state, nfa2.initial_state)
     nfa = NFA(
         states=set(),
         input_symbols=nfa1.input_symbols.intersection(nfa2.input_symbols),
         transitions=dict(),
-        initial_state=(nfa1.initial_state, nfa2.initial_state),
+        initial_state=initial_state,
         final_states=set(),
     )
 
