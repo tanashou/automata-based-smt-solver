@@ -19,6 +19,7 @@ I needed a mutable version of these variables to modify them during runtime, so 
 class MutableNFA:
     def __init__(
         self,
+        *,
         states: AbstractSet[NFAStateT],
         input_symbols: AbstractSet[str],  # TODO: 全てのアルファベットを保存しておく必要はないので、正規表現などにしたい
         transitions: NFATransitionsT,
