@@ -21,6 +21,12 @@ def dot_product(vector1, vector2):
     return result
 
 
+"""
+a: coefficients of the linear equation
+c: constant of the linear equation
+"""
+
+
 def eq_to_nfa(a, c: int):
     initial_state = "q0"
     states = {initial_state, str(c)}
@@ -30,19 +36,18 @@ def eq_to_nfa(a, c: int):
     work_list = [c]  # TODO: queue を使用するか検討
     nfa = NFA(states, input_symbols, transitions, initial_state, final_states)
 
-    # TODO: 変数の名前を変更する。q とか q_prime とか出なく、state など具体的な名前にする。
     while work_list:
-        q = work_list.pop()
-        for b in input_symbols:  # b もワイルドカードを含む
-            dot = dot_product(a, b)
-            if (q_prime := 0.5 * (q - dot)).is_integer():
-                q_prime = int(q_prime)
-                if str(q_prime) not in states:
-                    nfa.add_state(str(q_prime))
-                    work_list.append(q_prime)
-                nfa.add_transition(str(q_prime), b, str(q))
-            if q == -dot:
-                nfa.add_transition(initial_state, b, str(q))
+        current_state = work_list.pop()
+        for symbol in input_symbols:  # b もワイルドカードを含む
+            dot = dot_product(a, symbol)
+            if (previous_state := 0.5 * (current_state - dot)).is_integer():
+                previous_state = int(previous_state)
+                if str(previous_state) not in states:
+                    nfa.add_state(str(previous_state))
+                    work_list.append(previous_state)
+                nfa.add_transition(str(previous_state), symbol, str(current_state))
+            if current_state == -dot:
+                nfa.add_transition(initial_state, symbol, str(current_state))
                 # return nfa # TODO: オートマトンを完全に作るかどうか
 
     return nfa
