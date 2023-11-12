@@ -60,12 +60,10 @@ def neq_to_nfa(a: List[int], c: int):
 
 # wildcard を使用するため、自作する必要がある
 def nfa_intersection(nfa1: NFA, nfa2: NFA):
-    states = set()
+    states, transitions, final_states = set(), dict(), set()
     input_symbols = nfa1.input_symbols.intersection(nfa2.input_symbols)
-    transitions = dict()
     initial_state = (nfa1.initial_state, nfa2.initial_state)
-    final_states = set()
-    work_list = [initial_state]
+    work_list: List[str] = [initial_state]
 
     nfa = NFA(states, input_symbols, transitions, initial_state, final_states)
 
