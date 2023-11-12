@@ -27,5 +27,8 @@ nfa2 = NFA(
     final_states={"q1"},
 )
 
-test_nfa = eq_to_nfa([1, -1], 2)
-test_nfa.show_diagram(path="test_nfa.png")
+test_nfa1 = eq_to_nfa([1, -2], 3)
+test_nfa2 = eq_to_nfa([1, -1], 2)
+nfa3 = nfa_intersection(test_nfa1, test_nfa2)
+nfa3.show_diagram(path='intersection.png')
+

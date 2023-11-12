@@ -15,6 +15,7 @@ I needed a mutable version of these variables to modify them during runtime, so 
 """
 
 
+# TODO: 作成したオートマトンが目的のものでなかった場合、再度途中から作り直す。この時、止まった時の変数の状態を保存しておく必要がある。ループ変数やwork_listの状態など
 class MutableNFA:
     def __init__(
         self,
@@ -31,15 +32,6 @@ class MutableNFA:
         self.transitions = transitions
         self.initial_state = initial_state
         self.final_states = final_states
-
-    def __make_base_nfa(self):
-        self.__base_nfa = BaseNFA(
-            states=self.states,
-            input_symbols=self.input_symbols,
-            transitions=self.transitions,
-            initial_state=self.initial_state,
-            final_states=self.final_states,
-        )
 
     def add_state(self, new_state: NFAStateT):
         self.states.add(new_state)
@@ -60,6 +52,19 @@ class MutableNFA:
 
     def add_final_state(self, new_final_state: NFAStateT):
         self.final_states.add(new_final_state)
+
+    # find a state that has the same transitions as the given state
+    def find_transitions_from_keys(self, current_state: NFAStateT, symbol: str) -> AbstractSet[NFAStateT]:
+        return self.transitions.get(current_state, {}).get(symbol, set())
+
+    def __make_base_nfa(self):
+        self.__base_nfa = BaseNFA(
+            states=self.states,
+            input_symbols=self.input_symbols,
+            transitions=self.transitions,
+            initial_state=self.initial_state,
+            final_states=self.final_states,
+        )
 
     def show_diagram(self, path=None):
         self.__make_base_nfa()
