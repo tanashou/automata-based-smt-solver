@@ -28,8 +28,8 @@ def eq_to_nfa(a, c: int):
     transitions = dict()
     final_states = set([f"{c}"])
     work_list = [c]  # TODO: queue を使用するか検討
-
     nfa = NFA(states, input_symbols, transitions, initial_state, final_states)
+    
     while work_list:
         q = work_list.pop()
         for b in input_symbols:  # b もワイルドカードを含む
@@ -46,6 +46,3 @@ def eq_to_nfa(a, c: int):
                 return nfa
 
     return nfa
-
-
-print(eq_to_nfa([1, -1], 2).input_symbols)
