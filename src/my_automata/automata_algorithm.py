@@ -35,7 +35,7 @@ def binary_strings_with_wildcard(mask: List[bool]) -> AbstractSet[str]:
     return binary_strings
 
 
-def inner(vector1, vector2) -> int:
+def dot_product(vector1, vector2) -> int:
     if len(vector1) != len(vector2):
         raise ValueError("Vectors must have the same length")
 
@@ -46,7 +46,7 @@ def inner(vector1, vector2) -> int:
     return result
 
 
-def inner_with_wildcard(vector1, vector2) -> int:
+def dot_product_with_wildcard(vector1, vector2) -> int:
     if len(vector1) != len(vector2):
         raise ValueError("Vectors must have the same length")
 
@@ -81,7 +81,7 @@ def eq_to_nfa(a: List[int], c: int) -> NFA:
     while work_list:
         current_state = work_list.pop()
         for symbol in nfa.input_symbols:  # b もワイルドカードを含む
-            dot = inner(a, symbol)
+            dot = dot_product_with_wildcard(a, symbol)
             if (previous_state := 0.5 * (current_state - dot)).is_integer():
                 previous_state = int(previous_state)
                 if str(previous_state) not in nfa.states:
