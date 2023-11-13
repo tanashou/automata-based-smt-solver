@@ -32,4 +32,4 @@ nfa2 = NFA(
 # nfa3 = nfa_intersection(test_nfa1, test_nfa2)
 # nfa3.show_diagram(path='intersection.png')
 
-print(binary_strings_with_wildcard([True, False, True, False]))
+print(inner_with_wildcard("1*1", "11*"))
