@@ -63,29 +63,29 @@ def dot_product_with_wildcard(vector1, vector2) -> int:
 
 
 """
-a: all the coefficients of the linear equation
-c: constant of the linear equation
+coefs: all the coefficients of the linear equation
+const: constant of the linear equation
 """
 
 
-def eq_to_nfa(a: List[int], c: int, mask: List[bool]) -> NFA:
-    if len(a) != len(mask):
+def eq_to_nfa(coefs: List[int], const: int, mask: List[bool]) -> NFA:
+    if len(coefs) != len(mask):
         raise ValueError("The length of the mask must be equal to the length of the coefficients")
 
     initial_state = "q0"
     nfa = NFA(
-        states={initial_state, str(c)},
+        states={initial_state, str(const)},
         input_symbols=binary_strings_with_wildcard(mask),
         transitions=dict(),
         initial_state=initial_state,
-        final_states=set([str(c)]),
+        final_states=set([str(const)]),
     )
-    work_list = [c]  # TODO: queue を使用するか検討
+    work_list = [const]  # TODO: queue を使用するか検討
 
     while work_list:
         current_state = work_list.pop()
         for symbol in nfa.input_symbols:  # b もワイルドカードを含む
-            dot = dot_product_with_wildcard(a, symbol)
+            dot = dot_product_with_wildcard(coefs, symbol)
             if (previous_state := 0.5 * (current_state - dot)).is_integer():
                 previous_state = int(previous_state)
                 if str(previous_state) not in nfa.states:
