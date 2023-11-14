@@ -1,12 +1,6 @@
-from typing import AbstractSet, List, Mapping, Tuple
+from typing import AbstractSet
 from automata.fa.nfa import NFA as BaseNFA
-import automata.fa.fa as fa
-
-NFAStateT = fa.FAStateT
-
-NFAPathT = Mapping[str, AbstractSet[NFAStateT]]
-NFATransitionsT = Mapping[NFAStateT, NFAPathT]
-InputPathListT = List[Tuple[NFAStateT, NFAStateT, str]]
+import automata.fa.nfa as nfa
 
 
 """
@@ -19,11 +13,12 @@ I needed a mutable version of these variables to modify them during runtime, so 
 class MutableNFA:
     def __init__(
         self,
-        states: AbstractSet[NFAStateT],
+        *,
+        states: AbstractSet[nfa.NFAStateT],
         input_symbols: AbstractSet[str],  # TODO: 全てのアルファベットを保存しておく必要はないので、正規表現などにしたい
-        transitions: NFATransitionsT,
-        initial_state: NFAStateT,
-        final_states: AbstractSet[NFAStateT],
+        transitions: nfa.NFATransitionsT,
+        initial_state: nfa.NFAStateT,
+        final_states: AbstractSet[nfa.NFAStateT],
     ) -> None:
         """Initialize a complete NFA."""
 
@@ -33,28 +28,28 @@ class MutableNFA:
         self.initial_state = initial_state
         self.final_states = final_states
 
-    def add_state(self, new_state: NFAStateT):
+    def add_state(self, new_state: nfa.NFAStateT):
         self.states.add(new_state)
 
-    def add_states(self, new_states: AbstractSet[NFAStateT]):
+    def add_states(self, new_states: AbstractSet[nfa.NFAStateT]):
         self.states.update(new_states)
 
     def add_input_symbol(self, new_input_symbol: str):
         self.input_symbols.add(new_input_symbol)
 
-    def add_transition(self, current_state: NFAStateT, symbol: str, next_state: NFAStateT):
+    def add_transition(self, current_state: nfa.NFAStateT, symbol: str, next_state: nfa.NFAStateT):
         self.transitions.setdefault(current_state, {})
         self.transitions[current_state].setdefault(symbol, set())
         self.transitions[current_state][symbol].add(next_state)
 
-    def add_initial_state(self, new_initial_state: NFAStateT):
+    def add_initial_state(self, new_initial_state: nfa.NFAStateT):
         self.initial_state = new_initial_state
 
-    def add_final_state(self, new_final_state: NFAStateT):
+    def add_final_state(self, new_final_state: nfa.NFAStateT):
         self.final_states.add(new_final_state)
 
     # find a state that has the same transitions as the given state
-    def find_transitions_from_keys(self, current_state: NFAStateT, symbol: str) -> AbstractSet[NFAStateT]:
+    def find_transitions_from_keys(self, current_state: nfa.NFAStateT, symbol: str) -> AbstractSet[nfa.NFAStateT]:
         return self.transitions.get(current_state, {}).get(symbol, set())
 
     def __make_base_nfa(self):
