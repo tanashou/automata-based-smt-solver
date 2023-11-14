@@ -27,10 +27,12 @@ nfa2 = NFA(
     final_states={"q1"},
 )
 
+coefs = [1, -1, 1]
 mask1 = [True, True, False]
 mask2 = [True, False, True]
-test_nfa1 = eq_to_nfa([1, -1, 1], 2, mask1)
-test_nfa2 = eq_to_nfa([1, -1, 1], 5, mask2)
+
+test_nfa1 = eq_to_nfa(coefs, 2, mask1)
+test_nfa2 = eq_to_nfa(coefs, 5, mask2)
 
 # test_nfa2 = eq_to_nfa([1, -1], 2)
 nfa3 = nfa_intersection(test_nfa1, test_nfa2, mask1, mask2)
