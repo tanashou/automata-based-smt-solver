@@ -2,6 +2,8 @@ import itertools
 from src.my_automata.my_automata import MutableNFA as NFA
 from typing import List, Set
 
+WILDCARD = "*"
+
 
 def binary_strings(n) -> Set[str]:
     # Generate all possible combinations of 0 and 1 of length n
@@ -30,7 +32,7 @@ def binary_strings_with_wildcard(mask: List[bool]) -> Set[str]:
     # Iterate over the mask and insert the wildcard (*) at specified positions
     for i, is_masked in enumerate(mask):
         if not is_masked:
-            binary_strings = {s[:i] + "*" + s[i:] for s in binary_strings}
+            binary_strings = {s[:i] + WILDCARD + s[i:] for s in binary_strings}
 
     return binary_strings
 
@@ -53,7 +55,7 @@ def dot_product_with_wildcard(vector1, vector2) -> int:
     result = 0
     for i in range(len(vector1)):
         # Skip calculation if either element is a wildcard (*)
-        if vector1[i] == "*" or vector2[i] == "*":
+        if vector1[i] == WILDCARD or vector2[i] == WILDCARD:
             continue
         result += int(vector1[i]) * int(vector2[i])
 
@@ -113,7 +115,7 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1, mask2) -> NFA:
             if mask[i]:
                 result += pattern[i]
             else:
-                result += "*"
+                result += WILDCARD
 
         return result
 
@@ -123,9 +125,9 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1, mask2) -> NFA:
 
         result = ""
         for s1, s2 in zip(symbol1, symbol2):
-            if s1 != s2 and "*" not in (s1, s2):
+            if s1 != s2 and WILDCARD not in (s1, s2):
                 return ""
-            result += s1 if s1 != "*" else s2
+            result += s1 if s1 != WILDCARD else s2
         return result
 
     def intersection_containing_wildcard(symbols1, symbols2) -> Set[str]:
