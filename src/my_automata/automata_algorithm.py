@@ -1,18 +1,27 @@
 import itertools
 from src.my_automata.my_automata import MutableNFA as NFA
-from typing import List, Set
+
+# 各リテラルに対してnfaを作成するクラス
+class AutomataAlgorithmExecuter:
+    WILDCARD = "*"
+
+    def __init__(self, coefs, const, relation, mask) -> None:
+        self.coefs = coefs
+        self.const = const
+        self.relation = relation
+        self.mask = mask
 
 WILDCARD = "*"
 
 
-def binary_strings(n) -> Set[str]:
+def binary_strings(n) -> set[str]:
     # Generate all possible combinations of 0 and 1 of length n
     combinations = itertools.product("01", repeat=n)
     # Join the tuples to form binary strings
     return set("".join(x) for x in combinations)
 
 
-def binary_strings_with_wildcard(mask: List[bool]) -> Set[str]:
+def binary_strings_with_wildcard(mask: list[bool]) -> set[str]:
     """
     Generates binary strings with a wildcard (*) inserted at specified positions based on a mask.
 
@@ -63,12 +72,12 @@ def dot_product_with_wildcard(vector1, vector2) -> int:
 
 
 """
-coefs: all the coefficients of the linear equation
+coefs: all the coefficients of the linear equations
 const: constant of the linear equation
 """
 
 
-def eq_to_nfa(coefs: List[int], const: int, mask: List[bool]) -> NFA:
+def eq_to_nfa(coefs: list[int], const: int, mask: list[bool], create_all = True) -> NFA:
     if len(coefs) != len(mask):
         raise ValueError("The length of the mask must be equal to the length of the coefficients")
 
@@ -84,7 +93,7 @@ def eq_to_nfa(coefs: List[int], const: int, mask: List[bool]) -> NFA:
 
     while work_list:
         current_state = work_list.pop()
-        for symbol in nfa.input_symbols:  # b もワイルドカードを含む
+        for symbol in nfa.input_symbols: # イテレータを使用して、続きから再開できるようにしたい。イテレータはforで値を取り出すと、その値が消えるので要素の途中から再開できる。
             dot = dot_product_with_wildcard(coefs, symbol)
             if (previous_state := 0.5 * (current_state - dot)).is_integer():
                 previous_state = int(previous_state)
@@ -94,12 +103,13 @@ def eq_to_nfa(coefs: List[int], const: int, mask: List[bool]) -> NFA:
                 nfa.add_transition(str(previous_state), symbol, str(current_state))
             if current_state == -dot:
                 nfa.add_transition(initial_state, symbol, str(current_state))
-                # return nfa # TODO: オートマトンを完全に作るかどうか
+                if not create_all:
+                    return nfa # TODO: current_state が入った work_list も返す。
 
     return nfa
 
 
-def neq_to_nfa(a: List[int], c: int):
+def neq_to_nfa(a: list[int], c: int):
     pass
 
 
@@ -130,7 +140,7 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1, mask2) -> NFA:
             result += s1 if s1 != WILDCARD else s2
         return result
 
-    def intersection_containing_wildcard(symbols1, symbols2) -> Set[str]:
+    def intersection_containing_wildcard(symbols1, symbols2) -> set[str]:
         """
         '01*' と '0*0'があった時、'010'をresultに追加する
         """
@@ -150,7 +160,7 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1, mask2) -> NFA:
         initial_state=initial_state,
         final_states=set(),
     )
-    work_list: List[str] = [initial_state]
+    work_list: list[str] = [initial_state]
 
     if not nfa.input_symbols:
         raise ValueError("The given NFAs have no common input symbols")
