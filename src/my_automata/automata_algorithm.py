@@ -1,16 +1,6 @@
 import itertools
 from src.my_automata.my_automata import MutableNFA as NFA
 
-# 各リテラルに対してnfaを作成するクラス
-class AutomataAlgorithmExecuter:
-    WILDCARD = "*"
-
-    def __init__(self, coefs, const, relation, mask) -> None:
-        self.coefs = coefs
-        self.const = const
-        self.relation = relation
-        self.mask = mask
-
 WILDCARD = "*"
 
 
@@ -77,7 +67,7 @@ const: constant of the linear equation
 """
 
 
-def eq_to_nfa(coefs: list[int], const: int, mask: list[bool], create_all = True) -> NFA:
+def eq_to_nfa(coefs: list[int], const: int, mask: list[bool], create_all=True) -> NFA:
     if len(coefs) != len(mask):
         raise ValueError("The length of the mask must be equal to the length of the coefficients")
 
@@ -93,7 +83,7 @@ def eq_to_nfa(coefs: list[int], const: int, mask: list[bool], create_all = True)
 
     while work_list:
         current_state = work_list.pop()
-        for symbol in nfa.input_symbols: # イテレータを使用して、続きから再開できるようにしたい。イテレータはforで値を取り出すと、その値が消えるので要素の途中から再開できる。
+        for symbol in nfa.input_symbols:  # イテレータを使用して、続きから再開できるようにしたい。イテレータはforで値を取り出すと、その値が消えるので要素の途中から再開できる。
             dot = dot_product_with_wildcard(coefs, symbol)
             if (previous_state := 0.5 * (current_state - dot)).is_integer():
                 previous_state = int(previous_state)
@@ -104,7 +94,7 @@ def eq_to_nfa(coefs: list[int], const: int, mask: list[bool], create_all = True)
             if current_state == -dot:
                 nfa.add_transition(initial_state, symbol, str(current_state))
                 if not create_all:
-                    return nfa # TODO: current_state が入った work_list も返す。
+                    return nfa  # TODO: current_state が入った work_list も返す。
 
     return nfa
 
