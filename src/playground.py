@@ -31,9 +31,13 @@ coefs = [1, -1, 1]
 mask1 = [True, True, False]
 mask2 = [True, False, True]
 
-test_nfa1 = eq_to_nfa(coefs, 2, mask1)
-test_nfa2 = eq_to_nfa(coefs, 5, mask2)
+complete_nfa1 = eq_to_nfa(coefs, 2, mask1)
+complete_nfa2 = eq_to_nfa(coefs, 5, mask2)
+partial_nfa1 = eq_to_nfa(coefs, 2, mask1, create_all=False)
+partial_nfa2 = eq_to_nfa(coefs, 5, mask2, create_all=False)
 
-# test_nfa2 = eq_to_nfa([1, -1], 2)
-nfa3 = nfa_intersection(test_nfa1, test_nfa2, mask1, mask2)
-nfa3.show_diagram(path="intersection.png")
+
+complete_nfa = nfa_intersection(complete_nfa1, complete_nfa2, mask1, mask2)
+partial_nfa = nfa_intersection(partial_nfa1, partial_nfa2, mask1, mask2)
+complete_nfa.show_diagram(path="image/complete1.png")
+partial_nfa.show_diagram(path="image/partial1.png")
