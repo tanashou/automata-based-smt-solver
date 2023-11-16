@@ -3,7 +3,7 @@ from src.my_automata.my_automata import MutableNFA as NFA
 
 
 # 各リテラルに対してnfaを作成するクラス。こいつに渡したらnfaを返すようにしたい。
-class AutomataConverter:
+class AutomataBuilder:
     WILDCARD = "*"
 
     def __init__(
