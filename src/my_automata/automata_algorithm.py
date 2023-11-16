@@ -1,111 +1,109 @@
 import itertools
 from src.my_automata.my_automata import MutableNFA as NFA
 
-WILDCARD = "*"
 
+# 各リテラルに対してnfaを作成するクラス。こいつに渡したらnfaを返すようにしたい。
+class AutomataConverter:
+    WILDCARD = "*"
 
-def binary_strings(n) -> set[str]:
-    # Generate all possible combinations of 0 and 1 of length n
-    combinations = itertools.product("01", repeat=n)
-    # Join the tuples to form binary strings
-    return set("".join(x) for x in combinations)
+    def __init__(
+        self, coefs: list[int], const: int, relation: str, mask: list[bool], create_all=True
+    ) -> None:  # TODO: 戻り値をnfaにする。
+        if len(coefs) != len(mask):
+            raise ValueError("The length of the mask must be equal to the length of the coefficients")
+        self.coefs = coefs
+        self.const = const
+        self.relation = relation
+        self.mask = mask
+        self.create_all = create_all
+        self.nfa = self.eq_to_nfa()  # TODO: self.relationによって、どの関数を呼び出すかを変えたい。
+        self.__work_list = list()
 
+    def next(self) -> NFA:
+        # TODO: next を呼び出すと次のnfaを返したい。
+        pass
 
-def binary_strings_with_wildcard(mask: list[bool]) -> set[str]:
+    def __binary_strings_with_wildcard(self) -> set[str]:
+        """
+        Generates binary strings with a wildcard (*) inserted at specified positions based on a mask.
+
+        Args:
+            mask: A list of booleans where True indicates that the corresponding position should be kept,
+                and False indicates that the position should be removed.
+
+        Returns:
+            A set of binary strings with the wildcard (*) inserted at appropriate positions based on the mask.
+        """
+
+        # Generate combinations of "01" for the positions to keep
+        combinations = list(itertools.product("01", repeat=self.mask.count(True)))
+        # Convert combinations into binary strings
+        binary_strings = {"".join(x) for x in combinations}
+
+        # Iterate over the mask and insert the wildcard (*) at specified positions
+        for i, is_masked in enumerate(self.mask):
+            if not is_masked:
+                binary_strings = {s[:i] + self.WILDCARD + s[i:] for s in binary_strings}
+
+        return binary_strings
+
+    def __dot_product_with_wildcard(self, vector1, vector2) -> int:
+        if len(vector1) != len(vector2):
+            raise ValueError("Vectors must have the same length")
+
+        result = 0
+        for i in range(len(vector1)):
+            # Skip calculation if either element is a wildcard (*)
+            if vector1[i] == self.WILDCARD or vector2[i] == self.WILDCARD:
+                continue
+            result += int(vector1[i]) * int(vector2[i])
+
+        return result
+
     """
-    Generates binary strings with a wildcard (*) inserted at specified positions based on a mask.
-
-    Args:
-        mask: A list of booleans where True indicates that the corresponding position should be kept,
-              and False indicates that the position should be removed.
-
-    Returns:
-        A set of binary strings with the wildcard (*) inserted at appropriate positions based on the mask.
+    coefs: all the coefficients of the linear equations
+    const: constant of the linear equation
     """
 
-    # Generate combinations of "01" for the positions to keep
-    combinations = list(itertools.product("01", repeat=mask.count(True)))
-    # Convert combinations into binary strings
-    binary_strings = {"".join(x) for x in combinations}
+    def eq_to_nfa(self) -> NFA:
+        initial_state = "q0"
+        nfa = NFA(
+            states={initial_state, str(self.const)},
+            input_symbols=self.__binary_strings_with_wildcard(),
+            transitions=dict(),
+            initial_state=initial_state,
+            final_states=set([str(self.const)]),
+        )
+        work_list = [self.const]  # TODO: queue を使用するか検討
 
-    # Iterate over the mask and insert the wildcard (*) at specified positions
-    for i, is_masked in enumerate(mask):
-        if not is_masked:
-            binary_strings = {s[:i] + WILDCARD + s[i:] for s in binary_strings}
+        while work_list:
+            current_state = work_list.pop()
+            for symbol in nfa.input_symbols:  # イテレータを使用して、続きから再開できるようにしたい。イテレータはforで値を取り出すと、その値が消えるので要素の途中から再開できる。
+                dot = self.__dot_product_with_wildcard(self.coefs, symbol)
+                if (previous_state := 0.5 * (current_state - dot)).is_integer():
+                    previous_state = int(previous_state)
+                    if str(previous_state) not in nfa.states:
+                        nfa.add_state(str(previous_state))
+                        work_list.append(previous_state)
+                    nfa.add_transition(str(previous_state), symbol, str(current_state))
+                if current_state == -dot:
+                    nfa.add_transition(initial_state, symbol, str(current_state))
+                    if not self.create_all:
+                        return nfa  # TODO: current_state が入った work_list も返す。
+                # TODO: ループの途中で抜けずに、input_symbolsをすべて探索してからnfaを返してもいいかも。何度もintersectionをとる方が計算量が多くなる気がする。
 
-    return binary_strings
+        return nfa
 
+    def neq_to_nfa(a: list[int], c: int):
+        pass
 
-def dot_product(vector1, vector2) -> int:
-    if len(vector1) != len(vector2):
-        raise ValueError("Vectors must have the same length")
-
-    result = 0
-    for i in range(len(vector1)):
-        result += int(vector1[i]) * int(vector2[i])
-
-    return result
-
-
-def dot_product_with_wildcard(vector1, vector2) -> int:
-    if len(vector1) != len(vector2):
-        raise ValueError("Vectors must have the same length")
-
-    result = 0
-    for i in range(len(vector1)):
-        # Skip calculation if either element is a wildcard (*)
-        if vector1[i] == WILDCARD or vector2[i] == WILDCARD:
-            continue
-        result += int(vector1[i]) * int(vector2[i])
-
-    return result
+    # wildcard を使用するため、自作する必要がある
+    # TODO: mask をクラスで管理する
 
 
-"""
-coefs: all the coefficients of the linear equations
-const: constant of the linear equation
-"""
-
-
-def eq_to_nfa(coefs: list[int], const: int, mask: list[bool], create_all=True) -> NFA:
-    if len(coefs) != len(mask):
-        raise ValueError("The length of the mask must be equal to the length of the coefficients")
-
-    initial_state = "q0"
-    nfa = NFA(
-        states={initial_state, str(const)},
-        input_symbols=binary_strings_with_wildcard(mask),
-        transitions=dict(),
-        initial_state=initial_state,
-        final_states=set([str(const)]),
-    )
-    work_list = [const]  # TODO: queue を使用するか検討
-
-    while work_list:
-        current_state = work_list.pop()
-        for symbol in nfa.input_symbols:  # イテレータを使用して、続きから再開できるようにしたい。イテレータはforで値を取り出すと、その値が消えるので要素の途中から再開できる。
-            dot = dot_product_with_wildcard(coefs, symbol)
-            if (previous_state := 0.5 * (current_state - dot)).is_integer():
-                previous_state = int(previous_state)
-                if str(previous_state) not in nfa.states:
-                    nfa.add_state(str(previous_state))
-                    work_list.append(previous_state)
-                nfa.add_transition(str(previous_state), symbol, str(current_state))
-            if current_state == -dot:
-                nfa.add_transition(initial_state, symbol, str(current_state))
-                if not create_all:
-                    return nfa  # TODO: current_state が入った work_list も返す。
-
-    return nfa
-
-
-def neq_to_nfa(a: list[int], c: int):
-    pass
-
-
-# wildcard を使用するため、自作する必要がある
-# TODO: mask をクラスで管理する
 def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1, mask2) -> NFA:
+    WILDCARD = "*"  # TODO: 定数の管理方法を考える
+
     def apply_mask(pattern, mask) -> str:
         if len(pattern) != len(mask):
             raise ValueError("The length of the mask must be equal to the length of the pattern")
