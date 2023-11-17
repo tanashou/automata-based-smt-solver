@@ -5,9 +5,10 @@ from src.my_automata.my_automata import MutableNFA as NFA
 # 各リテラルに対してnfaを作成するクラス。こいつに渡したらnfaを返すようにしたい。
 class AutomataBuilder:
     WILDCARD = "*"
+    INITIAL_STATE = "q0"
 
     def __init__(
-        self, coefs: list[int], const: int, relation: str, mask: list[bool], create_all=True
+        self, coefs: list[int], const: int, relation: str, mask: list[bool], create_all=False
     ) -> None:  # TODO: 戻り値をnfaにする。
         if len(coefs) != len(mask):
             raise ValueError("The length of the mask must be equal to the length of the coefficients")
@@ -16,12 +17,18 @@ class AutomataBuilder:
         self.relation = relation
         self.mask = mask
         self.create_all = create_all
-        self.nfa = self.eq_to_nfa()  # TODO: self.relationによって、どの関数を呼び出すかを変えたい。
-        self.__work_list = list()
+        self.nfa = NFA(
+            states={self.INITIAL_STATE, str(self.const)},
+            input_symbols=self.__binary_strings_with_wildcard(),
+            transitions=dict(),
+            initial_state=self.INITIAL_STATE,
+            final_states=set([str(self.const)]),
+        )  # TODO: self.relationによって、どの関数を呼び出すかを変えたい。
+        self.work_list = [self.const]
 
-    def next(self) -> NFA:
+    def next(self) -> None:
         # TODO: next を呼び出すと次のnfaを返したい。
-        pass
+        self.eq_to_nfa()
 
     def __binary_strings_with_wildcard(self) -> set[str]:
         """
@@ -65,34 +72,27 @@ class AutomataBuilder:
     const: constant of the linear equation
     """
 
-    def eq_to_nfa(self) -> NFA:
-        initial_state = "q0"
-        nfa = NFA(
-            states={initial_state, str(self.const)},
-            input_symbols=self.__binary_strings_with_wildcard(),
-            transitions=dict(),
-            initial_state=initial_state,
-            final_states=set([str(self.const)]),
-        )
-        work_list = [self.const]  # TODO: queue を使用するか検討
+    def eq_to_nfa(self) -> bool:
+        partial_sat = False
 
-        while work_list:
-            current_state = work_list.pop()
-            for symbol in nfa.input_symbols:  # イテレータを使用して、続きから再開できるようにしたい。イテレータはforで値を取り出すと、その値が消えるので要素の途中から再開できる。
+        while self.work_list:
+            current_state = self.work_list.pop()
+            for symbol in self.nfa.input_symbols:  # イテレータを使用して、続きから再開できるようにしたい。イテレータはforで値を取り出すと、その値が消えるので要素の途中から再開できる。
                 dot = self.__dot_product_with_wildcard(self.coefs, symbol)
                 if (previous_state := 0.5 * (current_state - dot)).is_integer():
                     previous_state = int(previous_state)
-                    if str(previous_state) not in nfa.states:
-                        nfa.add_state(str(previous_state))
-                        work_list.append(previous_state)
-                    nfa.add_transition(str(previous_state), symbol, str(current_state))
+                    if str(previous_state) not in self.nfa.states:
+                        self.nfa.add_state(str(previous_state))
+                        self.work_list.append(previous_state)
+                    self.nfa.add_transition(str(previous_state), symbol, str(current_state))
                 if current_state == -dot:
-                    nfa.add_transition(initial_state, symbol, str(current_state))
-                    if not self.create_all:
-                        return nfa  # TODO: current_state が入った work_list も返す。
-                # TODO: ループの途中で抜けずに、input_symbolsをすべて探索してからnfaを返してもいいかも。何度もintersectionをとる方が計算量が多くなる気がする。
-
-        return nfa
+                    self.nfa.add_transition(self.INITIAL_STATE, symbol, str(current_state))
+                    partial_sat = True
+            if partial_sat:
+                if not self.create_all:  # This is for debug
+                    # TODO: ループの途中で抜けずに、input_symbolsをすべて探索してからnfaを返してもいいかも。何度もintersectionをとる方が計算量が多くなる気がする。
+                    return partial_sat
+        return partial_sat
 
     def neq_to_nfa(a: list[int], c: int):
         pass
