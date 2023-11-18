@@ -1,5 +1,6 @@
 from automata.fa.nfa import NFA as BaseNFA
 from collections import defaultdict
+from typing import Any
 
 
 """
@@ -8,7 +9,7 @@ I needed a mutable version of these variables to modify them during runtime, so 
 """
 
 SymbolT = str
-NFAStateT = str | tuple[str]
+NFAStateT = Any # 入れ子になる可能性があるので、Anyにしておく
 NFAPathT = defaultdict[SymbolT, set[NFAStateT]]
 NFATransitionT = defaultdict[NFAStateT, NFAPathT]
 InputPathListT = list[tuple[NFAStateT, NFAStateT, SymbolT]]
