@@ -1,6 +1,6 @@
-from typing import AbstractSet
 from automata.fa.nfa import NFA as BaseNFA
 import automata.fa.nfa as nfa
+import collections
 
 
 """
@@ -14,11 +14,11 @@ class MutableNFA:
     def __init__(
         self,
         *,
-        states: AbstractSet[nfa.NFAStateT],
-        input_symbols: AbstractSet[str],  # TODO: 全てのアルファベットを保存しておく必要はないので、正規表現などにしたい
-        transitions: nfa.NFATransitionsT,
+        states: set[nfa.NFAStateT],
+        input_symbols: set[str],  # TODO: 全てのアルファベットを保存しておく必要はないので、正規表現などにしたい
+        transitions: "collections.defaultdict(nfa.NFAStateT, nfa.NFAPathT)",
         initial_state: nfa.NFAStateT,
-        final_states: AbstractSet[nfa.NFAStateT],
+        final_states: set[nfa.NFAStateT],
     ) -> None:
         """Initialize a complete NFA."""
 
@@ -31,15 +31,13 @@ class MutableNFA:
     def add_state(self, new_state: nfa.NFAStateT):
         self.states.add(new_state)
 
-    def add_states(self, new_states: AbstractSet[nfa.NFAStateT]):
+    def add_states(self, new_states: set[nfa.NFAStateT]):
         self.states.update(new_states)
 
     def add_input_symbol(self, new_input_symbol: str):
         self.input_symbols.add(new_input_symbol)
 
     def add_transition(self, current_state: nfa.NFAStateT, symbol: str, next_state: nfa.NFAStateT):
-        self.transitions.setdefault(current_state, {})
-        self.transitions[current_state].setdefault(symbol, set())
         self.transitions[current_state][symbol].add(next_state)
 
     def add_initial_state(self, new_initial_state: nfa.NFAStateT):
@@ -49,7 +47,7 @@ class MutableNFA:
         self.final_states.add(new_final_state)
 
     # find a state that has the same transitions as the given state
-    def find_transitions_from_keys(self, current_state: nfa.NFAStateT, symbol: str) -> AbstractSet[nfa.NFAStateT]:
+    def find_transitions_from_keys(self, current_state: nfa.NFAStateT, symbol: str) -> set[nfa.NFAStateT]:
         return self.transitions.get(current_state, {}).get(symbol, set())
 
     def __make_base_nfa(self):
