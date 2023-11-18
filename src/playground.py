@@ -37,10 +37,18 @@ partial_nfa2 = AutomataBuilder(coefs, 5, "equal", mask2, create_all=False)
 # partial_nfa1.next()
 # partial_nfa2.next()
 
-partial_nfa1.next()
-partial_nfa1.nfa.show_diagram(path="image/partial1.png")
-partial_nfa1.next()
-partial_nfa1.nfa.show_diagram(path="image/partial2.png")
+count = 0
+while partial_nfa1.next():
+    partial_nfa1.nfa.show_diagram(path=f"image/partial1_{count}.png")
+    count += 1
+
+count = 0
+while partial_nfa2.next():
+    partial_nfa2.nfa.show_diagram(path=f"image/partial2_{count}.png")
+    count += 1
+
+intersection_nfa = nfa_intersection(partial_nfa1.nfa, partial_nfa2.nfa, mask1, mask2)
+intersection_nfa.show_diagram(path="image/intersection.png")
 
 
 # # complete_nfa = nfa_intersection(complete_nfa1.nfa, complete_nfa2.nfa, mask1, mask2)

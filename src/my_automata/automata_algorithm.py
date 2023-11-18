@@ -27,9 +27,9 @@ class AutomataBuilder:
         )  # TODO: self.relationによって、どの関数を呼び出すかを変えたい。
         self.work_list = [self.const]
 
-    def next(self) -> None:
+    def next(self) -> bool:
         # TODO: next を呼び出すと次のnfaを返したい。
-        self.eq_to_nfa()
+        return self.eq_to_nfa()
 
     def __binary_strings_with_wildcard(self) -> set[str]:
         """
@@ -78,7 +78,9 @@ class AutomataBuilder:
 
         while self.work_list:
             current_state = self.work_list.pop()
-            for symbol in self.nfa.input_symbols:  # イテレータを使用して、続きから再開できるようにしたい。イテレータはforで値を取り出すと、その値が消えるので要素の途中から再開できる。
+            for (
+                symbol
+            ) in self.nfa.input_symbols:  # イテレータを使用して、続きから再開できるようにしたい。イテレータはforで値を取り出すと、その値が消えるので要素の途中から再開できる。
                 dot = self.__dot_product_with_wildcard(self.coefs, symbol)
                 if (previous_state := 0.5 * (current_state - dot)).is_integer():
                     previous_state = int(previous_state)
@@ -160,8 +162,8 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1, mask2) -> NFA:
         if current_state1 in nfa1.final_states and current_state2 in nfa2.final_states:
             nfa.add_final_state((current_state1, current_state2))
         for symbol in nfa.input_symbols:
-            next_states1 = nfa1.find_transitions_from_keys(current_state1, apply_mask(symbol, mask1))
-            next_states2 = nfa2.find_transitions_from_keys(current_state2, apply_mask(symbol, mask2))
+            next_states1 = nfa1.get_next_states(current_state1, apply_mask(symbol, mask1))
+            next_states2 = nfa2.get_next_states(current_state2, apply_mask(symbol, mask2))
             for next_state1, next_state2 in set(itertools.product(next_states1, next_states2)):
                 nfa.add_transition((current_state1, current_state2), symbol, (next_state1, next_state2))
                 if (next_state1, next_state2) not in nfa.states:
