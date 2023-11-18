@@ -9,8 +9,8 @@ I needed a mutable version of these variables to modify them during runtime, so 
 
 SymbolT = str
 NFAStateT = str
-NFAPathT = defaultdict[str, set[NFAStateT]]
-NFATransitionT = defaultdict[NFAStateT, NFAPathT]
+NFAPathT = defaultdict[SymbolT, set[NFAStateT | tuple[NFAStateT]]]
+NFATransitionT = defaultdict[NFAStateT | tuple[NFAStateT], NFAPathT]
 InputPathListT = list[tuple[NFAStateT, NFAStateT, SymbolT]]
 
 
@@ -19,47 +19,73 @@ class MutableNFA:
         self,
         *,
         states: set[NFAStateT],
-        input_symbols: set[SymbolT],  # TODO: 全てのアルファベットを保存しておく必要はないので、正規表現などにしたい
+        input_symbols: set[SymbolT],  # TODO: メモリを節約するため、正規表現にしたい
         transitions: NFATransitionT,
         initial_state: NFAStateT,
         final_states: set[NFAStateT],
     ) -> None:
         """Initialize a complete NFA."""
 
-        self.states = states
-        self.input_symbols = input_symbols
-        self.transitions = transitions
-        self.initial_state = initial_state
-        self.final_states = final_states
+        self.__states = states
+        self.__input_symbols = input_symbols
+        self.__transitions = transitions
+        self.__initial_state = initial_state
+        self.__final_states = final_states
+
+    @property
+    def states(self) -> set[NFAStateT]:
+        return self.__states
+
+    @property
+    def input_symbols(self) -> set[SymbolT]:
+        return self.__input_symbols
+
+    @property
+    def transitions(self) -> NFATransitionT:
+        return self.__transitions
+
+    @property
+    def initial_state(self) -> NFAStateT:
+        return self.__initial_state
+
+    @property
+    def final_states(self) -> set[NFAStateT]:
+        return self.__final_states
 
     def add_state(self, new_state: NFAStateT) -> None:
-        self.states.add(new_state)
+        self.__states.add(new_state)
 
     def add_states(self, new_states: set[NFAStateT]) -> None:
-        self.states.update(new_states)
+        self.__states.update(new_states)
 
     def add_input_symbol(self, new_input_symbol: str) -> None:
-        self.input_symbols.add(new_input_symbol)
+        self.__input_symbols.add(new_input_symbol)
 
-    def add_transition(self, current_state: NFAStateT, symbol: str, next_state: NFAStateT) -> None:
-        self.transitions[current_state][symbol].add(next_state)
+    def add_transition(
+        self, current_state: NFAStateT | tuple[NFAStateT], symbol: str, next_state: NFAStateT | tuple[NFAStateT]
+    ) -> None:
+        if not isinstance(self.transitions, defaultdict):
+            self.__transitions = defaultdict(lambda: defaultdict(set))
+        self.__transitions[current_state][symbol].add(next_state)
 
     def add_initial_state(self, new_initial_state: NFAStateT) -> None:
-        self.initial_state = new_initial_state
+        self.__initial_state = new_initial_state
 
     def add_final_state(self, new_final_state: NFAStateT) -> None:
-        self.final_states.add(new_final_state)
+        self.__final_states.add(new_final_state)
 
-    def find_transitions_from_keys(self, current_state: NFAStateT, symbol: SymbolT) -> set[NFAStateT]:
-        return self.transitions[current_state][symbol]
+    def get_next_states(
+        self, current_state: NFAStateT | tuple[NFAStateT], symbol: SymbolT
+    ) -> set[NFAStateT | tuple[NFAStateT]]:
+        return self.__transitions[current_state][symbol]
 
     def __make_base_nfa(self) -> None:
         self.__base_nfa = BaseNFA(
-            states=self.states,
-            input_symbols=self.input_symbols,
-            transitions=self.transitions,
-            initial_state=self.initial_state,
-            final_states=self.final_states,
+            states=self.__states,
+            input_symbols=self.__input_symbols,
+            transitions=self.__transitions,
+            initial_state=self.__initial_state,
+            final_states=self.__final_states,
         )
 
     def show_diagram(self, path: str) -> None:
