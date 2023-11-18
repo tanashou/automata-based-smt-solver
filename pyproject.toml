@@ -28,3 +28,4 @@ allow-direct-references = true
 
 [tool.mypy]
 ignore_missing_imports = true
+strict = true
