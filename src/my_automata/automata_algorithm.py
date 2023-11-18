@@ -17,18 +17,18 @@ class AutomataBuilder:
         self.const = const
         self.relation = relation
         self.mask = mask
-        self.create_all = create_all
+        self.create_all = create_all  # for debug
         self.nfa = NFA(
             states={self.INITIAL_STATE, str(self.const)},
             input_symbols=self.__binary_strings_with_wildcard(),
             transitions=defaultdict(lambda: defaultdict(set)),
             initial_state=self.INITIAL_STATE,
             final_states=set([str(self.const)]),
-        )  # TODO: self.relationによって、どの関数を呼び出すかを変えたい。
+        )
         self.work_list = [self.const]
 
     def next(self) -> bool:
-        # TODO: next を呼び出すと次のnfaを返したい。
+        # TODO: self.relationによって、どの関数を呼び出すかを変えたい。relationクラスかenumを作成する
         return self.eq_to_nfa()
 
     def __binary_strings_with_wildcard(self) -> set[str]:
@@ -60,12 +60,10 @@ class AutomataBuilder:
             raise ValueError("Vectors must have the same length")
 
         result = 0
-        for i in range(len(vector1)):
-            # Skip calculation if either element is a wildcard (*)
-            if vector1[i] == self.WILDCARD or vector2[i] == self.WILDCARD:
-                continue
-            result += int(vector1[i]) * int(vector2[i])
 
+        for v1, v2 in zip(vector1, vector2):
+            if self.WILDCARD not in (v1, v2):
+                result += int(v1) * int(v2)
         return result
 
     """
@@ -78,9 +76,7 @@ class AutomataBuilder:
 
         while self.work_list:
             current_state = self.work_list.pop()
-            for (
-                symbol
-            ) in self.nfa.input_symbols:  # イテレータを使用して、続きから再開できるようにしたい。イテレータはforで値を取り出すと、その値が消えるので要素の途中から再開できる。
+            for symbol in self.nfa.input_symbols:
                 dot = self.__dot_product_with_wildcard(self.coefs, symbol)
                 if (previous_state := 0.5 * (current_state - dot)).is_integer():
                     previous_state = int(previous_state)
@@ -92,16 +88,12 @@ class AutomataBuilder:
                     self.nfa.add_transition(self.INITIAL_STATE, symbol, str(current_state))
                     partial_sat = True
             if partial_sat:
-                if not self.create_all:  # This is for debug
-                    # TODO: ループの途中で抜けずに、input_symbolsをすべて探索してからnfaを返してもいいかも。何度もintersectionをとる方が計算量が多くなる気がする。
+                if not self.create_all:
                     return partial_sat
         return partial_sat
 
     def neq_to_nfa(a: list[int], c: int):
         pass
-
-    # wildcard を使用するため、自作する必要がある
-    # TODO: mask をクラスで管理する
 
 
 def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1, mask2) -> NFA:
@@ -133,7 +125,7 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1, mask2) -> NFA:
 
     def intersection_containing_wildcard(symbols1, symbols2) -> set[str]:
         """
-        '01*' と '0*0'があった時、'010'をresultに追加する
+        example: if '01*' and '0*0' are given, add '010' to result
         """
         result = set()
         for s1, s2 in itertools.product(symbols1, symbols2):
