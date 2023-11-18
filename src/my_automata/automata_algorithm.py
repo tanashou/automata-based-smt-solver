@@ -1,16 +1,15 @@
 import itertools
 from collections import defaultdict
 from src.my_automata.my_automata import MutableNFA as NFA
+import src.my_automata.my_automata as T
 
 
-# 各リテラルに対してnfaを作成するクラス。こいつに渡したらnfaを返すようにしたい。
+# 各リテラルに対してnfaを作成するクラス
 class AutomataBuilder:
     WILDCARD = "*"
     INITIAL_STATE = "q0"
 
-    def __init__(
-        self, coefs: list[int], const: int, relation: str, mask: list[bool], create_all=False
-    ) -> None:  # TODO: 戻り値をnfaにする。
+    def __init__(self, coefs: list[str], const: int, relation: str, mask: list[bool], create_all: bool = False) -> None:
         if len(coefs) != len(mask):
             raise ValueError("The length of the mask must be equal to the length of the coefficients")
         self.coefs = coefs
@@ -55,14 +54,14 @@ class AutomataBuilder:
 
         return binary_strings
 
-    def __dot_product_with_wildcard(self, vector1, vector2) -> int:
-        if len(vector1) != len(vector2):
+    def __dot_product_with_wildcard(self, coefs: list[str], symbol: T.SymbolT) -> int:
+        if len(coefs) != len(symbol):
             raise ValueError("Vectors must have the same length")
 
         result = 0
 
-        for v1, v2 in zip(vector1, vector2):
-            if self.WILDCARD not in (v1, v2):
+        for v1, v2 in zip(coefs, symbol):
+            if v2 != self.WILDCARD:
                 result += int(v1) * int(v2)
         return result
 
@@ -92,14 +91,14 @@ class AutomataBuilder:
                     return partial_sat
         return partial_sat
 
-    def neq_to_nfa(a: list[int], c: int):
-        pass
+    # def neq_to_nfa(a: list[int], c: int) -> None:
+    #     pass
 
 
-def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1, mask2) -> NFA:
+def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1: list[bool], mask2: list[bool]) -> NFA:
     WILDCARD = "*"  # TODO: 定数の管理方法を考える
 
-    def apply_mask(pattern, mask) -> str:
+    def apply_mask(pattern: T.SymbolT, mask: list[bool]) -> T.SymbolT:
         if len(pattern) != len(mask):
             raise ValueError("The length of the mask must be equal to the length of the pattern")
 
@@ -112,7 +111,7 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1, mask2) -> NFA:
 
         return result
 
-    def symbol_intersection(symbol1, symbol2):
+    def symbol_intersection(symbol1: T.SymbolT, symbol2: T.SymbolT) -> T.SymbolT:
         if len(symbol1) != len(symbol2):
             raise ValueError("Symbols must have the same length")
 
@@ -123,7 +122,7 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1, mask2) -> NFA:
             result += s1 if s1 != WILDCARD else s2
         return result
 
-    def intersection_containing_wildcard(symbols1, symbols2) -> set[str]:
+    def intersection_containing_wildcard(symbols1: set[T.SymbolT], symbols2: set[T.SymbolT]) -> set[T.SymbolT]:
         """
         example: if '01*' and '0*0' are given, add '010' to result
         """
@@ -139,11 +138,11 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1, mask2) -> NFA:
     nfa = NFA(
         states=set(),
         input_symbols=intersection_containing_wildcard(nfa1.input_symbols, nfa2.input_symbols),
-        transitions=dict(),
+        transitions=defaultdict(lambda: defaultdict(set)),
         initial_state=initial_state,
         final_states=set(),
     )
-    work_list: list[str] = [initial_state]
+    work_list: list[T.NFAStateT] = [initial_state]
 
     if not nfa.input_symbols:
         raise ValueError("The given NFAs have no common input symbols")

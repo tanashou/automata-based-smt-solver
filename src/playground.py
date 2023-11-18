@@ -23,7 +23,7 @@ nfa = NFA(
     final_states={"q1"},
 )
 
-coefs = [1, -1, 1]
+coefs = ['1', '-1', '1']
 mask1 = [True, True, False]
 mask2 = [True, False, True]
 
