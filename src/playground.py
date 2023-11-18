@@ -1,28 +1,24 @@
 from src.my_automata.my_automata import MutableNFA as NFA
+from automata.fa.nfa import NFA as BaseNFA
 from src.my_automata.automata_algorithm import *
+
+from collections import defaultdict
+
+
+# Initialize the defaultdict
+transitions = defaultdict(lambda: defaultdict(set))
+
+# Add values to the dictionary
+transitions["q0"]["a"].add("q1")
+transitions["q1"]["a"].add("q1")
+transitions["q1"][""].add("q2")
+transitions["q2"]["b"].add("q0")
+
 
 nfa = NFA(
     states={"q0", "q1", "q2"},
     input_symbols={"a", "b"},
-    transitions={
-        "q0": {"a": {"q1"}},
-        # Use '' as the key name for empty string (lambda/epsilon) transitions
-        "q1": {"a": {"q1"}, "": {"q2"}},
-        "q2": {"b": {"q0"}},
-    },
-    initial_state="q0",
-    final_states={"q1"},
-)
-
-nfa2 = NFA(
-    states={"q0", "q1", "q200"},
-    input_symbols={"a", "b"},
-    transitions={
-        "q0": {"a": {"q1"}},
-        # Use '' as the key name for empty string (lambda/epsilon) transitions
-        "q1": {"a": {"q1"}, "": {"q200"}},
-        "q200": {"b": {"q0"}},
-    },
+    transitions=transitions,
     initial_state="q0",
     final_states={"q1"},
 )
@@ -33,8 +29,8 @@ mask2 = [True, False, True]
 
 # complete_nfa1 = AutomataBuilder(coefs, 2, 'equal', mask1, create_all=True)
 # complete_nfa2 = AutomataBuilder(coefs, 5, 'equal', mask2, create_all=True)
-partial_nfa1 = AutomataBuilder(coefs, 2, 'equal', mask1, create_all=False)
-partial_nfa2 = AutomataBuilder(coefs, 5, 'equal', mask2, create_all=False)
+partial_nfa1 = AutomataBuilder(coefs, 2, "equal", mask1, create_all=False)
+partial_nfa2 = AutomataBuilder(coefs, 5, "equal", mask2, create_all=False)
 
 # complete_nfa1.next()
 # complete_nfa2.next()

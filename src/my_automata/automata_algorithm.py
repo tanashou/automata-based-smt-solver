@@ -1,4 +1,5 @@
 import itertools
+from collections import defaultdict
 from src.my_automata.my_automata import MutableNFA as NFA
 
 
@@ -20,7 +21,7 @@ class AutomataBuilder:
         self.nfa = NFA(
             states={self.INITIAL_STATE, str(self.const)},
             input_symbols=self.__binary_strings_with_wildcard(),
-            transitions=dict(),
+            transitions=defaultdict(lambda: defaultdict(set)),
             initial_state=self.INITIAL_STATE,
             final_states=set([str(self.const)]),
         )  # TODO: self.relationによって、どの関数を呼び出すかを変えたい。
