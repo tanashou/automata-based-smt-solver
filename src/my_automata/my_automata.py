@@ -8,9 +8,9 @@ I needed a mutable version of these variables to modify them during runtime, so 
 """
 
 SymbolT = str
-NFAStateT = str
-NFAPathT = defaultdict[SymbolT, set[NFAStateT | tuple[NFAStateT]]]
-NFATransitionT = defaultdict[NFAStateT | tuple[NFAStateT], NFAPathT]
+NFAStateT = str | tuple[str]
+NFAPathT = defaultdict[SymbolT, set[NFAStateT]]
+NFATransitionT = defaultdict[NFAStateT, NFAPathT]
 InputPathListT = list[tuple[NFAStateT, NFAStateT, SymbolT]]
 
 
@@ -61,9 +61,7 @@ class MutableNFA:
     def add_input_symbol(self, new_input_symbol: str) -> None:
         self.__input_symbols.add(new_input_symbol)
 
-    def add_transition(
-        self, current_state: NFAStateT | tuple[NFAStateT], symbol: str, next_state: NFAStateT | tuple[NFAStateT]
-    ) -> None:
+    def add_transition(self, current_state: NFAStateT, symbol: str, next_state: NFAStateT) -> None:
         if not isinstance(self.transitions, defaultdict):
             self.__transitions = defaultdict(lambda: defaultdict(set))
         self.__transitions[current_state][symbol].add(next_state)
@@ -74,9 +72,7 @@ class MutableNFA:
     def add_final_state(self, new_final_state: NFAStateT) -> None:
         self.__final_states.add(new_final_state)
 
-    def get_next_states(
-        self, current_state: NFAStateT | tuple[NFAStateT], symbol: SymbolT
-    ) -> set[NFAStateT | tuple[NFAStateT]]:
+    def get_next_states(self, current_state: NFAStateT, symbol: SymbolT) -> set[NFAStateT]:
         return self.__transitions[current_state][symbol]
 
     def __make_base_nfa(self) -> None:
