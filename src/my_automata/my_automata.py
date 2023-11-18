@@ -1,6 +1,6 @@
 from automata.fa.nfa import NFA as BaseNFA
 import automata.fa.nfa as nfa
-import collections
+from collections import defaultdict
 
 
 """
@@ -16,7 +16,7 @@ class MutableNFA:
         *,
         states: set[nfa.NFAStateT],
         input_symbols: set[str],  # TODO: 全てのアルファベットを保存しておく必要はないので、正規表現などにしたい
-        transitions: "collections.defaultdict(nfa.NFAStateT, nfa.NFAPathT)",
+        transitions: "defaultdict(nfa.NFAStateT, nfa.NFAPathT)",
         initial_state: nfa.NFAStateT,
         final_states: set[nfa.NFAStateT],
     ) -> None:
