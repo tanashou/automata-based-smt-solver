@@ -7,6 +7,7 @@ authors = [
 ]
 dependencies = [
     "automata-lib[visual]>=8.1.0",
+    "mypy>=1.7.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -24,3 +25,7 @@ playground = 'rye run python src/playground.py'
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.mypy]
+ignore_missing_imports = true
+strict = true
