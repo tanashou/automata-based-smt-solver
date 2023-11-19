@@ -68,6 +68,7 @@ class AutomataBuilder:
     """
 
     def eq_to_nfa(self) -> bool:
+        # when return False, the nfa is complete. No more works to do.
         partial_sat = False
 
         while self.work_list:
@@ -91,7 +92,7 @@ class AutomataBuilder:
     # def neq_to_nfa(a: list[int], c: int) -> None:
     #     pass
 
-
+# TODO: 引数にはbuilderを渡す。maskはbuilderから取得する
 def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1: list[bool], mask2: list[bool]) -> NFA:
     WILDCARD = "*"  # TODO: 定数の管理方法を考える
 
