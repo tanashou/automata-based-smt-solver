@@ -9,7 +9,7 @@ I needed a mutable version of these variables to modify them during runtime, so 
 """
 
 SymbolT = str
-NFAStateT = Any # 入れ子になる可能性があるので、Anyにしておく
+NFAStateT = Any  # 入れ子になる可能性があるので、Anyにしておく
 NFAPathT = defaultdict[SymbolT, set[NFAStateT]]
 NFATransitionT = defaultdict[NFAStateT, NFAPathT]
 InputPathListT = list[tuple[NFAStateT, NFAStateT, SymbolT]]
@@ -63,8 +63,6 @@ class MutableNFA:
         self.__input_symbols.add(new_input_symbol)
 
     def add_transition(self, current_state: NFAStateT, symbol: str, next_state: NFAStateT) -> None:
-        if not isinstance(self.transitions, defaultdict):
-            self.__transitions = defaultdict(lambda: defaultdict(set))
         self.__transitions[current_state][symbol].add(next_state)
 
     def add_initial_state(self, new_initial_state: NFAStateT) -> None:
