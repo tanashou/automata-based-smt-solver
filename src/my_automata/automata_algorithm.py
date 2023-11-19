@@ -55,9 +55,6 @@ class AutomataBuilder:
         return binary_strings
 
     def __dot_product_with_wildcard(self, coefs: list[str], symbol: T.SymbolT) -> int:
-        if len(coefs) != len(symbol):
-            raise ValueError("Vectors must have the same length")
-
         result = 0
 
         for v1, v2 in zip(coefs, symbol):
