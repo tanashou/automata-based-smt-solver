@@ -3,7 +3,7 @@ from automata.fa.nfa import NFA as BaseNFA
 from src.my_automata.automata_algorithm import *
 
 
-coefs = ["1", "-1", "1"]# TODO: str か int のどっちで管理するか検討。
+coefs = ["1", "-1", "1"]  # TODO: str か int のどっちで管理するか検討。
 mask1 = [True, True, False]
 mask2 = [True, False, True]
 
@@ -12,7 +12,7 @@ builders.append(AutomataBuilder(coefs, 2, "equal", mask1, create_all=False))
 builders.append(AutomataBuilder(coefs, 5, "equal", mask2, create_all=False))
 
 loop = 0
-while True: # TODO: 終了条件を、nfa_intersectionで出てきたnfaが受理できるかにする。dfsで探索する
+while True:  # TODO: 終了条件を、nfa_intersectionで出てきたnfaが受理できるかにする。dfsで探索する
     success_states = [builder.next() for builder in builders]
     if not any(success_states):  # all builders are already completed
         break

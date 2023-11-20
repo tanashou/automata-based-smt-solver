@@ -1,11 +1,16 @@
 import itertools
 from collections import defaultdict
 from src.my_automata.my_automata import MutableNFA as NFA, SymbolT, NFAStateT
+from src.my_automata.utils import (
+    binary_strings_with_wildcard,
+    dot_product_with_wildcard,
+    apply_mask,
+    intersection_containing_wildcard,
+)
 
 
 # 各リテラルに対してnfaを作成するクラス
 class AutomataBuilder:
-    WILDCARD = "*"
     INITIAL_STATE = "q0"
 
     def __init__(self, coefs: list[str], const: int, relation: str, mask: list[bool], create_all: bool = False) -> None:
@@ -18,7 +23,7 @@ class AutomataBuilder:
         self.create_all = create_all  # for debug
         self.nfa = NFA(
             states={self.INITIAL_STATE, str(self.const)},
-            input_symbols=self.__binary_strings_with_wildcard(),
+            input_symbols=binary_strings_with_wildcard(self.mask),
             transitions=defaultdict(lambda: defaultdict(set)),
             initial_state=self.INITIAL_STATE,
             final_states=set([str(self.const)]),
@@ -28,38 +33,6 @@ class AutomataBuilder:
     def next(self) -> bool:
         # TODO: self.relationによって、どの関数を呼び出すかを変えたい。relationクラスかenumを作成する
         return self.eq_to_nfa()
-
-    def __binary_strings_with_wildcard(self) -> set[str]:
-        """
-        Generates binary strings with a wildcard (*) inserted at specified positions based on a mask.
-
-        Args:
-            mask: A list of booleans where True indicates that the corresponding position should be kept,
-                and False indicates that the position should be removed.
-
-        Returns:
-            A set of binary strings with the wildcard (*) inserted at appropriate positions based on the mask.
-        """
-
-        # Generate combinations of "01" for the positions to keep
-        combinations = list(itertools.product("01", repeat=self.mask.count(True)))
-        # Convert combinations into binary strings
-        binary_strings = {"".join(x) for x in combinations}
-
-        # Iterate over the mask and insert the wildcard (*) at specified positions
-        for i, is_masked in enumerate(self.mask):
-            if not is_masked:
-                binary_strings = {s[:i] + self.WILDCARD + s[i:] for s in binary_strings}
-
-        return binary_strings
-
-    def __dot_product_with_wildcard(self, coefs: list[str], symbol: SymbolT) -> int:
-        result = 0
-
-        for v1, v2 in zip(coefs, symbol):
-            if v2 != self.WILDCARD:
-                result += int(v1) * int(v2)
-        return result
 
     """
     coefs: all the coefficients of the linear equations
@@ -73,7 +46,7 @@ class AutomataBuilder:
         while self.work_list:
             current_state = self.work_list.pop()
             for symbol in self.nfa.input_symbols:
-                dot = self.__dot_product_with_wildcard(self.coefs, symbol)
+                dot = dot_product_with_wildcard(self.coefs, symbol)
                 if (previous_state := 0.5 * (current_state - dot)).is_integer():
                     previous_state = int(previous_state)
                     if str(previous_state) not in self.nfa.states:
@@ -94,44 +67,6 @@ class AutomataBuilder:
 
 # TODO: 引数にはbuilderを渡す。maskはbuilderから取得する
 def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1: list[bool], mask2: list[bool]) -> NFA:
-    WILDCARD = "*"  # TODO: 定数の管理方法を考える。計算系は専用のファイルで管理する
-
-    def apply_mask(pattern: SymbolT, mask: list[bool]) -> SymbolT:
-        if len(pattern) != len(mask):
-            raise ValueError("The length of the mask must be equal to the length of the pattern")
-
-        result = ""
-        for i in range(len(mask)):
-            if mask[i]:
-                result += pattern[i]
-            else:
-                result += WILDCARD
-
-        return result
-
-    def symbol_intersection(symbol1: SymbolT, symbol2: SymbolT) -> SymbolT:
-        if len(symbol1) != len(symbol2):
-            raise ValueError("Symbols must have the same length")
-
-        result = ""
-        for s1, s2 in zip(symbol1, symbol2):
-            if s1 != s2 and WILDCARD not in (s1, s2):
-                return ""
-            result += s1 if s1 != WILDCARD else s2
-        return result
-
-    def intersection_containing_wildcard(symbols1: set[SymbolT], symbols2: set[SymbolT]) -> set[SymbolT]:
-        """
-        example: if '01*' and '0*0' are given, add '010' to result
-        """
-        result = set()
-        for s1, s2 in itertools.product(symbols1, symbols2):
-            s = symbol_intersection(s1, s2)
-            if s:
-                result.add(s)
-
-        return result
-
     initial_state = (nfa1.initial_state, nfa2.initial_state)
     nfa = NFA(
         states=set(),
