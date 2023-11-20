@@ -94,7 +94,7 @@ class AutomataBuilder:
 
 # TODO: 引数にはbuilderを渡す。maskはbuilderから取得する
 def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1: list[bool], mask2: list[bool]) -> NFA:
-    WILDCARD = "*"  # TODO: 定数の管理方法を考える
+    WILDCARD = "*"  # TODO: 定数の管理方法を考える。計算系は専用のファイルで管理する
 
     def apply_mask(pattern: T.SymbolT, mask: list[bool]) -> T.SymbolT:
         if len(pattern) != len(mask):
