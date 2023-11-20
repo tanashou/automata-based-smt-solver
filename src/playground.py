@@ -2,56 +2,27 @@ from src.my_automata.my_automata import MutableNFA as NFA
 from automata.fa.nfa import NFA as BaseNFA
 from src.my_automata.automata_algorithm import *
 
-from collections import defaultdict
 
-
-# Initialize the defaultdict
-transitions = defaultdict(lambda: defaultdict(set))
-
-# Add values to the dictionary
-transitions["q0"]["a"].add("q1")
-transitions["q1"]["a"].add("q1")
-transitions["q1"][""].add("q2")
-transitions["q2"]["b"].add("q0")
-
-
-nfa = NFA(
-    states={"q0", "q1", "q2"},
-    input_symbols={"a", "b"},
-    transitions=transitions,
-    initial_state="q0",
-    final_states={"q1"},
-)
-
-coefs = ['1', '-1', '1']
+coefs = ["1", "-1", "1"]  # TODO: str か int のどっちで管理するか検討。
 mask1 = [True, True, False]
 mask2 = [True, False, True]
 
-# complete_nfa1 = AutomataBuilder(coefs, 2, 'equal', mask1, create_all=True)
-# complete_nfa2 = AutomataBuilder(coefs, 5, 'equal', mask2, create_all=True)
-partial_nfa1 = AutomataBuilder(coefs, 2, "equal", mask1, create_all=False)
-partial_nfa2 = AutomataBuilder(coefs, 5, "equal", mask2, create_all=False)
+builders = []  # TODO: リテラルのandの部分を入れる。andとorが混じっている場合は二重リストにする
+builders.append(AutomataBuilder(coefs, 2, "equal", mask1, create_all=False))
+builders.append(AutomataBuilder(coefs, 5, "equal", mask2, create_all=False))
 
-# complete_nfa1.next()
-# complete_nfa2.next()
-# partial_nfa1.next()
-# partial_nfa2.next()
+loop = 0
+while True:  # TODO: 終了条件を、nfa_intersectionで出てきたnfaが受理できるかにする。dfsで探索する
+    success_states = [builder.next() for builder in builders]
+    if not any(success_states):  # all builders are already completed
+        break
 
-count = 0
-while partial_nfa1.next():
-    partial_nfa1.nfa.show_diagram(path=f"image/partial1_{count}.png")
-    count += 1
+    for i, builder in enumerate(builders):
+        builder.nfa.show_diagram(path=f"image/nfa{i}_{loop}.png")
 
-count = 0
-while partial_nfa2.next():
-    partial_nfa2.nfa.show_diagram(path=f"image/partial2_{count}.png")
-    count += 1
+    paired_list = [(builders[i], builders[i + 1]) for i in range(0, len(builders), 2)]
+    for builder1, builder2 in paired_list:
+        nfa = nfa_intersection(builder1.nfa, builder2.nfa, builder1.mask, builder2.mask)
+        nfa.show_diagram(path=f"image/nfa_intersection{loop}.png")
 
-intersection_nfa = nfa_intersection(partial_nfa1.nfa, partial_nfa2.nfa, mask1, mask2)
-intersection_nfa.show_diagram(path="image/intersection.png")
-
-
-# # complete_nfa = nfa_intersection(complete_nfa1.nfa, complete_nfa2.nfa, mask1, mask2)
-# partial_nfa = nfa_intersection(partial_nfa1.nfa, partial_nfa2.nfa, mask1, mask2)
-# # complete_nfa.show_diagram(path="image/complete1.png")
-# partial_nfa.show_diagram(path="image/partial1.png")
+    loop += 1
