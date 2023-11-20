@@ -74,8 +74,8 @@ class MutableNFA:
     def get_next_states(self, current_state: NFAStateT, symbol: SymbolT) -> set[NFAStateT]:
         return self.__transitions[current_state][symbol]
 
-    def __make_base_nfa(self) -> None:
-        self.__base_nfa = BaseNFA(
+    def __make_base_nfa(self) -> BaseNFA:
+        return BaseNFA(
             states=self.__states,
             input_symbols=self.__input_symbols,
             transitions=self.__transitions,
@@ -84,5 +84,5 @@ class MutableNFA:
         )
 
     def show_diagram(self, path: str) -> None:
-        self.__make_base_nfa()
-        self.__base_nfa.show_diagram(path=path)
+        base_nfa = self.__make_base_nfa()
+        base_nfa.show_diagram(path=path)
