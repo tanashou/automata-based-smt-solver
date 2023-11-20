@@ -3,18 +3,18 @@ from automata.fa.nfa import NFA as BaseNFA
 from src.my_automata.automata_algorithm import *
 
 
-coefs = ["1", "-1", "1"]
+coefs = ["1", "-1", "1"]# TODO: str か int のどっちで管理するか検討。
 mask1 = [True, True, False]
 mask2 = [True, False, True]
 
-builders = []  # リテラルのandの部分を入れる。andとorが混じっている場合は二重リストにする
+builders = []  # TODO: リテラルのandの部分を入れる。andとorが混じっている場合は二重リストにする
 builders.append(AutomataBuilder(coefs, 2, "equal", mask1, create_all=False))
 builders.append(AutomataBuilder(coefs, 5, "equal", mask2, create_all=False))
 
 loop = 0
-while True:
-    complete = [builder.next() for builder in builders]
-    if not any(complete):  # all builders are already completed
+while True: # TODO: 終了条件を、nfa_intersectionで出てきたnfaが受理できるかにする。dfsで探索する
+    success_states = [builder.next() for builder in builders]
+    if not any(success_states):  # all builders are already completed
         break
 
     for i, builder in enumerate(builders):
