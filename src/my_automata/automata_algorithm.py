@@ -1,7 +1,6 @@
 import itertools
 from collections import defaultdict
-from src.my_automata.my_automata import MutableNFA as NFA
-import src.my_automata.my_automata as T
+from src.my_automata.my_automata import MutableNFA as NFA, SymbolT, NFAStateT
 
 
 # 各リテラルに対してnfaを作成するクラス
@@ -54,7 +53,7 @@ class AutomataBuilder:
 
         return binary_strings
 
-    def __dot_product_with_wildcard(self, coefs: list[str], symbol: T.SymbolT) -> int:
+    def __dot_product_with_wildcard(self, coefs: list[str], symbol: SymbolT) -> int:
         result = 0
 
         for v1, v2 in zip(coefs, symbol):
@@ -92,11 +91,12 @@ class AutomataBuilder:
     # def neq_to_nfa(a: list[int], c: int) -> None:
     #     pass
 
+
 # TODO: 引数にはbuilderを渡す。maskはbuilderから取得する
 def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1: list[bool], mask2: list[bool]) -> NFA:
     WILDCARD = "*"  # TODO: 定数の管理方法を考える。計算系は専用のファイルで管理する
 
-    def apply_mask(pattern: T.SymbolT, mask: list[bool]) -> T.SymbolT:
+    def apply_mask(pattern: SymbolT, mask: list[bool]) -> SymbolT:
         if len(pattern) != len(mask):
             raise ValueError("The length of the mask must be equal to the length of the pattern")
 
@@ -109,7 +109,7 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1: list[bool], mask2: list[bool])
 
         return result
 
-    def symbol_intersection(symbol1: T.SymbolT, symbol2: T.SymbolT) -> T.SymbolT:
+    def symbol_intersection(symbol1: SymbolT, symbol2: SymbolT) -> SymbolT:
         if len(symbol1) != len(symbol2):
             raise ValueError("Symbols must have the same length")
 
@@ -120,7 +120,7 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1: list[bool], mask2: list[bool])
             result += s1 if s1 != WILDCARD else s2
         return result
 
-    def intersection_containing_wildcard(symbols1: set[T.SymbolT], symbols2: set[T.SymbolT]) -> set[T.SymbolT]:
+    def intersection_containing_wildcard(symbols1: set[SymbolT], symbols2: set[SymbolT]) -> set[SymbolT]:
         """
         example: if '01*' and '0*0' are given, add '010' to result
         """
@@ -140,7 +140,7 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1: list[bool], mask2: list[bool])
         initial_state=initial_state,
         final_states=set(),
     )
-    work_list: list[T.NFAStateT] = [initial_state]
+    work_list: list[NFAStateT] = [initial_state]
 
     if not nfa.input_symbols:
         raise ValueError("The given NFAs have no common input symbols")
