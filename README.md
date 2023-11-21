@@ -22,7 +22,6 @@ export LDFLAGS="-L $(brew --prefix graphviz)/lib"
 
 then run this command
 ```bash
-rye add pygraphviz
 rye sync
 ```
 ## Usage
