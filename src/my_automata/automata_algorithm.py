@@ -1,6 +1,6 @@
 import itertools
 from collections import defaultdict
-from src.my_automata.my_automata import MutableNFA as NFA, SymbolT, NFAStateT
+from my_automata.mutable_nfa import MutableNFA as NFA, SymbolT, NFAStateT
 from src.my_automata.utils import (
     binary_strings_with_wildcard,
     dot_product_with_wildcard,
