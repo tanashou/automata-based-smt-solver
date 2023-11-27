@@ -9,10 +9,10 @@
 -e file:.
 automata-lib==8.1.0
 cached-method==0.1.0
-coloraide==2.11
-frozendict==2.3.8
+coloraide==2.13.1
+frozendict==2.3.9
 mypy==1.7.0
 mypy-extensions==1.0.0
-networkx==3.2
+networkx==3.2.1
 pygraphviz==1.11
 typing-extensions==4.8.0

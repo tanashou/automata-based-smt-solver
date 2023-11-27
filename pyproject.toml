@@ -6,8 +6,8 @@ authors = [
     { name = "tanashou", email = "" }
 ]
 dependencies = [
-    "automata-lib[visual]>=8.1.0",
     "mypy>=1.7.0",
+    "automata-lib[visual]>=8.1.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
