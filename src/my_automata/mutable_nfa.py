@@ -98,12 +98,7 @@ class MutableNFA:
             for symbol in self.input_symbols:
                 neighbors.update(self.get_next_states(state, symbol))
             return neighbors
-        """
-        transitions={
-        'q0': {'a': {'q1'}},
-        'q1': {'a': {'q1'}, 'b': {'q2'}},
-        'q2': {'b': {'q0'}}
-        """
+        
         stack: list[NFAStateT] = [self.initial_state]
         path_of_states: list[NFAStateT] = []  # 異なる入力で同じ状態に遷移する可能性があるため、状態のみを記録し、その後入力を探索する
         visited: set[NFAStateT] = set() # TODO: このままでは毎回要素が集合にあるか探索する処理が必要になる。状態に番号を振って（辞書とか)、探索の計算量をO(1)にする。
