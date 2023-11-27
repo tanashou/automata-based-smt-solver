@@ -81,19 +81,12 @@ class MutableNFA:
     def get_next_states(self, current_state: NFAStateT, symbol: SymbolT) -> set[NFAStateT]:
         return self.__transitions[current_state][symbol]
 
-    def __make_base_nfa(self) -> BaseNFA:
-        if not _visual_imports:
-            raise ImportError(
-                "The 'automata-lib'visual' packages are required for this functionality."
-            )
-        return BaseNFA(
+    def show_diagram(self, path: str) -> None:
+        base_nfa = BaseNFA(
             states=self.__states,
             input_symbols=self.__input_symbols,
             transitions=self.__transitions,
             initial_state=self.__initial_state,
             final_states=self.__final_states,
         )
-
-    def show_diagram(self, path: str) -> None:
-        base_nfa = self.__make_base_nfa()
         base_nfa.show_diagram(path=path)

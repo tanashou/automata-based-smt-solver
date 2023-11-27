@@ -1,5 +1,4 @@
 from src.my_automata.my_automata import MutableNFA as NFA
-from automata.fa.nfa import NFA as BaseNFA
 from src.my_automata.automata_algorithm import *
 
 
