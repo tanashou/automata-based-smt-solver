@@ -1,6 +1,13 @@
-from automata.fa.nfa import NFA as BaseNFA
 from collections import defaultdict
 from typing import Any
+
+# Optional imports for use with visual functionality
+try:
+    from automata.fa.nfa import NFA as BaseNFA
+except ImportError:
+    _visual_imports = False
+else:
+    _visual_imports = True
 
 
 """
@@ -75,6 +82,10 @@ class MutableNFA:
         return self.__transitions[current_state][symbol]
 
     def __make_base_nfa(self) -> BaseNFA:
+        if not _visual_imports:
+            raise ImportError(
+                "The 'automata-lib'visual' packages are required for this functionality."
+            )
         return BaseNFA(
             states=self.__states,
             input_symbols=self.__input_symbols,
