@@ -1,5 +1,5 @@
 from my_automata.mutable_nfa import MutableNFA as NFA
-from src.my_automata.automata_algorithm import *
+from my_automata.automata_builder import *
 
 
 coefs = ["1", "-1", "1"]  # TODO: str か int のどっちで管理するか検討。
