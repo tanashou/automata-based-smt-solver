@@ -1,13 +1,6 @@
 from collections import defaultdict
 from typing import Any
-
-# Optional imports for use with visual functionality
-try:
-    from automata.fa.nfa import NFA as BaseNFA
-except ImportError:
-    _visual_imports = False
-else:
-    _visual_imports = True
+from automata.fa.nfa import NFA as BaseNFA
 
 
 """
@@ -91,23 +84,22 @@ class MutableNFA:
         )
         base_nfa.show_diagram(path=path)
 
-
     def dfs(self) -> bool:
         def get_neighbors(state: NFAStateT) -> set[NFAStateT]:
             neighbors = set()
             for symbol in self.input_symbols:
                 neighbors.update(self.get_next_states(state, symbol))
             return neighbors
-        
+
         stack: list[NFAStateT] = [self.initial_state]
         path_of_states: list[NFAStateT] = []  # 異なる入力で同じ状態に遷移する可能性があるため、状態のみを記録し、その後入力を探索する
-        visited: set[NFAStateT] = set() # TODO: このままでは毎回要素が集合にあるか探索する処理が必要になる。状態に番号を振って（辞書とか)、探索の計算量をO(1)にする。
+        visited: set[NFAStateT] = set()  # TODO: このままでは毎回要素が集合にあるか探索する処理が必要になる。状態に番号を振って（辞書とか)、探索の計算量をO(1)にする。
 
         while stack:
             current_state = stack.pop()
             path_of_states.append(current_state)
             if current_state in self.final_states:
-                print('reached to final state')
+                print("reached to final state")
                 print(path_of_states)
                 return True
 
@@ -117,5 +109,5 @@ class MutableNFA:
                 if neighbor_state not in visited:
                     stack.append(neighbor_state)
 
-        print('not reached to final state')
+        print("not reached to final state")
         return False
