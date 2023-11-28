@@ -9,21 +9,19 @@
 - [参考文献](#参考文献)
 - [License](#license)
 
-## Installation(for Mac)
-install graphviz via homebrew
+## Installation(for Mac and Linux)
+Install `gcc` and `clang` if you haven't.
+Install graphviz via homebrew.
 ```bash
 brew install graphviz
 ```
-add these lines to .zshrc
+Run these command.
 ```bash
 export CFLAGS="-I $(brew --prefix graphviz)/include"
 export LDFLAGS="-L $(brew --prefix graphviz)/lib"
-```
-
-then run this command
-```bash
 rye sync
 ```
+
 ## Usage
 
 TODO
