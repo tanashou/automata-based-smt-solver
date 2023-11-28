@@ -10,17 +10,18 @@
 - [License](#license)
 
 ## Installation(for Mac and Linux)
-Install `gcc` and `clang` if you haven't.
+Install [rye](https://rye-up.com/guide/installation/), `gcc`, and `clang` if you haven't.
+
 Install graphviz via homebrew.
 ```bash
 brew install graphviz
 ```
-Run these command.
+You need to add these path to install `pygraphviz` to rye.
 ```bash
 export CFLAGS="-I $(brew --prefix graphviz)/include"
 export LDFLAGS="-L $(brew --prefix graphviz)/lib"
-rye sync
 ```
+Then run `rye sync`.
 
 ## Usage
 
