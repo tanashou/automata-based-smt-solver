@@ -9,24 +9,28 @@
 - [参考文献](#参考文献)
 - [License](#license)
 
-## Installation
-If you want a visualized graph, you need `pygraphviz`. For mac, install graphviz via homebrew
+## Installation(for Mac and Linux)
+Install [rye](https://rye-up.com/guide/installation/), `gcc`, and `clang` if you haven't.
+
+### for Mac
+Install graphviz via homebrew.
 ```bash
 brew install graphviz
 ```
-add these lines to .zshrc
+You need to add these path to install `pygraphviz` to rye.
 ```bash
 export CFLAGS="-I $(brew --prefix graphviz)/include"
 export LDFLAGS="-L $(brew --prefix graphviz)/lib"
 ```
+Then run `rye sync` to install all the dependencies.
 
-then run `rye sync`.
-
-If you don't need a visualized graph, you need to run this command
+### for Linux
+Install graphviz via apt.
 ```bash
-rye remove automata-lib
-rye sync
+sudo apt-get install graphviz graphviz-dev
 ```
+Then run `rye sync` to install all the dependencies.
+
 ## Usage
 
 TODO
