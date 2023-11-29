@@ -9,7 +9,7 @@
 - [参考文献](#参考文献)
 - [License](#license)
 
-## Installation(for Mac and Linux)
+## Installation
 Install [rye](https://rye-up.com/guide/installation/), `gcc`, and `clang` if you haven't.
 
 ### for Mac
