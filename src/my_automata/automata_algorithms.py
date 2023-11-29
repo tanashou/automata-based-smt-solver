@@ -66,6 +66,7 @@ class AutomataBuilder:
 
 
 # TODO: 引数にはbuilderを渡す。maskはbuilderから取得する
+# TODO: タプルのネストを外す。tuple(itertools.chain.from_iterable(tup;e))でいける
 def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1: list[bool], mask2: list[bool]) -> (NFA, list[bool]):
     initial_state = (nfa1.initial_state, nfa2.initial_state)
     nfa = NFA(
