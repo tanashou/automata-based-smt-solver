@@ -1,5 +1,4 @@
-from my_automata.mutable_nfa import MutableNFA as NFA
-from my_automata.automata_builder import *
+from my_automata.automata_builder import AutomataBuilder
 
 
 coefs = ["1", "-1", "1"]  # TODO: str か int のどっちで管理するか検討。
@@ -9,7 +8,7 @@ mask2 = [True, False, True]
 builders = []  # TODO: リテラルのandの部分を入れる。andとorが混じっている場合は二重リストにする
 builders.append(AutomataBuilder(coefs, 2, "equal", mask1, create_all=False))
 builders.append(AutomataBuilder(coefs, 5, "equal", mask2, create_all=False))
-test = (AutomataBuilder(coefs, 5, "equal", mask2, create_all=True))
+test = AutomataBuilder(coefs, 5, "equal", mask2, create_all=True)
 test.next()
 test.nfa.show_diagram(path=f"image/test_nfa.png")
 test.nfa.dfs()

@@ -1,5 +1,5 @@
 import unittest
-from my_automata.utils import *
+from my_automata.utils import binary_strings_with_wildcard, dot_product_with_wildcard
 
 
 # Test cases for the function binary_strings_with_wildcard
