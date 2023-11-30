@@ -1,4 +1,5 @@
 import unittest
+# need path start from src. otherwise, won't work
 from src.my_automata.utils import binary_strings_with_wildcard, dot_product_with_wildcard
 
 
