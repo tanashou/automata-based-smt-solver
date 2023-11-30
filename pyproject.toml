@@ -21,7 +21,7 @@ managed = true
 dev-dependencies = []
 
 [tool.rye.scripts]
-playground = 'rye run python src/playground.py'
+d = 'rye run python src/playground.py'
 m = 'rye run mypy src'
 
 [tool.hatch.metadata]
