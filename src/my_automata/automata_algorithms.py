@@ -86,8 +86,8 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA) -> NFA:
         raise ValueError("The given NFAs have no common input symbols")
 
     # create a mask for each nfa. The mask is used to apply wildcard to the input symbol
-    mask1: list[bool] = [char == "*" for char in list(nfa1.input_symbols)[0]]
-    mask2: list[bool] = [char == "*" for char in list(nfa2.input_symbols)[0]]
+    mask1: list[bool] = [char != "*" for char in list(nfa1.input_symbols)[0]]
+    mask2: list[bool] = [char != "*" for char in list(nfa2.input_symbols)[0]]
 
     while work_list:
         current_state1, current_state2 = work_list.pop()
