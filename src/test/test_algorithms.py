@@ -7,10 +7,8 @@ from collections import defaultdict
 # Define a fixture for creating NFAs with common structure
 @pytest.fixture
 def sample_NFAs():
-    coefs = ["1", "1"]
-    mask1 = [True, True]
-    mask2 = [False, True]
-    bld1 = AutomataBuilder(coefs, 2, "equal", mask1, create_all=True)
+    coefs = [1, 1]
+    bld1 = AutomataBuilder(coefs, 2, "equal", create_all=True)
     bld1.next()
     nfa2 = NFA(
         states={"s", "f"},
@@ -30,9 +28,8 @@ def test_nfa_intersection(sample_NFAs):
     x + z = 2 and x >= 0
     """
     n1, n2 = sample_NFAs
-    mask1 = [True, True]
-    mask2 = [False, True]
-    result_nfa, result_mask = nfa_intersection(n1, n2, mask1, mask2)
+
+    result_nfa = nfa_intersection(n1, n2)
 
     assert result_nfa.states == {("q0", "s"), ("-1", "f"), ("0", "f"), ("1", "f"), ("2", "f")}
     assert result_nfa.input_symbols == {"00", "01", "10", "11"}
@@ -50,5 +47,4 @@ def test_nfa_intersection(sample_NFAs):
     assert result_nfa.initial_state == ("q0", "s")
     assert result_nfa.final_states == {("2", "f")}
 
-    assert result_mask == [True, True]
     pass

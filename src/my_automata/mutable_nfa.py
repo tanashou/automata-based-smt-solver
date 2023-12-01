@@ -20,13 +20,11 @@ class MutableNFA:
         self,
         *,
         states: set[NFAStateT],
-        input_symbols: set[SymbolT],  # TODO: メモリを節約するため、正規表現にしたい
+        input_symbols: set[SymbolT],
         transitions: NFATransitionT,
         initial_state: NFAStateT,
         final_states: set[NFAStateT],
     ) -> None:
-        """Initialize a complete NFA."""
-
         self.__states = states
         self.__input_symbols = input_symbols
         self.__transitions = transitions
@@ -92,8 +90,8 @@ class MutableNFA:
             return neighbors
 
         stack: list[NFAStateT] = [self.initial_state]
-        path_of_states: list[NFAStateT] = []  # 異なる入力で同じ状態に遷移する可能性があるため、状態のみを記録し、その後入力を探索する
-        visited: set[NFAStateT] = set()  # TODO: このままでは毎回要素が集合にあるか探索する処理が必要になる。状態に番号を振って（辞書とか)、探索の計算量をO(1)にする。
+        path_of_states: list[NFAStateT] = []  # 受理状態に到達するまでの状態のパスを保存する。各変数の値はこのパスから計算する予定
+        visited: set[NFAStateT] = set()
 
         while stack:
             current_state = stack.pop()
