@@ -2,33 +2,35 @@ import itertools
 from collections import defaultdict
 from src.my_automata.mutable_nfa import MutableNFA as NFA, SymbolT, NFAStateT
 from src.my_automata.utils import (
-    binary_strings_with_wildcard,
+    make_binary_wildcard_strings,
     dot_product_with_wildcard,
     apply_mask,
     intersection_containing_wildcard,
 )
 
 
-# 各リテラルに対してnfaを作成するクラス
+# 1つのリテラルに対してnfaを作成していくクラス
 class AutomataBuilder:
     INITIAL_STATE = "q0"
 
-    def __init__(self, coefs: list[str], const: int, relation: str, mask: list[bool], create_all: bool = False) -> None:
-        if len(coefs) != len(mask):
-            raise ValueError("The length of the mask must be equal to the length of the coefficients")
+    def __init__(self, coefs: list[int], const: int, relation: str, create_all: bool = False) -> None:
         self.coefs = coefs
         self.const = const
         self.relation = relation
-        self.mask = mask
         self.create_all = create_all  # for debug
         self.nfa = NFA(
             states={self.INITIAL_STATE, str(self.const)},
-            input_symbols=binary_strings_with_wildcard(self.mask),
+            input_symbols=make_binary_wildcard_strings(self.coefs),
             transitions=defaultdict(lambda: defaultdict(set)),
             initial_state=self.INITIAL_STATE,
             final_states=set([str(self.const)]),
         )
         self.work_list = [self.const]
+        self.__build_completed = False
+
+    @property
+    def build_completed(self) -> bool:
+        return self.__build_completed
 
     def next(self) -> bool:
         # TODO: self.relationによって、どの関数を呼び出すかを変えたい。relationクラスかenumを作成する
@@ -59,14 +61,17 @@ class AutomataBuilder:
             if partial_sat:
                 if not self.create_all:
                     return partial_sat
+
+        # when the work_list is empty, the nfa is complete.
+        self.__build_completed = True
         return partial_sat
 
     # def neq_to_nfa(a: list[int], c: int) -> None:
     #     pass
 
 
-# TODO: タプルのネストを外す。tuple(itertools.chain.from_iterable(tup;e))でいける
-def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1: list[bool], mask2: list[bool]) -> tuple[NFA, list[bool]]:
+# TODO: タプルのネストを外す。tuple(itertools.chain.from_iterable(tuple))でいける
+def nfa_intersection(nfa1: NFA, nfa2: NFA) -> NFA:
     initial_state = (nfa1.initial_state, nfa2.initial_state)
     nfa = NFA(
         states=set(),
@@ -79,6 +84,10 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1: list[bool], mask2: list[bool])
 
     if not nfa.input_symbols:
         raise ValueError("The given NFAs have no common input symbols")
+
+    # create a mask for each nfa. The mask is used to apply wildcard to the input symbol
+    mask1: list[bool] = [char == "*" for char in list(nfa1.input_symbols)[0]]
+    mask2: list[bool] = [char == "*" for char in list(nfa2.input_symbols)[0]]
 
     while work_list:
         current_state1, current_state2 = work_list.pop()
@@ -93,6 +102,4 @@ def nfa_intersection(nfa1: NFA, nfa2: NFA, mask1: list[bool], mask2: list[bool])
                 if (next_state1, next_state2) not in nfa.states:
                     work_list.append((next_state1, next_state2))
 
-    new_mask = [x or y for x, y in zip(mask1, mask2)]
-
-    return (nfa, new_mask)
+    return nfa

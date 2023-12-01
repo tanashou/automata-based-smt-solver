@@ -4,40 +4,30 @@ from src.my_automata.mutable_nfa import SymbolT, NFAStateT, NFAPathT, NFATransit
 WILDCARD = "*"
 
 
-def binary_strings_with_wildcard(mask: list[bool]) -> set[str]:
-    """
-    Generates binary strings with a wildcard (*) inserted at specified positions based on a mask.
-
-    Args:
-        mask: A list of booleans where True indicates that the corresponding position should be kept,
-            and False indicates that the position should be removed.
-
-    Returns:
-        A set of binary strings with the wildcard (*) inserted at appropriate positions based on the mask.
-    """
-
+def make_binary_wildcard_strings(coefs: list[int]) -> set[str]:
     # Generate combinations of "01" for the positions to keep
-    combinations = list(itertools.product("01", repeat=mask.count(True)))
+    count_not_zero = sum(1 for coef in coefs if coef != 0)
+    combinations = list(itertools.product("01", repeat=count_not_zero))
     # Convert combinations into binary strings
-    binary_strings = {"".join(x) for x in combinations}
+    binary_wildcard_strings = {"".join(x) for x in combinations}
 
     # Iterate over the mask and insert the wildcard (*) at specified positions
-    for i, is_masked in enumerate(mask):
-        if not is_masked:
-            binary_strings = {s[:i] + WILDCARD + s[i:] for s in binary_strings}
+    for i, coef in enumerate(coefs):
+        if coef == 0:
+            binary_wildcard_strings = {s[:i] + WILDCARD + s[i:] for s in binary_wildcard_strings}
 
-    return binary_strings
+    return binary_wildcard_strings
 
 
-def dot_product_with_wildcard(coefs: list[str], symbol: SymbolT) -> int:
+def dot_product_with_wildcard(coefs: list[int], symbol: SymbolT) -> int:
     if len(coefs) != len(symbol):
         raise ValueError("The length of the mask must be equal to the length of the coefficients")
 
     result = 0
-
-    for v1, v2 in zip(coefs, symbol):
-        if v2 != WILDCARD:
-            result += int(v1) * int(v2)
+    # 0 * WILDCARD か (0以外の数値) * (0 or 1) の場合のみ出てくるので、片方のみ判定すればいい
+    for c, s in zip(coefs, symbol):
+        if s != WILDCARD:
+            result += c * int(s)
     return result
 
 
@@ -48,9 +38,9 @@ def apply_mask(pattern: SymbolT, mask: list[bool]) -> SymbolT:
     result = ""
     for i in range(len(mask)):
         if mask[i]:
-            result += pattern[i]
-        else:
             result += WILDCARD
+        else:
+            result += pattern[i]
 
     return result
 
