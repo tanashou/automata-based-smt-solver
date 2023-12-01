@@ -38,9 +38,9 @@ def apply_mask(pattern: SymbolT, mask: list[bool]) -> SymbolT:
     result = ""
     for i in range(len(mask)):
         if mask[i]:
-            result += WILDCARD
-        else:
             result += pattern[i]
+        else:
+            result += WILDCARD
 
     return result
 

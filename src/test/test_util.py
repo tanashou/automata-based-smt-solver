@@ -57,15 +57,15 @@ class TestDotProductWithWildcard:
 class TestApplyMask:
     def test_all_wildcards(self):
         pattern = "101"
-        mask = [True, True, True]
+        mask = [False, False, False]
         assert apply_mask(pattern, mask) == "***"
 
     def test_no_wildcards(self):
         pattern = "101"
-        mask = [False, False, False]
+        mask = [True, True, True]
         assert apply_mask(pattern, mask) == "101"
 
     def test_mixed_mask(self):
         pattern = "101"
-        mask = [False, True, False]
+        mask = [True, False, True]
         assert apply_mask(pattern, mask) == "1*1"
