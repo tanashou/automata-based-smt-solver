@@ -82,6 +82,7 @@ class MutableNFA:
         )
         base_nfa.show_diagram(path=path)
 
+    # FIXME: 端に来て戻った時、その状態を結果から除外できていない。
     def dfs(self) -> bool:
         def get_neighbors(state: NFAStateT) -> set[NFAStateT]:
             neighbors = set()
