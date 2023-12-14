@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, deque
 from typing import Any
 from automata.fa.nfa import NFA as BaseNFA
 
@@ -82,31 +82,34 @@ class MutableNFA:
         )
         base_nfa.show_diagram(path=path)
 
-    # FIXME: 端に来て戻った時、その状態を結果から除外できていない。
     def dfs(self) -> bool:
+        # Define get_neighbors within dfs to avoid repeated lookups in self.
         def get_neighbors(state: NFAStateT) -> set[NFAStateT]:
             neighbors = set()
             for symbol in self.input_symbols:
                 neighbors.update(self.get_next_states(state, symbol))
             return neighbors
 
-        stack: list[NFAStateT] = [self.initial_state]
-        path_of_states: list[NFAStateT] = []  # 受理状態に到達するまでの状態のパスを保存する。各変数の値はこのパスから計算する予定
-        visited: set[NFAStateT] = set()
+        stack = deque([(self.initial_state, [self.initial_state])])
+        visited = {self.initial_state}
 
         while stack:
-            current_state = stack.pop()
-            path_of_states.append(current_state)
+            current_state, path_of_states = stack.pop()
+
+            # Directly check if we've reached one of the final states.
             if current_state in self.final_states:
-                print("reached to final state")
+                print("Reached a final state")
                 print(path_of_states)
                 return True
 
-            visited.add(current_state)
+            # Get neighbors only when necessary, i.e., when visiting the node.
+            current_neighbors = get_neighbors(current_state)
 
-            for neighbor_state in get_neighbors(current_state):
+            for neighbor_state in current_neighbors:
                 if neighbor_state not in visited:
-                    stack.append(neighbor_state)
+                    visited.add(neighbor_state)  # Move add operation here to avoid duplicate work
+                    new_path = path_of_states + [neighbor_state]
+                    stack.append((neighbor_state, new_path))
 
-        print("not reached to final state")
+        print("Not reached a final state")
         return False
