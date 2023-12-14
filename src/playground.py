@@ -16,7 +16,7 @@ builders.append(AutomataBuilder(coefs3, 3, "equal", create_all=False))
 loop = 0
 is_sat = False
 while not is_sat:  # TODO: 終了条件を、nfa_intersectionで出てきたnfaが受理できるかにする。dfsで探索する
-    success_states = [builder.next() for builder in builders] # FIXME: nfa.is_sat を取得して使う。
+    success_states = [builder.next() for builder in builders]  # FIXME: nfa.is_sat を取得して使う。
     if not any(success_states):  # all builders are already completed
         break
 
