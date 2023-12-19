@@ -84,7 +84,7 @@ class MutableNFA:
 
     def dfs_with_path(self) -> bool:
         # Define get_neighbors within dfs to include the symbol for the transition.
-        def get_neighbors(state):
+        def get_neighbors(state: NFAStateT) -> set[tuple[NFAStateT, SymbolT]]:
             neighbors = set()
             for symbol in self.input_symbols:
                 next_states = self.get_next_states(state, symbol)
@@ -93,8 +93,8 @@ class MutableNFA:
             return neighbors
 
         # Initialize the stack with the initial state and an empty list for the path and symbols.
-        stack = deque([(self.initial_state, [], [])])
-        visited = {self.initial_state}
+        stack: deque[tuple[NFAStateT, list[NFAStateT], list[SymbolT]]] = deque([(self.initial_state, [], [])])
+        visited: set[NFAStateT] = {self.initial_state}
 
         while stack:
             current_state, path_of_states, path_of_symbols = stack.pop()
