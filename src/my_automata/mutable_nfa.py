@@ -1,12 +1,13 @@
 from collections import defaultdict, deque
 from automata.fa.nfa import NFA as BaseNFA
-from src.my_automata.utils import symbol_to_integers
+from src.my_automata.utils import decode_symbols_to_int
 from src.my_automata.type import SymbolT, NFAStateT, NFAPathT, NFATransitionT
 
 """
 The instance variables, such as 'states', in the NFA class from automata-lib are immutable.
 I needed a mutable version of these variables to modify them during runtime, so I created a separate mutable object.
 """
+
 
 class MutableNFA:
     def __init__(
@@ -97,7 +98,7 @@ class MutableNFA:
                 print("Reached a final state")
                 print(path_of_states)
                 print(path_of_symbols)
-                print(symbol_to_integers(path_of_symbols))
+                print(decode_symbols_to_int(path_of_symbols))
                 return True
 
             # Get neighbors only when necessary, i.e., when visiting the node.
