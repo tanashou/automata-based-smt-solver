@@ -1,5 +1,5 @@
 import itertools
-from src.my_automata.mutable_nfa import SymbolT, NFAStateT, NFAPathT, NFATransitionT
+from src.my_automata.type import SymbolT, NFAStateT, NFAPathT, NFATransitionT
 
 WILDCARD = "*"
 
