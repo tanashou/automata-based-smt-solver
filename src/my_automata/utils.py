@@ -70,12 +70,17 @@ def intersection_containing_wildcard(symbols1: set[SymbolT], symbols2: set[Symbo
     return result
 
 
-def symbol_to_integers(symbols: list[SymbolT]) -> list[int]:
-    transposed = ["".join(s) for s in zip(*symbols)]
-    result = []
-    for s in transposed:
-        if WILDCARD in s:
-            result.append(-1)
-        else:
-            result.append(int(s, 2))
-    return result
+def decode_symbols_to_int(symbols: list[SymbolT]) -> list[str]:
+    def twos_complement_to_decimal_with_wildcard(binary_str: str) -> str:
+        if binary_str[0] == WILDCARD:
+            return WILDCARD
+        # Using bitwise operations to find two's complement more efficiently
+        decimal_value = int(binary_str, 2)
+        if binary_str[0] == "1":  # If the number is negative
+            mask = (1 << len(binary_str)) - 1  # Mask to flip the bits
+            decimal_value = -(~(decimal_value ^ mask) & mask)
+        return str(decimal_value)
+
+    # decode symbols to complement binary strings
+    transposed = map("".join, zip(*symbols))
+    return list(map(twos_complement_to_decimal_with_wildcard, transposed))
