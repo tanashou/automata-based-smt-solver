@@ -1,5 +1,10 @@
 # need path from 'src'. otherwise, pytest cannot find the module
-from src.my_automata.utils import make_binary_wildcard_strings, dot_product_with_wildcard, apply_mask
+from src.my_automata.utils import (
+    make_binary_wildcard_strings,
+    dot_product_with_wildcard,
+    apply_mask,
+    decode_symbols_to_int,
+)
 import pytest
 
 
@@ -54,6 +59,7 @@ class TestDotProductWithWildcard:
         with pytest.raises(ValueError):
             dot_product_with_wildcard(coefs, "101")
 
+
 class TestApplyMask:
     def test_all_wildcards(self):
         pattern = "101"
@@ -69,3 +75,10 @@ class TestApplyMask:
         pattern = "101"
         mask = [True, False, True]
         assert apply_mask(pattern, mask) == "1*1"
+
+
+class TestDecodeSymbolsToInt:
+    def test_decode_symbols_to_int(self):
+        assert decode_symbols_to_int(["0", "1", "0", "1"]) == ["5"]
+        assert decode_symbols_to_int(["0001", "1001", "0011"]) == ["2", "0", "1", "-1"]
+        assert decode_symbols_to_int(['1*11', '1*10', '1*01']) == ['-1', '*', '-2', '-3']
