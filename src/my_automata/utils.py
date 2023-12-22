@@ -68,3 +68,14 @@ def intersection_containing_wildcard(symbols1: set[SymbolT], symbols2: set[Symbo
             result.add(s)
 
     return result
+
+
+def symbol_to_integers(symbols: list[SymbolT]) -> list[int]:
+    transposed = ["".join(s) for s in zip(*symbols)]
+    result = []
+    for s in transposed:
+        if WILDCARD in s:
+            result.append(-1)
+        else:
+            result.append(int(s, 2))
+    return result
