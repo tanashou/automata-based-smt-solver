@@ -26,7 +26,7 @@ while not is_sat:  # TODO: 終了条件を、nfa_intersectionで出てきたnfa�
 
     # 全てのintersectionをとる
     result_automata = reduce(nfa_intersection, [builder.nfa for builder in builders])
-    is_sat = result_automata.dfs()
+    is_sat = result_automata.dfs_with_path()
 
     result_automata.show_diagram(path=f"image/nfa_intersection{loop}.png")
 
