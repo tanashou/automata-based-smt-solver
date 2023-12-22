@@ -21,5 +21,8 @@ build-backend = "hatchling.build"
 managed = true
 dev-dependencies = []
 
+[tool.rye.scripts]
+playground = "rye run python src/playground.py"
+
 [tool.hatch.metadata]
 allow-direct-references = true
