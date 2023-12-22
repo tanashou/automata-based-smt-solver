@@ -82,34 +82,40 @@ class MutableNFA:
         )
         base_nfa.show_diagram(path=path)
 
-    def dfs(self) -> bool:
-        # Define get_neighbors within dfs to avoid repeated lookups in self.
-        def get_neighbors(state: NFAStateT) -> set[NFAStateT]:
+    def dfs_with_path(self) -> bool:
+        # Define get_neighbors within dfs to include the symbol for the transition.
+        def get_neighbors(state: NFAStateT) -> set[tuple[NFAStateT, SymbolT]]:
             neighbors = set()
             for symbol in self.input_symbols:
-                neighbors.update(self.get_next_states(state, symbol))
+                next_states = self.get_next_states(state, symbol)
+                for next_state in next_states:
+                    neighbors.add((next_state, symbol))  # Include the symbol in the neighbor information
             return neighbors
 
-        stack = deque([(self.initial_state, [self.initial_state])])
-        visited = {self.initial_state}
+        # Initialize the stack with the initial state and an empty list for the path and symbols.
+        stack: deque[tuple[NFAStateT, list[NFAStateT], list[SymbolT]]] = deque([(self.initial_state, [], [])])
+        visited: set[NFAStateT] = {self.initial_state}
 
         while stack:
-            current_state, path_of_states = stack.pop()
+            current_state, path_of_states, path_of_symbols = stack.pop()
 
-            # Directly check if we've reached one of the final states.
             if current_state in self.final_states:
+                # TODO: path_of_symbols を整数にデコードする
                 print("Reached a final state")
                 print(path_of_states)
+                print(path_of_symbols)
                 return True
 
             # Get neighbors only when necessary, i.e., when visiting the node.
             current_neighbors = get_neighbors(current_state)
 
-            for neighbor_state in current_neighbors:
+            for neighbor_state, symbol in current_neighbors:
                 if neighbor_state not in visited:
                     visited.add(neighbor_state)  # Move add operation here to avoid duplicate work
+                    # Update new_path and new_symbols to include both state and symbol
                     new_path = path_of_states + [neighbor_state]
-                    stack.append((neighbor_state, new_path))
+                    new_symbols = path_of_symbols + [symbol]
+                    stack.append((neighbor_state, new_path, new_symbols))
 
         print("Not reached a final state")
         return False
