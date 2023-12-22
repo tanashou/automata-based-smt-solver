@@ -74,11 +74,14 @@ def decode_symbols_to_int(symbols: list[SymbolT]) -> list[str]:
     def twos_complement_to_decimal_with_wildcard(binary_str: str) -> str:
         if binary_str[0] == WILDCARD:
             return WILDCARD
-        # Using bitwise operations to find two's complement more efficiently
+
         decimal_value = int(binary_str, 2)
+
+        # If the number is negative, compute its negative value directly
         if binary_str[0] == "1":  # If the number is negative
-            mask = (1 << len(binary_str)) - 1  # Mask to flip the bits
-            decimal_value = -(~(decimal_value ^ mask) & mask)
+            num_bits = len(binary_str)
+            decimal_value -= 1 << num_bits
+
         return str(decimal_value)
 
     # decode symbols to complement binary strings
