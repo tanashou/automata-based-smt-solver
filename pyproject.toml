@@ -23,6 +23,11 @@ dev-dependencies = []
 
 [tool.rye.scripts]
 playground = "rye run python src/playground.py"
+mp = "rye run mypy src"
+
+[tool.mypy]
+ignore_missing_imports = true
+strict = true
 
 [tool.hatch.metadata]
 allow-direct-references = true

@@ -1,12 +1,11 @@
 import pytest
-from src.my_automata.automata_algorithms import nfa_intersection, AutomataBuilder
-from src.my_automata.mutable_nfa import MutableNFA as NFA, NFATransitionT
+from src.my_automata import AutomataBuilder, nfa_intersection, MutableNFA as NFA
 from collections import defaultdict
 
 
 # Define a fixture for creating NFAs with common structure
 @pytest.fixture
-def sample_NFAs():
+def sample_NFAs() -> tuple[NFA, NFA]:
     coefs = [1, 1]
     bld1 = AutomataBuilder(coefs, 2, "equal", create_all=True)
     bld1.next()
@@ -23,7 +22,7 @@ def sample_NFAs():
     return bld1.nfa, nfa2
 
 
-def test_nfa_intersection(sample_NFAs):
+def test_nfa_intersection(sample_NFAs: tuple[NFA, NFA]) -> None:
     """
     x + z = 2 and x >= 0
     """
@@ -46,5 +45,3 @@ def test_nfa_intersection(sample_NFAs):
 
     assert result_nfa.initial_state == ("q0", "s")
     assert result_nfa.final_states == {("2", "f")}
-
-    pass
