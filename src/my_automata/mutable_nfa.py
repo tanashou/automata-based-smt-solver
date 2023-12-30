@@ -1,7 +1,7 @@
-from collections import defaultdict, deque
+from collections import deque
 from automata.fa.nfa import NFA as BaseNFA
-from src.my_automata.utils import decode_symbols_to_int
-from src.my_automata.type import SymbolT, NFAStateT, NFAPathT, NFATransitionT
+from .utils import decode_symbols_to_int
+from .type import SymbolT, NFAStateT, NFATransitionT
 
 """
 The instance variables, such as 'states', in the NFA class from automata-lib are immutable.
