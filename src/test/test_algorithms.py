@@ -1,5 +1,5 @@
 import pytest
-from src.my_automata import AutomataBuilder, nfa_intersection, MutableNFA as NFA
+from src.my_smt_solver import AutomataBuilder, nfa_intersection, MutableNFA as NFA
 from collections import defaultdict
 
 

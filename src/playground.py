@@ -2,7 +2,7 @@
 # from my_automata.mutable_nfa import MutableNFA as NFA
 
 from functools import reduce
-from my_automata import AutomataBuilder, nfa_intersection
+from my_smt_solver import AutomataBuilder, nfa_intersection
 
 coefs1 = [1, -1, 0, 0]
 coefs2 = [2, 0, 1, 0]

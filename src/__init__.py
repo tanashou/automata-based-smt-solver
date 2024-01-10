@@ -1,1 +1,1 @@
-from . import my_automata
+from . import my_smt_solver
