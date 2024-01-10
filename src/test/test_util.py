@@ -1,5 +1,5 @@
 # need path from 'src'. otherwise, pytest cannot find the module
-from src.my_automata.utils import (
+from src.my_smt_solver.utils import (
     make_binary_wildcard_strings,
     dot_product_with_wildcard,
     apply_mask,
