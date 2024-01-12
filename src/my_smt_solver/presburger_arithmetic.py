@@ -1,7 +1,7 @@
 from .type import Relation
 
 
-class PresburgerArithmeticExpression:
+class PresburgerArithmetic:
     def __init__(self, terms: list[tuple[str, int]], relation: Relation, const: int) -> None:
         self.__terms = terms
         self.__relation = relation
