@@ -1,6 +1,6 @@
 from collections import defaultdict
 from typing import Any
-from enum import Enum
+from enum import StrEnum
 
 SymbolT = str
 NFAStateT = Any  # 入れ子になる可能性があるので、Anyにしておく
@@ -9,7 +9,7 @@ NFATransitionT = defaultdict[NFAStateT, NFAPathT]
 InputPathListT = list[tuple[NFAStateT, NFAStateT, SymbolT]]
 
 
-class Relation(Enum):
+class Relation(StrEnum):
     EQ = "="  # Equals
     NEQ = "!="  # Not Equals
     LT = "<"  # Less Than

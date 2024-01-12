@@ -46,6 +46,7 @@ def test_set_coefs(sample_prb_arithmetics: list[PresburgerArithmetic]) -> None:
 
     assert s.coefs == [[2, 0, -3], [1, 0, 0], [100, -19, 0]]
 
+
 def test_update_coefs_for_neq(sample_prb_arithmetics: list[PresburgerArithmetic]) -> None:
     s = Solver()
     for prb_arithmetic in sample_prb_arithmetics:
