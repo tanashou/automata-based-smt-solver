@@ -41,20 +41,20 @@ class Solver:
                     var_index = self.variables.index(term_var)
                     self.__coefs[arithmetic_index][var_index] += term_value
 
-    def __check_neq(self) -> bool:
+    def check_neq(self) -> bool:
         for prb_arithmetic in self.prb_arithmetics:
-            if prb_arithmetic.relation.name == Relation.NEQ.name:  # FIXME: when removing .name, it does't work. WTF
+            if prb_arithmetic.relation == Relation.NEQ:
                 return True
         return False
 
     # 与えられた Prb 算術式の中に NEQ が含まれている場合、新しく変数 z_neq を追加する。それに伴い、coefs を更新する
     def update_coefs_for_neq(self) -> None:
-        if not self.__check_neq():
+        if not self.check_neq():
             return
 
         self.variables.append("z_neq")  # TODO: z_neq を定数として定義する
         for arithmetic_index, prb_arithmetic in enumerate(self.prb_arithmetics):
-            if prb_arithmetic.relation.name == Relation.NEQ.name: #FIXME: WTF
+            if prb_arithmetic.relation == Relation.NEQ:
                 self.__coefs[arithmetic_index].append(1)
             else:
                 self.__coefs[arithmetic_index].append(0)
