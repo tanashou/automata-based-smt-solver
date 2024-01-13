@@ -1,6 +1,3 @@
-# from my_automata.automata_algorithms import AutomataBuilder, nfa_intersection
-# from my_automata.mutable_nfa import MutableNFA as NFA
-
 from functools import reduce
 from my_smt_solver import AutomataBuilder, nfa_intersection
 

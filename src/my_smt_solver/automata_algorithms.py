@@ -63,15 +63,19 @@ class AutomataBuilder:
                 if not self.create_all:
                     return partial_sat
 
-        # when the work_list is empty, the nfa is complete.
+        # when the work_list is empty, building nfa is completed.
         self.__build_completed = True
         return partial_sat
 
     # def neq_to_nfa(a: list[int], c: int) -> None:
     #     pass
 
+    def create_neq_nfa(self) -> None:
+        # z_neq != 0 のnfaを作成する
+        pass
 
-# TODO: タプルのネストを外す。tuple(itertools.chain.from_iterable(tuple))でいける
+
+# TODO: mutable_nfa.py に移動する。
 def nfa_intersection(nfa1: NFA, nfa2: NFA) -> NFA:
     initial_state = (nfa1.initial_state, nfa2.initial_state)
     nfa = NFA(
