@@ -1,4 +1,4 @@
-from .automata_algorithms import AutomataBuilder
+from .automata_builder import AutomataBuilder
 from .presburger_arithmetic import PresburgerArithmetic
 from .nfa import NFA
 from .type import SymbolT, NFAStateT, NFAPathT, NFATransitionT, InputPathListT, Relation

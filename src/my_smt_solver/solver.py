@@ -65,10 +65,10 @@ class Solver:
                 return True
         return False
 
-    def preparation(self) -> None:
+    def initialize_components(self) -> None:
         self.__update_prb_arithmetics()
         self.__set_variables()
         self.__set_coefs()
 
     def check(self) -> None:
-        self.preparation()
+        self.initialize_components()

@@ -23,12 +23,13 @@ def sample_prb_arithmetics() -> list[PresburgerArithmetic]:
         ),
     ]
 
+
 def test_preparation(sample_prb_arithmetics: list[PresburgerArithmetic]) -> None:
     s = Solver()
     for prb_arithmetic in sample_prb_arithmetics:
         s.add(prb_arithmetic)
 
-    s.preparation()
+    s.initialize_components()
 
     assert s.variables == ["x", "y", "z", "z_neq"]
     assert s.coefs == [[2, 0, -3, 0], [1, 0, 0, 0], [100, -19, 0, 1], [0, 0, 0, 1]]
