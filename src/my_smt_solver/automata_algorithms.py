@@ -1,12 +1,10 @@
-import itertools
 from collections import defaultdict
-from .mutable_nfa import MutableNFA as NFA
+from .presburger_arithmetic import PresburgerArithmetic
+from .nfa import NFA
 from .type import NFAStateT
 from .utils import (
     make_binary_wildcard_strings,
     dot_product_with_wildcard,
-    apply_mask,
-    intersection_containing_wildcard,
 )
 
 
@@ -14,10 +12,10 @@ from .utils import (
 class AutomataBuilder:
     INITIAL_STATE = "q0"
 
-    def __init__(self, coefs: list[int], const: int, relation: str, create_all: bool = False) -> None:
+    def __init__(self, coefs: list[int], prb_arithmetic: PresburgerArithmetic, create_all: bool = False) -> None:
         self.coefs = coefs
-        self.const = const
-        self.relation = relation
+        self.const = prb_arithmetic.const
+        self.relation = prb_arithmetic.relation
         self.create_all = create_all  # for debug
         self.nfa = NFA(
             states={self.INITIAL_STATE, str(self.const)},
@@ -73,38 +71,3 @@ class AutomataBuilder:
     def create_neq_nfa(self) -> None:
         # z_neq != 0 のnfaを作成する
         pass
-
-
-# TODO: mutable_nfa.py に移動する。
-def nfa_intersection(nfa1: NFA, nfa2: NFA) -> NFA:
-    initial_state = (nfa1.initial_state, nfa2.initial_state)
-    nfa = NFA(
-        states=set(),
-        input_symbols=intersection_containing_wildcard(nfa1.input_symbols, nfa2.input_symbols),
-        transitions=defaultdict(lambda: defaultdict(set)),
-        initial_state=initial_state,
-        final_states=set(),
-    )
-    work_list: list[NFAStateT] = [initial_state]
-
-    if not nfa.input_symbols:
-        raise ValueError("The given NFAs have no common input symbols")
-
-    # create a mask for each nfa. The mask is used to apply wildcard to the input symbol
-    mask1: list[bool] = [char != "*" for char in list(nfa1.input_symbols)[0]]
-    mask2: list[bool] = [char != "*" for char in list(nfa2.input_symbols)[0]]
-
-    while work_list:
-        current_state1, current_state2 = work_list.pop()
-        nfa.add_state((current_state1, current_state2))
-        if current_state1 in nfa1.final_states and current_state2 in nfa2.final_states:
-            nfa.add_final_state((current_state1, current_state2))
-        for symbol in nfa.input_symbols:
-            next_states1 = nfa1.get_next_states(current_state1, apply_mask(symbol, mask1))
-            next_states2 = nfa2.get_next_states(current_state2, apply_mask(symbol, mask2))
-            for next_state1, next_state2 in set(itertools.product(next_states1, next_states2)):
-                nfa.add_transition((current_state1, current_state2), symbol, (next_state1, next_state2))
-                if (next_state1, next_state2) not in nfa.states:
-                    work_list.append((next_state1, next_state2))
-
-    return nfa

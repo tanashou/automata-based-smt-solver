@@ -1,7 +1,7 @@
-from collections import deque
-from automata.fa.nfa import NFA as BaseNFA
-from .utils import decode_symbols_to_int
+from collections import deque, defaultdict
+import itertools
 from .type import SymbolT, NFAStateT, NFATransitionT
+from .utils import apply_mask, decode_symbols_to_int, intersection_containing_wildcard
 
 """
 The instance variables, such as 'states', in the NFA class from automata-lib are immutable.
@@ -9,7 +9,7 @@ I needed a mutable version of these variables to modify them during runtime, so 
 """
 
 
-class MutableNFA:
+class NFA:
     def __init__(
         self,
         *,
@@ -67,7 +67,9 @@ class MutableNFA:
         return self.__transitions[current_state][symbol]
 
     def show_diagram(self, path: str) -> None:
-        base_nfa = BaseNFA(
+        from automata.fa.nfa import NFA as AutomataLibNFA
+
+        base_nfa = AutomataLibNFA(
             states=self.__states,
             input_symbols=self.__input_symbols,
             transitions=self.__transitions,
@@ -114,3 +116,37 @@ class MutableNFA:
 
         print("Not reached a final state")
         return False
+
+    def intersection(self, other: "NFA") -> "NFA":
+        initial_state = (self.initial_state, other.initial_state)
+        nfa = NFA(
+            states=set(),
+            input_symbols=intersection_containing_wildcard(self.input_symbols, other.input_symbols),
+            transitions=defaultdict(lambda: defaultdict(set)),
+            initial_state=initial_state,
+            final_states=set(),
+        )
+        work_list: list[NFAStateT] = [initial_state]
+
+        if not nfa.input_symbols:
+            raise ValueError("The given NFAs have no common input symbols")
+
+        # create a mask for each nfa. The mask is used to apply wildcard to the input symbol.
+        # use the first input symbol to create the mask
+        mask1: list[bool] = [char != "*" for char in list(self.input_symbols)[0]]
+        mask2: list[bool] = [char != "*" for char in list(other.input_symbols)[0]]
+
+        while work_list:
+            current_state1, current_state2 = work_list.pop()
+            nfa.add_state((current_state1, current_state2))
+            if current_state1 in self.final_states and current_state2 in other.final_states:
+                nfa.add_final_state((current_state1, current_state2))
+            for symbol in nfa.input_symbols:
+                next_states1 = self.get_next_states(current_state1, apply_mask(symbol, mask1))
+                next_states2 = other.get_next_states(current_state2, apply_mask(symbol, mask2))
+                for next_state1, next_state2 in set(itertools.product(next_states1, next_states2)):
+                    nfa.add_transition((current_state1, current_state2), symbol, (next_state1, next_state2))
+                    if (next_state1, next_state2) not in nfa.states:
+                        work_list.append((next_state1, next_state2))
+
+        return nfa
