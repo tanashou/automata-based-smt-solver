@@ -20,4 +20,12 @@ __all__ = [
     "NFAPathT",
     "NFATransitionT",
     "InputPathListT",
+    "PresburgerArithmetic",
+    "Solver",
+    "make_binary_wildcard_strings",
+    "dot_product_with_wildcard",
+    "apply_mask",
+    "intersection_containing_wildcard",
+    "decode_symbols_to_int",
+    "Relation"
 ]

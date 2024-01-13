@@ -1,5 +1,5 @@
 # need path from 'src'. otherwise, pytest cannot find the module
-from src.my_smt_solver.utils import (
+from my_smt_solver import (
     make_binary_wildcard_strings,
     dot_product_with_wildcard,
     apply_mask,
@@ -81,4 +81,4 @@ class TestDecodeSymbolsToInt:
     def test_decode_symbols_to_int(self) -> None:
         assert decode_symbols_to_int(["0", "1", "0", "1"]) == ["5"]
         assert decode_symbols_to_int(["0001", "1001", "0011"]) == ["2", "0", "1", "-1"]
-        assert decode_symbols_to_int(['1*11', '1*10', '1*01']) == ['-1', '*', '-2', '-3']
+        assert decode_symbols_to_int(["1*11", "1*10", "1*01"]) == ["-1", "*", "-2", "-3"]

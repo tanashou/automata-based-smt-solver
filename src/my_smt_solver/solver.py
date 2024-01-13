@@ -4,9 +4,9 @@ from my_smt_solver import PresburgerArithmetic, Relation
 class Solver:
     # Prb 算術式を受け取り、適切な式を生成する。その後、builderを呼び出す
     def __init__(self) -> None:
-        self.__prb_arithmetics = []
+        self.__prb_arithmetics: list[PresburgerArithmetic] = []
         self.variables: list[str] = []
-        self.__coefs = []
+        self.__coefs: list[list[int]] = []
 
     @property
     def prb_arithmetics(self) -> list[PresburgerArithmetic]:
@@ -70,5 +70,5 @@ class Solver:
         self.__set_variables()
         self.__set_coefs()
 
-    def check(self):
+    def check(self) -> None:
         self.preparation()
