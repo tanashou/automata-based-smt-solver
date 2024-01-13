@@ -1,3 +1,4 @@
+from random import sample
 import pytest
 from my_smt_solver import AutomataBuilder, NFA as NFA, PresburgerArithmetic, Relation
 from collections import defaultdict
@@ -21,6 +22,14 @@ def sample_NFAs() -> tuple[NFA, NFA]:
     nfa2.add_transition("f", "*1", "f")
     nfa2.add_transition("f", "*0", "f")
     return bld1.nfa, nfa2
+
+@pytest.fixture
+def sample_neq_NFAs() -> NFA:
+    p = PresburgerArithmetic(terms=[("z_neq", 1)], relation=Relation.NEQ, const=0)
+    coefs = [0, 0, 0, 1]
+    bld = AutomataBuilder(coefs, p, create_all=True)
+    bld.neq_to_nfa()
+    return bld.nfa
 
 
 def test_nfa_intersection(sample_NFAs: tuple[NFA, NFA]) -> None:
@@ -46,3 +55,12 @@ def test_nfa_intersection(sample_NFAs: tuple[NFA, NFA]) -> None:
 
     assert result_nfa.initial_state == ("q0", "s")
     assert result_nfa.final_states == {("2", "f")}
+
+def test_neq_to_nfa(sample_neq_NFAs: NFA) -> None:
+    assert sample_neq_NFAs.states == {"q0", "0"}
+    assert sample_neq_NFAs.input_symbols == {"***0", "***1"}
+    expected_transitions = {
+        "q0": {"***0": {"q0"}, "***1": {"0"}},
+        "0": {"***1": {"0"}, "***0": {"0"}},
+    }
+    assert sample_neq_NFAs.transitions == expected_transitions
