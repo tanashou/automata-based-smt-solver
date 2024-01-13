@@ -15,9 +15,16 @@ class PresburgerArithmetic:
     def terms(self, terms: list[tuple[str, int]]) -> None:
         self.__terms = terms
 
+    def add_term(self, term: tuple[str, int]) -> None:
+        self.__terms.append(term)
+
     @property
     def relation(self) -> Relation:
         return self.__relation
+
+    @relation.setter
+    def relation(self, relation: Relation) -> None:
+        self.__relation = relation
 
     @property
     def const(self) -> int:
