@@ -1,13 +1,14 @@
 import pytest
-from src.my_smt_solver import AutomataBuilder, nfa_intersection, MutableNFA as NFA
+from src.my_smt_solver import AutomataBuilder, NFA as NFA, PresburgerArithmetic, Relation
 from collections import defaultdict
 
 
 # Define a fixture for creating NFAs with common structure
 @pytest.fixture
 def sample_NFAs() -> tuple[NFA, NFA]:
+    p = PresburgerArithmetic(terms=[("x", 1), ("y", 1)], relation=Relation.EQ, const=2)
     coefs = [1, 1]
-    bld1 = AutomataBuilder(coefs, 2, "equal", create_all=True)
+    bld1 = AutomataBuilder(coefs, p, create_all=True)
     bld1.next()
     nfa2 = NFA(
         states={"s", "f"},
@@ -28,7 +29,7 @@ def test_nfa_intersection(sample_NFAs: tuple[NFA, NFA]) -> None:
     """
     n1, n2 = sample_NFAs
 
-    result_nfa = nfa_intersection(n1, n2)
+    result_nfa = n1.intersection(n2)
 
     assert result_nfa.states == {("q0", "s"), ("-1", "f"), ("0", "f"), ("1", "f"), ("2", "f")}
     assert result_nfa.input_symbols == {"00", "01", "10", "11"}
