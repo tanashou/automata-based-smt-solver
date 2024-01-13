@@ -25,36 +25,12 @@ def sample_prb_arithmetics() -> list[PresburgerArithmetic]:
         ),
     ]
 
-
-def test_set_variables(sample_prb_arithmetics: list[PresburgerArithmetic]) -> None:
+def test_preparation(sample_prb_arithmetics: list[PresburgerArithmetic]) -> None:
     s = Solver()
     for prb_arithmetic in sample_prb_arithmetics:
         s.add(prb_arithmetic)
 
-    s.set_variables()
-
-    assert s.variables == ["x", "y", "z"]
-
-
-def test_set_coefs(sample_prb_arithmetics: list[PresburgerArithmetic]) -> None:
-    s = Solver()
-    for prb_arithmetic in sample_prb_arithmetics:
-        s.add(prb_arithmetic)
-
-    s.set_variables()
-    s.set_coefs()
-
-    assert s.coefs == [[2, 0, -3], [1, 0, 0], [100, -19, 0]]
-
-
-def test_update_coefs_for_neq(sample_prb_arithmetics: list[PresburgerArithmetic]) -> None:
-    s = Solver()
-    for prb_arithmetic in sample_prb_arithmetics:
-        s.add(prb_arithmetic)
-
-    s.set_variables()
-    s.set_coefs()
-    s.update_coefs_for_neq()
+    s.preparation()
 
     assert s.variables == ["x", "y", "z", "z_neq"]
-    assert s.coefs == [[2, 0, -3, 0], [1, 0, 0, 0], [100, -19, 0, 1]]
+    assert s.coefs == [[2, 0, -3, 0], [1, 0, 0, 0], [100, -19, 0, 1], [0, 0, 0, 1]]

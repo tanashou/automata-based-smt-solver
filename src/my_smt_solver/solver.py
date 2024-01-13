@@ -17,19 +17,37 @@ class Solver:
         return self.__coefs
 
     def add(self, prb_arithmetic: PresburgerArithmetic) -> None:
+        for term_var, _ in prb_arithmetic.terms:
+            if term_var == "z_neq":
+                raise ValueError("z_neq is reserved variable name")
         self.__prb_arithmetics.append(prb_arithmetic)
 
-    def set_variables(self) -> None:
+    # add prb_arithmetic including reserved variable name
+    def __add(self, prb_arithmetic: PresburgerArithmetic) -> None:
+        self.__prb_arithmetics.append(prb_arithmetic)
+
+    # 与えられた Prb 算術式の中に NEQ が含まれている場合、新しく変数 z_neq を追加する。x != 2 を　x + z_neq = 2　and z_neq != 0 に変換する
+    def __update_prb_arithmetics(self) -> None:
+        if not self.__check_neq():
+            return
+
+        for prb_arithmetic in self.prb_arithmetics:
+            if prb_arithmetic.relation == Relation.NEQ:
+                prb_arithmetic.relation = Relation.EQ
+                prb_arithmetic.add_term(("z_neq", 1))
+
+        self.__add(PresburgerArithmetic([("z_neq", 1)], Relation.NEQ, 0))  # add z_neq != 0
+        return
+
+    def __set_variables(self) -> None:
         var_set = set()
         for prb_arithmetic in self.prb_arithmetics:
             vars = [term[0] for term in prb_arithmetic.terms]
             var_set.update(vars)
-        if "z_neq" in var_set:
-            raise ValueError("z_neq is reserved variable name")
 
         self.variables = sorted(var_set)
 
-    def set_coefs(self) -> None:
+    def __set_coefs(self) -> None:
         num_arithmetics = len(self.prb_arithmetics)
         num_variables = len(self.variables)
 
@@ -41,25 +59,16 @@ class Solver:
                     var_index = self.variables.index(term_var)
                     self.__coefs[arithmetic_index][var_index] += term_value
 
-    def check_neq(self) -> bool:
+    def __check_neq(self) -> bool:
         for prb_arithmetic in self.prb_arithmetics:
             if prb_arithmetic.relation == Relation.NEQ:
                 return True
         return False
 
-    # 与えられた Prb 算術式の中に NEQ が含まれている場合、新しく変数 z_neq を追加する。それに伴い、coefs を更新する
-    def update_coefs_for_neq(self) -> None:
-        if not self.check_neq():
-            return
-
-        self.variables.append("z_neq")  # TODO: z_neq を定数として定義する
-        for arithmetic_index, prb_arithmetic in enumerate(self.prb_arithmetics):
-            if prb_arithmetic.relation == Relation.NEQ:
-                self.__coefs[arithmetic_index].append(1)
-            else:
-                self.__coefs[arithmetic_index].append(0)
+    def preparation(self) -> None:
+        self.__update_prb_arithmetics()
+        self.__set_variables()
+        self.__set_coefs()
 
     def check(self):
-        # TODO: 変数集合を整理する
-        self.set_variables()
-        self.set_coefs()
+        self.preparation()
