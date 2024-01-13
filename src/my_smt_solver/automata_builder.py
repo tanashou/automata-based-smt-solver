@@ -65,9 +65,20 @@ class AutomataBuilder:
         self.__build_completed = True
         return partial_sat
 
-    # def neq_to_nfa(a: list[int], c: int) -> None:
-    #     pass
+    # only use for z_neq != 0. When adding neq arithmetic to solver, it automatically converts to eq arithmetic and neq (z_neq != 0) arithmetic.
+    def neq_to_nfa(self) -> None:
+        if self.coefs.count(1) != 1 and self.coefs.count(0) != len(self.coefs) - 1:
+            raise ValueError("coefs must be containing one 1 and the rest as 0s.")
+        # extract the only element from the set. Raises ValueError if the set is has too many or too few elements.
+        # This nfa must have only one final state.
+        (final_state,) = self.nfa.final_states
+        for input_symbol in self.nfa.input_symbols:
+            if "0" in input_symbol:
+                self.nfa.add_transition(self.nfa.initial_state, input_symbol, self.nfa.initial_state)
+                self.nfa.add_transition(final_state, input_symbol, final_state)
 
-    def create_neq_nfa(self) -> None:
-        # z_neq != 0 のnfaを作成する
-        pass
+            else:  # '1' in input_symbol
+                self.nfa.add_transition(self.nfa.initial_state, input_symbol, final_state)
+                self.nfa.add_transition(final_state, input_symbol, final_state)
+
+        self.__build_completed = True
