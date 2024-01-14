@@ -78,7 +78,7 @@ class NFA:
         )
         base_nfa.show_diagram(path=path)
 
-    def dfs_with_path(self) -> bool:
+    def dfs_with_path(self) -> list[SymbolT]:
         # Define get_neighbors within dfs to include the symbol for the transition.
         def get_neighbors(state: NFAStateT) -> set[tuple[NFAStateT, SymbolT]]:
             neighbors = set()
@@ -88,20 +88,15 @@ class NFA:
                     neighbors.add((next_state, symbol))  # Include the symbol in the neighbor information
             return neighbors
 
-        # Initialize the stack with the initial state and an empty list for the path and symbols.
-        stack: deque[tuple[NFAStateT, list[NFAStateT], list[SymbolT]]] = deque([(self.initial_state, [], [])])
+        # Initialize the stack with the initial state.
+        stack: deque[tuple[NFAStateT, list[SymbolT]]] = deque([(self.initial_state, [])])
         visited: set[NFAStateT] = {self.initial_state}
 
         while stack:
-            current_state, path_of_states, path_of_symbols = stack.pop()
+            current_state, path_of_symbols = stack.pop()
 
             if current_state in self.final_states:
-                # TODO: path_of_symbols を整数にデコードする
-                print("Reached a final state")
-                print(path_of_states)
-                print(path_of_symbols)
-                print(decode_symbols_to_int(path_of_symbols))
-                return True
+                return path_of_symbols
 
             # Get neighbors only when necessary, i.e., when visiting the node.
             current_neighbors = get_neighbors(current_state)
@@ -109,13 +104,43 @@ class NFA:
             for neighbor_state, symbol in current_neighbors:
                 if neighbor_state not in visited:
                     visited.add(neighbor_state)  # Move add operation here to avoid duplicate work
-                    # Update new_path and new_symbols to include both state and symbol
-                    new_path = path_of_states + [neighbor_state]
+                    # Update new_symbols to include the symbol
                     new_symbols = path_of_symbols + [symbol]
-                    stack.append((neighbor_state, new_path, new_symbols))
+                    stack.append((neighbor_state, new_symbols))
 
-        print("Not reached a final state")
-        return False
+        return []
+
+    def bfs_with_path(self) -> list[SymbolT]:
+        # Define get_neighbors within dfs to include the symbol for the transition.
+        def get_neighbors(state: NFAStateT) -> set[tuple[NFAStateT, SymbolT]]:
+            neighbors = set()
+            for symbol in self.input_symbols:
+                next_states = self.get_next_states(state, symbol)
+                for next_state in next_states:
+                    neighbors.add((next_state, symbol))  # Include the symbol in the neighbor information
+            return neighbors
+
+        # Initialize the stack with the initial state.
+        stack: deque[tuple[NFAStateT, list[SymbolT]]] = deque([(self.initial_state, [])])
+        visited: set[NFAStateT] = {self.initial_state}
+
+        while stack:
+            current_state, path_of_symbols = stack.popleft()
+
+            if current_state in self.final_states:
+                return path_of_symbols
+
+            # Get neighbors only when necessary, i.e., when visiting the node.
+            current_neighbors = get_neighbors(current_state)
+
+            for neighbor_state, symbol in current_neighbors:
+                if neighbor_state not in visited:
+                    visited.add(neighbor_state)  # Move add operation here to avoid duplicate work
+                    # Update new_symbols to include the symbol
+                    new_symbols = path_of_symbols + [symbol]
+                    stack.append((neighbor_state, new_symbols))
+
+        return []
 
     def intersection(self, other: "NFA") -> "NFA":
         initial_state = (self.initial_state, other.initial_state)

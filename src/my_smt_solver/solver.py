@@ -3,6 +3,7 @@ from my_smt_solver.nfa import NFA
 from .presburger_arithmetic import PresburgerArithmetic
 from .type import Relation
 from .automata_builder import AutomataBuilder
+from .utils import decode_symbols_to_int
 
 
 class Solver:
@@ -95,4 +96,9 @@ class Solver:
 
         intersected_nfa = self.intersect_all_nfa()
         # intersected_nfa.show_diagram(path="image/nfa_intersection.png")
-        intersected_nfa.dfs_with_path()
+        # intersected_nfa.dfs_with_path()
+
+        if symbol_path := intersected_nfa.bfs_with_path():
+            print(f"sat: {decode_symbols_to_int(symbol_path)}")
+        else:
+            print("unsat")
