@@ -1,7 +1,7 @@
 from collections import defaultdict
 from .presburger_arithmetic import PresburgerArithmetic
 from .nfa import NFA
-from .type import NFAStateT
+from .type import NFAStateT, Relation
 from .utils import (
     make_binary_wildcard_strings,
     dot_product_with_wildcard,
@@ -11,6 +11,14 @@ from .utils import (
 # 1つのリテラルに対してnfaを作成していくクラス
 class AutomataBuilder:
     INITIAL_STATE = "q0"
+    build_methods = {
+        Relation.EQ: "eq_to_nfa",
+        Relation.NEQ: "neq_to_nfa",
+        Relation.LT: "lt_to_nfa",
+        Relation.GT: "gt_to_nfa",
+        Relation.LEQ: "leq_to_nfa",
+        Relation.GEQ: "geq_to_nfa",
+    }
 
     def __init__(self, coefs: list[int], prb_arithmetic: PresburgerArithmetic, create_all: bool = False) -> None:
         self.coefs = coefs
@@ -31,9 +39,12 @@ class AutomataBuilder:
     def build_completed(self) -> bool:
         return self.__build_completed
 
-    def next(self) -> bool:
-        # TODO: self.relationによって、どの関数を呼び出すかを変えたい。relationクラスかenumを作成する
-        return self.eq_to_nfa()
+    def next(self) -> None:
+        method_name = self.build_methods.get(self.relation)
+        if method_name:
+            method = getattr(self, method_name)
+            method()
+
 
     """
     coefs: all the coefficients of the linear equations
