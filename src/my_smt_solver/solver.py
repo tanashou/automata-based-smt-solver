@@ -1,4 +1,8 @@
-from my_smt_solver import PresburgerArithmetic, Relation
+from functools import reduce
+from my_smt_solver.nfa import NFA
+from .presburger_arithmetic import PresburgerArithmetic
+from .type import Relation
+from .automata_builder import AutomataBuilder
 
 
 class Solver:
@@ -7,6 +11,8 @@ class Solver:
         self.__prb_arithmetics: list[PresburgerArithmetic] = []
         self.variables: list[str] = []
         self.__coefs: list[list[int]] = []
+        self.__builders: list[AutomataBuilder] = []
+        self.__components_initialized = False
 
     @property
     def prb_arithmetics(self) -> list[PresburgerArithmetic]:
@@ -25,6 +31,12 @@ class Solver:
     # add prb_arithmetic including reserved variable name
     def __add(self, prb_arithmetic: PresburgerArithmetic) -> None:
         self.__prb_arithmetics.append(prb_arithmetic)
+
+    def __check_neq(self) -> bool:
+        for prb_arithmetic in self.prb_arithmetics:
+            if prb_arithmetic.relation == Relation.NEQ:
+                return True
+        return False
 
     # 与えられた Prb 算術式の中に NEQ が含まれている場合、新しく変数 z_neq を追加する。x != 2 を　x + z_neq = 2　and z_neq != 0 に変換する
     def __update_prb_arithmetics(self) -> None:
@@ -59,16 +71,28 @@ class Solver:
                     var_index = self.variables.index(term_var)
                     self.__coefs[arithmetic_index][var_index] += term_value
 
-    def __check_neq(self) -> bool:
-        for prb_arithmetic in self.prb_arithmetics:
-            if prb_arithmetic.relation == Relation.NEQ:
-                return True
-        return False
+    def __set_builders(self) -> None:
+        for coef, prb_arithmetic in zip(self.coefs, self.prb_arithmetics):
+            self.__builders.append(AutomataBuilder(coef, prb_arithmetic))
 
     def initialize_components(self) -> None:
         self.__update_prb_arithmetics()
         self.__set_variables()
         self.__set_coefs()
+        self.__set_builders()
+        self.__components_initialized = True
+
+    def intersect_all_nfa(self) -> NFA:
+        return reduce(lambda nfa1, nfa2: nfa1.intersection(nfa2), [builder.nfa for builder in self.__builders])
 
     def check(self) -> None:
-        self.initialize_components()
+        if not self.__components_initialized:
+            self.initialize_components()
+
+        for builder in self.__builders:
+            builder.next()
+            # builder.nfa.show_diagram(path=f"image/nfa{builder.relation}.png")
+
+        intersected_nfa = self.intersect_all_nfa()
+        # intersected_nfa.show_diagram(path="image/nfa_intersection.png")
+        intersected_nfa.dfs_with_path()
