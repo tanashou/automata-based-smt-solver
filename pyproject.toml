@@ -22,7 +22,7 @@ managed = true
 dev-dependencies = []
 
 [tool.rye.scripts]
-playground = "rye run python src/playground.py"
+ex = "rye run python src/example.py"
 mp = "rye run mypy src"
 
 [tool.mypy]
