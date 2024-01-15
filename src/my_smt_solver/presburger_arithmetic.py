@@ -30,6 +30,21 @@ class PresburgerArithmetic:
     def const(self) -> int:
         return self.__const
 
+
+    def __str__(self) -> str:
+        def format_term(coef, var, is_first):
+            sign = "" if coef >= 0 and is_first else "+" if coef >= 0 else "-"
+            formatted_coef = f"{sign} {abs(coef)}" if not is_first else f"{coef}"
+            return f"{formatted_coef}{var}"
+
+        terms_list = list(self.__terms)
+        left_side_terms = (format_term(coef, var, index == 0) for index, (var, coef) in enumerate(terms_list))
+        left_side = " ".join(left_side_terms).lstrip()
+
+        right_side = str(self.__const)
+
+        return f"{left_side} {self.__relation.value} {right_side}"
+
     def is_valid_expression(self, var_assignments: dict[str, int]) -> bool:
         if not var_assignments:
             raise ValueError("var_assignments is empty")
