@@ -23,6 +23,7 @@ def sample_prb_arithmetics() -> list[PresburgerArithmetic]:
         ),
     ]
 
+
 @pytest.fixture
 def sample_prb_arithmetics2() -> list[PresburgerArithmetic]:
     return [
@@ -39,22 +40,13 @@ def sample_prb_arithmetics2() -> list[PresburgerArithmetic]:
     ]
 
 
-def test_preparation(sample_prb_arithmetics: list[PresburgerArithmetic]) -> None:
-    s = Solver()
-    for prb_arithmetic in sample_prb_arithmetics:
-        s.add(prb_arithmetic)
-
-    s.initialize_components()
-
-    assert s.variables == ["x", "y", "z", "z_neq"]
-    assert s.coefs == [[2, 0, -3, 0], [1, 0, 0, 0], [100, -19, 0, 1], [0, 0, 0, 1]]
-
 def test_check(sample_prb_arithmetics2: list[PresburgerArithmetic]) -> None:
     s = Solver()
     for prb_arithmetic in sample_prb_arithmetics2:
         s.add(prb_arithmetic)
 
-    # TODO: assert をかく
-    s.check()
-    s.check()
-    s.check()
+    result = s.check()
+    assert s.variables == ["x", "y", "z", "z_neq"]
+    assert sorted(s.coefs) == sorted([[2, 0, -3, 0], [100, -19, 0, 1], [0, 0, 0, 1]])
+    for prb_arithmetic in sample_prb_arithmetics2:
+        assert prb_arithmetic.is_valid_expression(result)
