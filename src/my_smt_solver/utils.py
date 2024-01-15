@@ -70,10 +70,10 @@ def intersection_containing_wildcard(symbols1: set[SymbolT], symbols2: set[Symbo
     return result
 
 
-def decode_symbols_to_int(symbols: list[SymbolT]) -> list[str]:
-    def twos_complement_to_decimal_with_wildcard(binary_str: str) -> str:
-        if binary_str[0] == WILDCARD:
-            return WILDCARD
+def decode_symbols_to_int(symbols: list[SymbolT]) -> list[int]:
+    def twos_complement_to_decimal(binary_str: str) -> int:
+        if WILDCARD in binary_str:
+            raise ValueError("The given string must not contain wildcard")
 
         decimal_value = int(binary_str, 2)
 
@@ -82,8 +82,8 @@ def decode_symbols_to_int(symbols: list[SymbolT]) -> list[str]:
             num_bits = len(binary_str)
             decimal_value -= 1 << num_bits
 
-        return str(decimal_value)
+        return decimal_value
 
     # decode symbols to complement binary strings
     transposed = map("".join, zip(*symbols))
-    return list(map(twos_complement_to_decimal_with_wildcard, transposed))
+    return list(map(twos_complement_to_decimal, transposed))
