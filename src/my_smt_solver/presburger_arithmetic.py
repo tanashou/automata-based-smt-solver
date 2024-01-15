@@ -29,3 +29,23 @@ class PresburgerArithmetic:
     @property
     def const(self) -> int:
         return self.__const
+
+    def is_valid_expression(self, var_assignments: dict[str, int]) -> bool:
+        if not var_assignments:
+            raise ValueError("var_assignments is empty")
+        rhs = 0
+        for var, value in self.terms:
+            rhs += value * var_assignments[var]
+
+        if self.relation == Relation.EQ:
+            return rhs == self.const
+        elif self.relation == Relation.NEQ:
+            return rhs != self.const
+        elif self.relation == Relation.LT:
+            return rhs < self.const
+        elif self.relation == Relation.GT:
+            return rhs > self.const
+        elif self.relation == Relation.LEQ:
+            return rhs <= self.const
+        else:  # self.relation is Relation.GEQ
+            return rhs >= self.const
