@@ -79,6 +79,9 @@ class TestApplyMask:
 
 class TestDecodeSymbolsToInt:
     def test_decode_symbols_to_int(self) -> None:
-        assert decode_symbols_to_int(["0", "1", "0", "1"]) == ["5"]
-        assert decode_symbols_to_int(["0001", "1001", "0011"]) == ["2", "0", "1", "-1"]
-        assert decode_symbols_to_int(["1*11", "1*10", "1*01"]) == ["-1", "*", "-2", "-3"]
+        assert decode_symbols_to_int(["0", "1", "0", "1"]) == [5]
+        assert decode_symbols_to_int(["0001", "1001", "0011"]) == [2, 0, 1, -1]
+        # Test case 3: Case with wildcard
+        symbols = ["*01", "*11", "*10"]
+        with pytest.raises(ValueError):
+            decode_symbols_to_int(symbols)
