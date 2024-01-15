@@ -51,8 +51,7 @@ class AutomataBuilder:
     const: constant of the linear equation
     """
 
-    def eq_to_nfa(self) -> bool:
-        # when return False, the nfa is complete. No more works to do.
+    def eq_to_nfa(self) -> None:
         partial_sat = False
 
         while self.work_list:
@@ -68,13 +67,13 @@ class AutomataBuilder:
                 if current_state == -dot:
                     self.nfa.add_transition(self.INITIAL_STATE, symbol, str(current_state))
                     partial_sat = True
+            # return after the for loop is finished. 
             if partial_sat:
                 if not self.create_all:
-                    return partial_sat
+                    return
 
         # when the work_list is empty, building nfa is completed.
         self.__build_completed = True
-        return partial_sat
 
     # only use for z_neq != 0. When adding neq arithmetic to solver, it automatically converts to eq arithmetic and neq (z_neq != 0) arithmetic.
     def neq_to_nfa(self) -> None:
