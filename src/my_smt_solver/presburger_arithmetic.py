@@ -47,19 +47,19 @@ class PresburgerArithmetic:
     def is_valid_expression(self, var_assignments: dict[str, int]) -> bool:
         if not var_assignments:
             raise ValueError("var_assignments is empty")
-        rhs = 0
+        lhs = 0
         for value, var in self.terms:
-            rhs += value * var_assignments[var]
+            lhs += value * var_assignments[var]
 
         if self.relation == Relation.EQ:
-            return rhs == self.const
+            return lhs == self.const
         elif self.relation == Relation.NEQ:
-            return rhs != self.const
+            return lhs != self.const
         elif self.relation == Relation.LT:
-            return rhs < self.const
+            return lhs < self.const
         elif self.relation == Relation.GT:
-            return rhs > self.const
+            return lhs > self.const
         elif self.relation == Relation.LEQ:
-            return rhs <= self.const
+            return lhs <= self.const
         else:  # self.relation is Relation.GEQ
-            return rhs >= self.const
+            return lhs >= self.const
