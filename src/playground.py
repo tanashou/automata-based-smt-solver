@@ -18,5 +18,5 @@ s.add(p1)
 s.add(p2)
 
 s.check()
-s.check()
-s.check()
+
+
