@@ -30,9 +30,8 @@ class PresburgerArithmetic:
     def const(self) -> int:
         return self.__const
 
-
     def __str__(self) -> str:
-        def format_term(coef, var, is_first):
+        def format_term(coef: int, var: str, is_first: bool) -> str:
             sign = "" if coef >= 0 and is_first else "+" if coef >= 0 else "-"
             formatted_coef = f"{sign} {abs(coef)}" if not is_first else f"{coef}"
             return f"{formatted_coef}{var}"
