@@ -13,7 +13,6 @@ class Solver:
         self.variables: list[str] = []
         self.__coefs: list[list[int]] = []
         self.__builders: list[AutomataBuilder] = []
-        self.__components_initialized = False
 
     @property
     def prb_arithmetics(self) -> list[PresburgerArithmetic]:
@@ -76,29 +75,34 @@ class Solver:
         for coef, prb_arithmetic in zip(self.coefs, self.prb_arithmetics):
             self.__builders.append(AutomataBuilder(coef, prb_arithmetic))
 
-    def initialize_components(self) -> None:
+    def __initialize_components(self) -> None:
         self.__update_prb_arithmetics()
         self.__set_variables()
         self.__set_coefs()
         self.__set_builders()
         self.__components_initialized = True
 
-    def intersect_all_nfa(self) -> NFA:
+    def __intersect_all_nfa(self) -> NFA:
         return reduce(lambda nfa1, nfa2: nfa1.intersection(nfa2), [builder.nfa for builder in self.__builders])
 
-    def check(self) -> None:
-        if not self.__components_initialized:
-            self.initialize_components()
+    def __all_builders_completed(self) -> bool:
+        return all([builder.build_completed for builder in self.__builders])
 
-        for builder in self.__builders:
-            builder.next()
+    def check(self) -> dict[str, int]:
+        self.__initialize_components()
+
+        while not self.__all_builders_completed():
+            for builder in self.__builders:
+                builder.next()
             # builder.nfa.show_diagram(path=f"image/nfa{builder.relation}.png")
 
-        intersected_nfa = self.intersect_all_nfa()
-        # intersected_nfa.show_diagram(path="image/nfa_intersection.png")
-        # intersected_nfa.dfs_with_path()
+            intersected_nfa = self.__intersect_all_nfa()
+            # intersected_nfa.show_diagram(path="image/nfa_intersection.png")
 
-        if symbol_path := intersected_nfa.bfs_with_path():
-            print(f"sat: {decode_symbols_to_int(symbol_path)}")
-        else:
-            print("unsat")
+            if symbol_path := intersected_nfa.bfs_with_path():
+                result = dict(zip(self.variables, decode_symbols_to_int(symbol_path)))
+                print(f"sat: {result}")
+                return result
+
+        print("unsat")
+        return dict()
