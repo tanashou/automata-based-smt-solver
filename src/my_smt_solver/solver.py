@@ -23,7 +23,7 @@ class Solver:
         return self.__coefs
 
     def add(self, prb_arithmetic: PresburgerArithmetic) -> None:
-        for term_var, _ in prb_arithmetic.terms:
+        for _, term_var in prb_arithmetic.terms:
             if term_var == "z_neq":
                 raise ValueError("z_neq is reserved variable name")
         self.__prb_arithmetics.append(prb_arithmetic)
@@ -46,15 +46,15 @@ class Solver:
         for prb_arithmetic in self.prb_arithmetics:
             if prb_arithmetic.relation == Relation.NEQ:
                 prb_arithmetic.relation = Relation.EQ
-                prb_arithmetic.add_term(("z_neq", 1))
+                prb_arithmetic.add_term((1, "z_neq"))
 
-        self.__add(PresburgerArithmetic([("z_neq", 1)], Relation.NEQ, 0))  # add z_neq != 0
+        self.__add(PresburgerArithmetic([(1, "z_neq")], Relation.NEQ, 0))  # add z_neq != 0
         return
 
     def __set_variables(self) -> None:
         var_set = set()
         for prb_arithmetic in self.prb_arithmetics:
-            vars = [term[0] for term in prb_arithmetic.terms]
+            vars = [term[1] for term in prb_arithmetic.terms] # term[1] is variable name
             var_set.update(vars)
 
         self.variables = sorted(var_set)
@@ -66,7 +66,7 @@ class Solver:
         self.__coefs = [[0 for _ in range(num_variables)] for _ in range(num_arithmetics)]
 
         for arithmetic_index, prb_arithmetic in enumerate(self.prb_arithmetics):
-            for term_var, term_value in prb_arithmetic.terms:
+            for term_value, term_var in prb_arithmetic.terms:
                 if term_var in self.variables:
                     var_index = self.variables.index(term_var)
                     self.__coefs[arithmetic_index][var_index] += term_value

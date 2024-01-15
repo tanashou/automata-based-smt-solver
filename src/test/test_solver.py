@@ -7,17 +7,17 @@ from my_smt_solver import Solver, PresburgerArithmetic, Relation
 def sample_prb_arithmetics() -> list[PresburgerArithmetic]:
     return [
         PresburgerArithmetic(
-            terms=[("x", 2), ("z", -3)],
+            terms=[(2, "x"), (-3, "z")],
             relation=Relation.EQ,
             const=2,
         ),
         PresburgerArithmetic(
-            terms=[("x", 1)],
+            terms=[(1, "x")],
             relation=Relation.GEQ,
             const=0,
         ),
         PresburgerArithmetic(
-            terms=[("x", 100), ("y", -19)],
+            terms=[(100, "x"), (-19, "y")],
             relation=Relation.NEQ,
             const=0,
         ),
@@ -28,12 +28,12 @@ def sample_prb_arithmetics() -> list[PresburgerArithmetic]:
 def sample_prb_arithmetics2() -> list[PresburgerArithmetic]:
     return [
         PresburgerArithmetic(
-            terms=[("x", 2), ("z", -3)],
+            terms=[(2, "x"), (-3, "z")],
             relation=Relation.EQ,
             const=2,
         ),
         PresburgerArithmetic(
-            terms=[("x", 100), ("y", -19)],
+            terms=[(100, "x"), (-19, "y")],
             relation=Relation.NEQ,
             const=0,
         ),
