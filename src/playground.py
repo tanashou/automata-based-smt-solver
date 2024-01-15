@@ -7,11 +7,15 @@ p1 = PresburgerArithmetic(
     const=2,
 )
 
+print(p1)
+
 p2 = PresburgerArithmetic(
     terms=[("x", 100), ("y", -19)],
     relation=Relation.NEQ,
     const=0,
 )
+
+print(p2)
 
 s = Solver()
 s.add(p1)
