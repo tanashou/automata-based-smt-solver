@@ -28,7 +28,7 @@ class AutomataBuilder:
         self.nfa = NFA(
             states={self.INITIAL_STATE, str(self.const)},
             input_symbols=make_binary_wildcard_strings(self.coefs),
-            transitions=defaultdict(lambda: defaultdict(set)),
+            transitions=defaultdict(lambda: defaultdict(set), {}),
             initial_state=self.INITIAL_STATE,
             final_states=set([str(self.const)]),
         )
@@ -44,7 +44,6 @@ class AutomataBuilder:
         if method_name:
             method = getattr(self, method_name)
             method()
-
 
     """
     coefs: all the coefficients of the linear equations
@@ -67,7 +66,7 @@ class AutomataBuilder:
                 if current_state == -dot:
                     self.nfa.add_transition(self.INITIAL_STATE, symbol, str(current_state))
                     partial_sat = True
-            # return after the for loop is finished. 
+            # return after the for loop is finished.
             if partial_sat:
                 if not self.create_all:
                     return
