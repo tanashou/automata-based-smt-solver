@@ -1,4 +1,5 @@
 from functools import reduce
+from pickle import FALSE
 from my_smt_solver.nfa import NFA
 from .presburger_arithmetic import PresburgerArithmetic
 from .type import Relation
@@ -8,11 +9,12 @@ from .utils import decode_symbols_to_int
 
 class Solver:
     # Prb 算術式を受け取り、適切な式を生成する。その後、builderを呼び出す
-    def __init__(self) -> None:
+    def __init__(self, create_all: bool = False) -> None:
         self.__prb_arithmetics: list[PresburgerArithmetic] = []
         self.variables: list[str] = []
         self.__coefs: list[list[int]] = []
         self.__builders: list[AutomataBuilder] = []
+        self.__create_all = create_all
 
     @property
     def prb_arithmetics(self) -> list[PresburgerArithmetic]:
@@ -54,7 +56,7 @@ class Solver:
     def __set_variables(self) -> None:
         var_set = set()
         for prb_arithmetic in self.prb_arithmetics:
-            vars = [term[1] for term in prb_arithmetic.terms] # term[1] is variable name
+            vars = [term[1] for term in prb_arithmetic.terms]  # term[1] is variable name
             var_set.update(vars)
 
         self.variables = sorted(var_set)
@@ -73,14 +75,13 @@ class Solver:
 
     def __set_builders(self) -> None:
         for coef, prb_arithmetic in zip(self.coefs, self.prb_arithmetics):
-            self.__builders.append(AutomataBuilder(coef, prb_arithmetic))
+            self.__builders.append(AutomataBuilder(coef, prb_arithmetic, create_all=self.__create_all))
 
     def __initialize_components(self) -> None:
         self.__update_prb_arithmetics()
         self.__set_variables()
         self.__set_coefs()
         self.__set_builders()
-        self.__components_initialized = True
 
     def __intersect_all_nfa(self) -> NFA:
         return reduce(lambda nfa1, nfa2: nfa1.intersection(nfa2), [builder.nfa for builder in self.__builders])
@@ -88,6 +89,7 @@ class Solver:
     def __all_builders_completed(self) -> bool:
         return all([builder.build_completed for builder in self.__builders])
 
+    # TODO: 画像の出力を選択できるようにする
     def check(self) -> dict[str, int]:
         self.__initialize_components()
 

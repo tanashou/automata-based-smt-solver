@@ -40,6 +40,17 @@ def sample_prb_arithmetics2() -> list[PresburgerArithmetic]:
     ]
 
 
+@pytest.fixture
+def sample_prb_arithmetics3() -> list[PresburgerArithmetic]:
+    return [
+        PresburgerArithmetic(
+            terms=[(1, "x")],
+            relation=Relation.LEQ,
+            const=4,
+        ),
+    ]
+
+
 def test_check(sample_prb_arithmetics2: list[PresburgerArithmetic]) -> None:
     s = Solver()
     for prb_arithmetic in sample_prb_arithmetics2:
@@ -49,4 +60,15 @@ def test_check(sample_prb_arithmetics2: list[PresburgerArithmetic]) -> None:
     assert s.variables == ["x", "y", "z", "z_neq"]
     assert sorted(s.coefs) == sorted([[2, 0, -3, 0], [100, -19, 0, 1], [0, 0, 0, 1]])
     for prb_arithmetic in sample_prb_arithmetics2:
+        assert prb_arithmetic.is_valid_expression(result)
+
+def test_leq(sample_prb_arithmetics3: list[PresburgerArithmetic]) -> None:
+    s = Solver()
+    for prb_arithmetic in sample_prb_arithmetics3:
+        s.add(prb_arithmetic)
+
+    result = s.check()
+    assert s.variables == ["x"]
+    assert sorted(s.coefs) == sorted([[1]])
+    for prb_arithmetic in sample_prb_arithmetics3:
         assert prb_arithmetic.is_valid_expression(result)
