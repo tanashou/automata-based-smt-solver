@@ -91,3 +91,27 @@ class AutomataBuilder:
                 self.nfa.add_transition(final_state, input_symbol, final_state)
 
         self.__build_completed = True
+
+    def leq_to_nfa(self) -> None:
+        partial_sat = False
+
+        while self.work_list:
+            current_state = self.work_list.pop()
+            for symbol in self.nfa.input_symbols:
+                dot = dot_product_with_wildcard(self.coefs, symbol)
+                previous_state = int((1 / 2 * (current_state - dot)) // 1)  # calculate floor
+                if str(previous_state) not in self.nfa.states:
+                    self.nfa.add_state(str(previous_state))
+                    self.work_list.append(previous_state)
+                self.nfa.add_transition(str(previous_state), symbol, str(current_state))
+
+                if 1 / 2 * (current_state + dot) >= 0:
+                    self.nfa.add_transition(self.INITIAL_STATE, symbol, str(current_state))
+                    partial_sat = True
+            # return after the for loop is finished.
+            if partial_sat:
+                if not self.create_all:
+                    return
+
+        # when the work_list is empty, building nfa is completed.
+        self.__build_completed = True
