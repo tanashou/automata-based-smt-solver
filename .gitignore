@@ -16,3 +16,4 @@ wheels/
 .vscode
 
 src/playground.py
+image/
