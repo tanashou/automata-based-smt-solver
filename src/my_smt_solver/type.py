@@ -23,3 +23,18 @@ class Relation(StrEnum):
             if relation.value == relation_str:
                 return relation
         raise ValueError(f"Invalid relation: {relation_str}")
+
+    def invert(self) -> "Relation":
+        match self:
+            case Relation.EQ:
+                return Relation.NEQ
+            case Relation.NEQ:
+                return Relation.EQ
+            case Relation.LT:
+                return Relation.GEQ
+            case Relation.GT:
+                return Relation.LEQ
+            case Relation.LEQ:
+                return Relation.GT
+            case Relation.GEQ:
+                return Relation.LT
