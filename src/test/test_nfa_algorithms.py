@@ -7,7 +7,7 @@ from collections import defaultdict
 # Define a fixture for creating NFAs with common structure
 @pytest.fixture
 def sample_NFAs() -> tuple[NFA, NFA]:
-    p = PresburgerArithmetic(terms=[("x", 1), ("y", 1)], relation=Relation.EQ, const=2)
+    p = PresburgerArithmetic(terms=[(1, "x"), (1, "y")], relation=Relation.EQ, const=2)
     coefs = [1, 1]
     bld1 = AutomataBuilder(coefs, p, create_all=True)
     bld1.next()
@@ -25,7 +25,7 @@ def sample_NFAs() -> tuple[NFA, NFA]:
 
 @pytest.fixture
 def sample_neq_NFAs() -> NFA:
-    p = PresburgerArithmetic(terms=[("z_neq", 1)], relation=Relation.NEQ, const=0)
+    p = PresburgerArithmetic(terms=[(1, "z_neq")], relation=Relation.NEQ, const=0)
     coefs = [0, 0, 0, 1]
     bld = AutomataBuilder(coefs, p, create_all=True)
     bld.neq_to_nfa()
