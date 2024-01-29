@@ -15,4 +15,5 @@ wheels/
 *.png
 .vscode
 
+src/playground.py
 image/
