@@ -30,6 +30,11 @@ class PresburgerArithmetic:
     def const(self) -> int:
         return self.__const
 
+    def invert(self) -> None:
+        self.__relation = self.__relation.invert()
+        self.__const = -self.__const
+        self.__terms = [(var, -value) for var, value in self.__terms]
+
     def is_valid_expression(self, var_assignments: dict[str, int]) -> bool:
         if not var_assignments:
             raise ValueError("var_assignments is empty")

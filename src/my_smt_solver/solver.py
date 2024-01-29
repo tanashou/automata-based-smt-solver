@@ -38,7 +38,7 @@ class Solver:
                 return True
         return False
 
-    # 与えられた Prb 算術式の中に NEQ が含まれている場合、新しく変数 z_neq を追加する。x != 2 を　x + z_neq = 2　and z_neq != 0 に変換する
+    # 与えられた Prb 算術式の中に NEQ が含まれている場合、新しく変数 z_neq を追加する。x != 2 を x + z_neq = 2 and z_neq != 0 に変換する
     def __update_prb_arithmetics(self) -> None:
         if not self.__check_neq():
             return
@@ -50,6 +50,17 @@ class Solver:
 
         self.__add(PresburgerArithmetic([("z_neq", 1)], Relation.NEQ, 0))  # add z_neq != 0
         return
+
+    # TODO: 他の <, >, >= についても変換する
+    def __format_prbs_to_leq(self) -> None:
+        for prb_arithmetic in self.prb_arithmetics:
+            match prb_arithmetic.relation:
+                case Relation.LT:
+                    pass
+                case Relation.GT:
+                    pass
+                case Relation.GEQ:
+                    pass
 
     def __set_variables(self) -> None:
         var_set = set()
