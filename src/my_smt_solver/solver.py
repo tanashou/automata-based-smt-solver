@@ -58,11 +58,15 @@ class Solver:
         for prb_arithmetic in self.prb_arithmetics:
             match prb_arithmetic.relation:
                 case Relation.LT:
-                    pass
+                    prb_arithmetic.flip_ineq()
+                    prb_arithmetic.relation = Relation.LEQ
+                    prb_arithmetic.const -= 1
                 case Relation.GT:
-                    pass
+                    prb_arithmetic.flip_ineq()
+                    prb_arithmetic.relation = Relation.LEQ
+                    prb_arithmetic.const -= 1
                 case Relation.GEQ:
-                    pass
+                    prb_arithmetic.flip_ineq()
 
     def __set_variables(self) -> None:
         var_set = set()
@@ -90,6 +94,7 @@ class Solver:
 
     def __initialize_components(self) -> None:
         self.__update_prb_arithmetics()
+        self.__format_prbs_to_leq()
         self.__set_variables()
         self.__set_coefs()
         self.__set_builders()

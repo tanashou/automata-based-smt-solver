@@ -30,8 +30,12 @@ class PresburgerArithmetic:
     def const(self) -> int:
         return self.__const
 
-    def invert(self) -> None:
-        self.__relation = self.__relation.invert()
+    @const.setter
+    def const(self, const: int) -> None:
+        self.__const = const
+
+    def flip_ineq(self) -> None:
+        self.__relation = self.__relation.flip()
         self.__const = -self.__const
         self.__terms = [(-value, var) for value, var in self.__terms]
 
@@ -56,15 +60,16 @@ class PresburgerArithmetic:
         for value, var in self.terms:
             lhs += value * var_assignments[var]
 
-        if self.relation == Relation.EQ:
-            return lhs == self.const
-        elif self.relation == Relation.NEQ:
-            return lhs != self.const
-        elif self.relation == Relation.LT:
-            return lhs < self.const
-        elif self.relation == Relation.GT:
-            return lhs > self.const
-        elif self.relation == Relation.LEQ:
-            return lhs <= self.const
-        else:  # self.relation is Relation.GEQ
-            return lhs >= self.const
+        match self.relation:
+            case Relation.EQ:
+                return lhs == self.const
+            case Relation.NEQ:
+                return lhs != self.const
+            case Relation.LT:
+                return lhs < self.const
+            case Relation.GT:
+                return lhs > self.const
+            case Relation.LEQ:
+                return lhs <= self.const
+            case Relation.GEQ:
+                return lhs >= self.const
