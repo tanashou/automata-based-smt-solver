@@ -11,14 +11,6 @@ from .utils import (
 # 1つのリテラルに対してnfaを作成していくクラス
 class AutomataBuilder:
     INITIAL_STATE = "q0"
-    build_methods = {
-        Relation.EQ: "eq_to_nfa",
-        Relation.NEQ: "neq_to_nfa",
-        Relation.LT: "lt_to_nfa",
-        Relation.GT: "gt_to_nfa",
-        Relation.LEQ: "leq_to_nfa",
-        Relation.GEQ: "geq_to_nfa",
-    }
 
     def __init__(self, coefs: list[int], prb_arithmetic: PresburgerArithmetic, create_all: bool = False) -> None:
         self.coefs = coefs
@@ -40,10 +32,13 @@ class AutomataBuilder:
         return self.__build_completed
 
     def next(self) -> None:
-        method_name = self.build_methods.get(self.relation)
-        if method_name:
-            method = getattr(self, method_name)
-            method()
+        match self.relation:
+            case Relation.EQ:
+                self.eq_to_nfa()
+            case Relation.NEQ:
+                self.neq_to_nfa()
+            case Relation.LEQ:
+                self.leq_to_nfa()
 
     """
     coefs: all the coefficients of the linear equations
