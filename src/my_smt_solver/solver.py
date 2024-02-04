@@ -1,10 +1,10 @@
 from functools import reduce
-from pickle import FALSE
 from my_smt_solver.nfa import NFA
 from .presburger_arithmetic import PresburgerArithmetic
 from .type import Relation
 from .automata_builder import AutomataBuilder
 from .utils import decode_symbols_to_int
+import logging
 
 
 class Solver:
@@ -107,15 +107,18 @@ class Solver:
 
     # TODO: 画像の出力を選択できるようにする
     def check(self) -> dict[str, int]:
+        logging.basicConfig(filename="nfa.log", level=logging.INFO)
         self.__initialize_components()
 
+        count = 0
         while not self.__all_builders_completed():
-            for builder in self.__builders:
+            for i, builder in enumerate(self.__builders):
                 builder.next()
-            # builder.nfa.show_diagram(path=f"image/nfa{builder.relation}.png")
+                logging.info(f"builder{i}:\n{builder.nfa}")
+                builder.nfa.show_diagram(path=f"image/nfa{i}_{count}.pdf")
 
             intersected_nfa = self.__intersect_all_nfa()
-            # intersected_nfa.show_diagram(path="image/nfa_intersection.png")
+            intersected_nfa.show_diagram(path=f"image/nfa_intersection{count}.pdf")
 
             if symbol_path := intersected_nfa.bfs_with_path():
                 result = dict(zip(self.variables, decode_symbols_to_int(symbol_path)))
