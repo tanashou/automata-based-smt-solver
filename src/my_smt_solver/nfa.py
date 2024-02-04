@@ -25,6 +25,11 @@ class NFA:
         self.__initial_state = initial_state
         self.__final_states = final_states
 
+    def __str__(self) -> str:
+        # Convert defaultdict to dict
+        d = {k: dict(v) for k, v in self.transitions.items()}
+        return f"states={self.states},\ninput_symbols={self.input_symbols},\ntransitions={d},\ninitial_state={self.initial_state},\nfinal_states={self.final_states}"
+
     @property
     def states(self) -> set[NFAStateT]:
         return self.__states
