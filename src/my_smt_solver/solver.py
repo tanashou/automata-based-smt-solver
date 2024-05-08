@@ -115,10 +115,10 @@ class Solver:
             for i, builder in enumerate(self.__builders):
                 builder.next()
                 logging.info(f"builder{i}:\n{builder.nfa}")
-                builder.nfa.show_diagram(path=f"image/nfa{i}_{count}.pdf")
+                builder.nfa.show_diagram(path=f"image/nfa{i}_{count}.svg")
 
             intersected_nfa = self.__intersect_all_nfa()
-            intersected_nfa.show_diagram(path=f"image/nfa_intersection{count}.pdf")
+            intersected_nfa.show_diagram(path=f"image/nfa_intersection{count}.svg")
 
             if symbol_path := intersected_nfa.bfs_with_path():
                 result = dict(zip(self.variables, decode_symbols_to_int(symbol_path)))
