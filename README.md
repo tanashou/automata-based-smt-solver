@@ -1,23 +1,17 @@
-# 卒論
+# Automata-Based Presburger Arithmetic SMT Solver
 
-オートマトンを用いたプレスブルガー算術式の充足可能性判定法
+This is a SMT solver for Presburger arithmetic (or linear integer arithmetic) based on automata.
 
-## Table of Contents
-
-- [Installation](#installation)
-- [Usage](#usage)
-- [参考文献](#参考文献)
-- [License](#license)
+This project is in progress.
 
 ## Installation
-Install [rye](https://rye-up.com/guide/installation/), `gcc`, and `clang` if you haven't.
-
+Install [rye](https://rye-up.com/guide/installation/), `gcc`, and `clang`
 ### for Mac
 Install graphviz via homebrew.
 ```bash
 brew install graphviz
 ```
-You need to add these path to install `pygraphviz` to rye.
+You need to add these path to install `pygraphviz` in rye.
 ```bash
 export CFLAGS="-I $(brew --prefix graphviz)/include"
 export LDFLAGS="-L $(brew --prefix graphviz)/lib"
@@ -32,11 +26,5 @@ sudo apt-get install graphviz graphviz-dev
 Then run `rye sync` to install all the dependencies.
 
 ## Usage
-
-TODO
-
-## 参考文献
-
-## License
 
 TODO
