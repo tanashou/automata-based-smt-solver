@@ -8,24 +8,17 @@ p1 = PresburgerArithmetic(
 )
 
 p2 = PresburgerArithmetic(
-    terms=[(2, "x"), (1, "z")],
-    relation=Relation.LEQ,
-    const=5,
-)
-
-p3 = PresburgerArithmetic(
-    terms=[(1, "y"), (3, "z")],
-    relation=Relation.NEQ,
-    const=0,
+    terms=[(1, "x")],
+    relation=Relation.GEQ,
+    const=2,
 )
 
 print(p1)
 print(p2)
-print(p3)
+
 
 s = Solver()
 s.add(p1)
 s.add(p2)
-s.add(p3)
 
 s.check()
