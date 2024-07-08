@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "graduation-thesis"
 version = "0.1.0"
@@ -7,23 +11,29 @@ authors = [
 ]
 dependencies = [
     "automata-lib[visual]>=8.1.0",
-    "mypy>=1.7.1",
-    "pytest>=7.4.3",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
+license = { file = "LICENSE" }
 
-[build-system]
-requires = ["hatchling<=1.18.0"]
-build-backend = "hatchling.build"
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.7.1",
+    "pytest>=7.4.3",
+]
 
-[tool.rye]
-managed = true
-dev-dependencies = []
+[tool.hatch.build.targets.wheel]
+packages = ["src/graduation_thesis"]
 
-[tool.rye.scripts]
-ex = "rye run python src/example.py"
-mp = "rye run mypy src"
+[tool.hatch.envs.default]
+dependencies = [
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest tests/ {args}"
+cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/graduation_thesis --cov=tests {args}"
 
 [tool.mypy]
 ignore_missing_imports = true

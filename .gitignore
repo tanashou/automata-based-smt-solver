@@ -13,7 +13,6 @@ wheels/
 .DS_Store
 *.log
 *.png
-.vscode
 
 src/playground.py
 image/

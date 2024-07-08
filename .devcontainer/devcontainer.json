@@ -1,0 +1,17 @@
+{
+    "name": "python",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "..",
+        "args": {
+            "PROJECT_NAME": "${localWorkspaceFolderBasename}"
+        }
+    },
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "customizations": {
+        "vscode": {
+            "extensions": ["ms-python.python", "charliermarsh.ruff", "jock.svg"]
+        }
+    },
+    "remoteUser": "vscode"
+}
