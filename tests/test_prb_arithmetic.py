@@ -1,5 +1,5 @@
 import pytest
-from my_smt_solver import PresburgerArithmetic, Relation
+from src.my_smt_solver import PresburgerArithmetic, Relation
 
 class TestPresburgerArithmetic:
     def test_flip_ineq(self) -> None:

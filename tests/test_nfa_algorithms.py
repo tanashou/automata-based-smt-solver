@@ -1,5 +1,5 @@
 import pytest
-from my_smt_solver import AutomataBuilder, NFA as NFA, PresburgerArithmetic, Relation
+from src.my_smt_solver import AutomataBuilder, NFA as NFA, PresburgerArithmetic, Relation
 from collections import defaultdict
 
 
