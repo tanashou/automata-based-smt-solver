@@ -1,6 +1,4 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+
 
 [project]
 name = "graduation-thesis"
@@ -20,15 +18,6 @@ license = { file = "LICENSE" }
 dev = [
     "mypy>=1.7.1",
     "pytest>=7.4.3",
-]
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/graduation_thesis"]
-
-[tool.hatch.envs.default]
-dependencies = [
-    "pytest",
-    "pytest-cov",
 ]
 
 [tool.hatch.envs.default.scripts]

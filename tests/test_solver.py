@@ -1,5 +1,5 @@
 import pytest
-from my_smt_solver import Solver, PresburgerArithmetic, Relation
+from src.my_smt_solver import Solver, PresburgerArithmetic, Relation
 
 
 # Define a fixture for creating NFAs with common structure

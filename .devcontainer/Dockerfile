@@ -1,19 +1,22 @@
 FROM python:3.11
-RUN pip install --upgrade pip && \
-    pip install hatch
 
 WORKDIR /app
-COPY pyproject.toml /app
+
+COPY pyproject.toml .
+COPY src ./src
+
 
 RUN apt-get update && \
     apt-get install -y graphviz graphviz-dev sudo && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    hatch dep show requirements > /app/requirements.txt && \
-    python -m pip install -r /app/requirements.txt
+    # Install build dependencies and the package
+    pip install --upgrade pip && \
+    pip install ".[dev]"
 
-COPY . /app
-RUN python -m pip install -e .
+COPY . .
+
+
 
 # root 権限を持ったvscodeユーザーの作成
 ARG USERNAME=vscode
@@ -24,3 +27,11 @@ RUN groupadd --gid $USER_GID $USERNAME && \
     useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME && \
     echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME && \
     chmod 0440 /etc/sudoers.d/$USERNAME
+
+# Set correct ownership and permissions
+RUN chown -R vscode:vscode /app
+RUN chmod -R 755 /app
+
+# Switch to vscode user
+USER vscode
+
