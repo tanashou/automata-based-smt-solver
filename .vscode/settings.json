@@ -2,9 +2,4 @@
     "python.analysis.typeCheckingMode": "basic",
     "git.closeDiffOnOperation": true,
     "python.analysis.autoImportCompletions": true,
-    "python.testing.pytestArgs": [
-        "."
-    ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
 }
