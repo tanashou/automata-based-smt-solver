@@ -1,5 +1,3 @@
-
-
 [project]
 name = "graduation-thesis"
 version = "0.1.0"
@@ -20,13 +18,6 @@ dev = [
     "pytest>=7.4.3",
 ]
 
-[tool.hatch.envs.default.scripts]
-test = "pytest tests/ {args}"
-cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/graduation_thesis --cov=tests {args}"
-
 [tool.mypy]
 ignore_missing_imports = true
 strict = true
-
-[tool.hatch.metadata]
-allow-direct-references = true
