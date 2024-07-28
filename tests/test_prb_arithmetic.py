@@ -1,5 +1,6 @@
 import pytest
-from src.my_smt_solver import PresburgerArithmetic, Relation
+from my_smt_solver import PresburgerArithmetic, Relation
+
 
 class TestPresburgerArithmetic:
     def test_flip_ineq(self) -> None:
@@ -18,4 +19,3 @@ class TestPresburgerArithmetic:
         p = PresburgerArithmetic([(2, "x"), (-3, "z")], Relation.LEQ, -2)
         p.const += 1
         assert p.const == -1
-
