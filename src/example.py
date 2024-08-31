@@ -1,5 +1,4 @@
-from my_smt_solver import Solver, PresburgerArithmetic, Relation
-
+from my_smt_solver import PresburgerArithmetic, Relation, Solver
 
 p1 = PresburgerArithmetic(
     terms=[(1, "x"), (-1, "y")],

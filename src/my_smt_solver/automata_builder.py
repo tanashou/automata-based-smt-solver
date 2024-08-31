@@ -1,10 +1,11 @@
 from collections import defaultdict
-from .presburger_arithmetic import PresburgerArithmetic
+
 from .nfa import NFA
-from .type import NFAStateT, Relation
+from .presburger_arithmetic import PresburgerArithmetic
+from .type import Relation
 from .utils import (
-    make_binary_wildcard_strings,
     dot_product_with_wildcard,
+    make_binary_wildcard_strings,
 )
 
 
@@ -12,7 +13,12 @@ from .utils import (
 class AutomataBuilder:
     INITIAL_STATE = "q0"
 
-    def __init__(self, coefs: list[int], prb_arithmetic: PresburgerArithmetic, create_all: bool = False) -> None:
+    def __init__(
+        self,
+        coefs: list[int],
+        prb_arithmetic: PresburgerArithmetic,
+        create_all: bool = False,
+    ) -> None:
         self.coefs = coefs
         self.const = prb_arithmetic.const
         self.relation = prb_arithmetic.relation
@@ -57,9 +63,13 @@ class AutomataBuilder:
                     if str(previous_state) not in self.nfa.states:
                         self.nfa.add_state(str(previous_state))
                         self.work_list.append(previous_state)
-                    self.nfa.add_transition(str(previous_state), symbol, str(current_state))
+                    self.nfa.add_transition(
+                        str(previous_state), symbol, str(current_state)
+                    )
                 if current_state == -dot:
-                    self.nfa.add_transition(self.INITIAL_STATE, symbol, str(current_state))
+                    self.nfa.add_transition(
+                        self.INITIAL_STATE, symbol, str(current_state)
+                    )
                     partial_sat = True
             # return after the for loop is finished.
             if partial_sat:
@@ -78,11 +88,15 @@ class AutomataBuilder:
         (final_state,) = self.nfa.final_states
         for input_symbol in self.nfa.input_symbols:
             if "0" in input_symbol:
-                self.nfa.add_transition(self.nfa.initial_state, input_symbol, self.nfa.initial_state)
+                self.nfa.add_transition(
+                    self.nfa.initial_state, input_symbol, self.nfa.initial_state
+                )
                 self.nfa.add_transition(final_state, input_symbol, final_state)
 
             else:  # '1' in input_symbol
-                self.nfa.add_transition(self.nfa.initial_state, input_symbol, final_state)
+                self.nfa.add_transition(
+                    self.nfa.initial_state, input_symbol, final_state
+                )
                 self.nfa.add_transition(final_state, input_symbol, final_state)
 
         self.__build_completed = True
@@ -94,14 +108,18 @@ class AutomataBuilder:
             current_state = self.work_list.pop()
             for symbol in self.nfa.input_symbols:
                 dot = dot_product_with_wildcard(self.coefs, symbol)
-                previous_state = int((1 / 2 * (current_state - dot)) // 1)  # calculate floor
+                previous_state = int(
+                    (1 / 2 * (current_state - dot)) // 1
+                )  # calculate floor
                 if str(previous_state) not in self.nfa.states:
                     self.nfa.add_state(str(previous_state))
                     self.work_list.append(previous_state)
                 self.nfa.add_transition(str(previous_state), symbol, str(current_state))
 
                 if 1 / 2 * (current_state + dot) >= 0:
-                    self.nfa.add_transition(self.INITIAL_STATE, symbol, str(current_state))
+                    self.nfa.add_transition(
+                        self.INITIAL_STATE, symbol, str(current_state)
+                    )
                     partial_sat = True
             # return after the for loop is finished.
             if partial_sat:

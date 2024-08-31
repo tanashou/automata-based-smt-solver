@@ -1,10 +1,12 @@
+import logging
 from functools import reduce
+
 from my_smt_solver.nfa import NFA
+
+from .automata_builder import AutomataBuilder
 from .presburger_arithmetic import PresburgerArithmetic
 from .type import Relation
-from .automata_builder import AutomataBuilder
 from .utils import decode_symbols_to_int
-import logging
 
 
 class Solver:
@@ -50,7 +52,9 @@ class Solver:
                 prb_arithmetic.relation = Relation.EQ
                 prb_arithmetic.add_term((1, "z_neq"))
 
-        self.__add(PresburgerArithmetic([(1, "z_neq")], Relation.NEQ, 0))  # add z_neq != 0
+        self.__add(
+            PresburgerArithmetic([(1, "z_neq")], Relation.NEQ, 0)
+        )  # add z_neq != 0
         return
 
     # TODO: 他の <, >, >= についても変換する
@@ -71,7 +75,9 @@ class Solver:
     def __set_variables(self) -> None:
         var_set = set()
         for prb_arithmetic in self.prb_arithmetics:
-            vars = [term[1] for term in prb_arithmetic.terms]  # term[1] is variable name
+            vars = [
+                term[1] for term in prb_arithmetic.terms
+            ]  # term[1] is variable name
             var_set.update(vars)
 
         self.variables = sorted(var_set)
@@ -80,7 +86,9 @@ class Solver:
         num_arithmetics = len(self.prb_arithmetics)
         num_variables = len(self.variables)
 
-        self.__coefs = [[0 for _ in range(num_variables)] for _ in range(num_arithmetics)]
+        self.__coefs = [
+            [0 for _ in range(num_variables)] for _ in range(num_arithmetics)
+        ]
 
         for arithmetic_index, prb_arithmetic in enumerate(self.prb_arithmetics):
             for term_value, term_var in prb_arithmetic.terms:
@@ -89,8 +97,10 @@ class Solver:
                     self.__coefs[arithmetic_index][var_index] += term_value
 
     def __set_builders(self) -> None:
-        for coef, prb_arithmetic in zip(self.coefs, self.prb_arithmetics):
-            self.__builders.append(AutomataBuilder(coef, prb_arithmetic, create_all=self.__create_all))
+        for coef, prb_arithmetic in zip(self.coefs, self.prb_arithmetics, strict=False):
+            self.__builders.append(
+                AutomataBuilder(coef, prb_arithmetic, create_all=self.__create_all)
+            )
 
     def __initialize_components(self) -> None:
         self.__update_prb_arithmetics()
@@ -100,7 +110,10 @@ class Solver:
         self.__set_builders()
 
     def __intersect_all_nfa(self) -> NFA:
-        return reduce(lambda nfa1, nfa2: nfa1.intersection(nfa2), [builder.nfa for builder in self.__builders])
+        return reduce(
+            lambda nfa1, nfa2: nfa1.intersection(nfa2),
+            [builder.nfa for builder in self.__builders],
+        )
 
     def __all_builders_completed(self) -> bool:
         return all([builder.build_completed for builder in self.__builders])
@@ -121,7 +134,11 @@ class Solver:
             intersected_nfa.show_diagram(path=f"image/nfa_intersection{count}.svg")
 
             if symbol_path := intersected_nfa.bfs_with_path():
-                result = dict(zip(self.variables, decode_symbols_to_int(symbol_path)))
+                result = dict(
+                    zip(
+                        self.variables, decode_symbols_to_int(symbol_path), strict=False
+                    )
+                )
                 print(f"sat: {result}")
                 return result
 
