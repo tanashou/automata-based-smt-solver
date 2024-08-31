@@ -1,5 +1,6 @@
 # Generated from src/parser/SMTLIBv2.g4 by ANTLR 4.13.2
 # encoding: utf-8
+# type: ignore
 from antlr4 import *
 from io import StringIO
 import sys
@@ -423,68 +424,68 @@ class SMTLIBv2Parser ( Parser ):
 
     sharedContextCache = PredictionContextCache()
 
-    literalNames = [ "<INVALID>", "<INVALID>", "'('", "')'", "';'", "<INVALID>", 
-                     "<INVALID>", "'not'", "'Bool'", "'continued-execution'", 
-                     "'error'", "'false'", "'immediate-exit'", "'incomplete'", 
-                     "'logic'", "'memout'", "'sat'", "'success'", "'theory'", 
-                     "'true'", "'unknown'", "'unsupported'", "'unsat'", 
-                     "'assert'", "'check-sat'", "'check-sat-assuming'", 
-                     "'declare-const'", "'declare-datatype'", "'declare-datatypes'", 
-                     "'declare-fun'", "'declare-sort'", "'define-fun'", 
-                     "'define-fun-rec'", "'define-funs-rec'", "'define-sort'", 
-                     "'echo'", "'exit'", "'get-assertions'", "'get-assignment'", 
-                     "'get-info'", "'get-model'", "'get-option'", "'get-proof'", 
-                     "'get-unsat-assumptions'", "'get-unsat-core'", "'get-value'", 
-                     "'pop'", "'push'", "'reset'", "'reset-assertions'", 
-                     "'set-info'", "'set-logic'", "'set-option'", "'!'", 
-                     "'_'", "'as'", "'BINARY'", "'DECIMAL'", "'exists'", 
-                     "'HEXADECIMAL'", "'forall'", "'let'", "'match'", "'NUMERAL'", 
-                     "'par'", "'string'", "<INVALID>", "<INVALID>", "<INVALID>", 
-                     "<INVALID>", "':'", "':all-statistics'", "':assertion-stack-levels'", 
-                     "':authors'", "':category'", "':chainable'", "':definition'", 
-                     "':diagnostic-output-channel'", "':error-behavior'", 
-                     "':extensions'", "':funs'", "':funs-description'", 
-                     "':global-declarations'", "':interactive-mode'", "':language'", 
-                     "':left-assoc'", "':license'", "':named'", "':name'", 
-                     "':notes'", "':pattern'", "':print-success'", "':produce-assertions'", 
-                     "':produce-assignments'", "':produce-models'", "':produce-proofs'", 
-                     "':produce-unsat-assumptions'", "':produce-unsat-cores'", 
-                     "':random-seed'", "':reason-unknown'", "':regular-output-channel'", 
-                     "':reproducible-resource-limit'", "':right-assoc'", 
-                     "':smt-lib-version'", "':sorts'", "':sorts-description'", 
-                     "':source'", "':status'", "':theories'", "':values'", 
+    literalNames = [ "<INVALID>", "<INVALID>", "'('", "')'", "';'", "<INVALID>",
+                     "<INVALID>", "'not'", "'Bool'", "'continued-execution'",
+                     "'error'", "'false'", "'immediate-exit'", "'incomplete'",
+                     "'logic'", "'memout'", "'sat'", "'success'", "'theory'",
+                     "'true'", "'unknown'", "'unsupported'", "'unsat'",
+                     "'assert'", "'check-sat'", "'check-sat-assuming'",
+                     "'declare-const'", "'declare-datatype'", "'declare-datatypes'",
+                     "'declare-fun'", "'declare-sort'", "'define-fun'",
+                     "'define-fun-rec'", "'define-funs-rec'", "'define-sort'",
+                     "'echo'", "'exit'", "'get-assertions'", "'get-assignment'",
+                     "'get-info'", "'get-model'", "'get-option'", "'get-proof'",
+                     "'get-unsat-assumptions'", "'get-unsat-core'", "'get-value'",
+                     "'pop'", "'push'", "'reset'", "'reset-assertions'",
+                     "'set-info'", "'set-logic'", "'set-option'", "'!'",
+                     "'_'", "'as'", "'BINARY'", "'DECIMAL'", "'exists'",
+                     "'HEXADECIMAL'", "'forall'", "'let'", "'match'", "'NUMERAL'",
+                     "'par'", "'string'", "<INVALID>", "<INVALID>", "<INVALID>",
+                     "<INVALID>", "':'", "':all-statistics'", "':assertion-stack-levels'",
+                     "':authors'", "':category'", "':chainable'", "':definition'",
+                     "':diagnostic-output-channel'", "':error-behavior'",
+                     "':extensions'", "':funs'", "':funs-description'",
+                     "':global-declarations'", "':interactive-mode'", "':language'",
+                     "':left-assoc'", "':license'", "':named'", "':name'",
+                     "':notes'", "':pattern'", "':print-success'", "':produce-assertions'",
+                     "':produce-assignments'", "':produce-models'", "':produce-proofs'",
+                     "':produce-unsat-assumptions'", "':produce-unsat-cores'",
+                     "':random-seed'", "':reason-unknown'", "':regular-output-channel'",
+                     "':reproducible-resource-limit'", "':right-assoc'",
+                     "':smt-lib-version'", "':sorts'", "':sorts-description'",
+                     "':source'", "':status'", "':theories'", "':values'",
                      "':verbosity'", "':version'" ]
 
-    symbolicNames = [ "<INVALID>", "Comment", "ParOpen", "ParClose", "Semicolon", 
-                      "String", "QuotedSymbol", "PS_Not", "PS_Bool", "PS_ContinuedExecution", 
-                      "PS_Error", "PS_False", "PS_ImmediateExit", "PS_Incomplete", 
-                      "PS_Logic", "PS_Memout", "PS_Sat", "PS_Success", "PS_Theory", 
-                      "PS_True", "PS_Unknown", "PS_Unsupported", "PS_Unsat", 
-                      "CMD_Assert", "CMD_CheckSat", "CMD_CheckSatAssuming", 
-                      "CMD_DeclareConst", "CMD_DeclareDatatype", "CMD_DeclareDatatypes", 
-                      "CMD_DeclareFun", "CMD_DeclareSort", "CMD_DefineFun", 
-                      "CMD_DefineFunRec", "CMD_DefineFunsRec", "CMD_DefineSort", 
-                      "CMD_Echo", "CMD_Exit", "CMD_GetAssertions", "CMD_GetAssignment", 
-                      "CMD_GetInfo", "CMD_GetModel", "CMD_GetOption", "CMD_GetProof", 
-                      "CMD_GetUnsatAssumptions", "CMD_GetUnsatCore", "CMD_GetValue", 
-                      "CMD_Pop", "CMD_Push", "CMD_Reset", "CMD_ResetAssertions", 
-                      "CMD_SetInfo", "CMD_SetLogic", "CMD_SetOption", "GRW_Exclamation", 
-                      "GRW_Underscore", "GRW_As", "GRW_Binary", "GRW_Decimal", 
-                      "GRW_Exists", "GRW_Hexadecimal", "GRW_Forall", "GRW_Let", 
-                      "GRW_Match", "GRW_Numeral", "GRW_Par", "GRW_String", 
-                      "Numeral", "Binary", "HexDecimal", "Decimal", "Colon", 
-                      "PK_AllStatistics", "PK_AssertionStackLevels", "PK_Authors", 
-                      "PK_Category", "PK_Chainable", "PK_Definition", "PK_DiagnosticOutputChannel", 
-                      "PK_ErrorBehaviour", "PK_Extension", "PK_Funs", "PK_FunsDescription", 
-                      "PK_GlobalDeclarations", "PK_InteractiveMode", "PK_Language", 
-                      "PK_LeftAssoc", "PK_License", "PK_Named", "PK_Name", 
-                      "PK_Notes", "PK_Pattern", "PK_PrintSuccess", "PK_ProduceAssertions", 
-                      "PK_ProduceAssignments", "PK_ProduceModels", "PK_ProduceProofs", 
-                      "PK_ProduceUnsatAssumptions", "PK_ProduceUnsatCores", 
-                      "PK_RandomSeed", "PK_ReasonUnknown", "PK_RegularOutputChannel", 
-                      "PK_ReproducibleResourceLimit", "PK_RightAssoc", "PK_SmtLibVersion", 
-                      "PK_Sorts", "PK_SortsDescription", "PK_Source", "PK_Status", 
-                      "PK_Theories", "PK_Values", "PK_Verbosity", "PK_Version", 
+    symbolicNames = [ "<INVALID>", "Comment", "ParOpen", "ParClose", "Semicolon",
+                      "String", "QuotedSymbol", "PS_Not", "PS_Bool", "PS_ContinuedExecution",
+                      "PS_Error", "PS_False", "PS_ImmediateExit", "PS_Incomplete",
+                      "PS_Logic", "PS_Memout", "PS_Sat", "PS_Success", "PS_Theory",
+                      "PS_True", "PS_Unknown", "PS_Unsupported", "PS_Unsat",
+                      "CMD_Assert", "CMD_CheckSat", "CMD_CheckSatAssuming",
+                      "CMD_DeclareConst", "CMD_DeclareDatatype", "CMD_DeclareDatatypes",
+                      "CMD_DeclareFun", "CMD_DeclareSort", "CMD_DefineFun",
+                      "CMD_DefineFunRec", "CMD_DefineFunsRec", "CMD_DefineSort",
+                      "CMD_Echo", "CMD_Exit", "CMD_GetAssertions", "CMD_GetAssignment",
+                      "CMD_GetInfo", "CMD_GetModel", "CMD_GetOption", "CMD_GetProof",
+                      "CMD_GetUnsatAssumptions", "CMD_GetUnsatCore", "CMD_GetValue",
+                      "CMD_Pop", "CMD_Push", "CMD_Reset", "CMD_ResetAssertions",
+                      "CMD_SetInfo", "CMD_SetLogic", "CMD_SetOption", "GRW_Exclamation",
+                      "GRW_Underscore", "GRW_As", "GRW_Binary", "GRW_Decimal",
+                      "GRW_Exists", "GRW_Hexadecimal", "GRW_Forall", "GRW_Let",
+                      "GRW_Match", "GRW_Numeral", "GRW_Par", "GRW_String",
+                      "Numeral", "Binary", "HexDecimal", "Decimal", "Colon",
+                      "PK_AllStatistics", "PK_AssertionStackLevels", "PK_Authors",
+                      "PK_Category", "PK_Chainable", "PK_Definition", "PK_DiagnosticOutputChannel",
+                      "PK_ErrorBehaviour", "PK_Extension", "PK_Funs", "PK_FunsDescription",
+                      "PK_GlobalDeclarations", "PK_InteractiveMode", "PK_Language",
+                      "PK_LeftAssoc", "PK_License", "PK_Named", "PK_Name",
+                      "PK_Notes", "PK_Pattern", "PK_PrintSuccess", "PK_ProduceAssertions",
+                      "PK_ProduceAssignments", "PK_ProduceModels", "PK_ProduceProofs",
+                      "PK_ProduceUnsatAssumptions", "PK_ProduceUnsatCores",
+                      "PK_RandomSeed", "PK_ReasonUnknown", "PK_RegularOutputChannel",
+                      "PK_ReproducibleResourceLimit", "PK_RightAssoc", "PK_SmtLibVersion",
+                      "PK_Sorts", "PK_SortsDescription", "PK_Source", "PK_Status",
+                      "PK_Theories", "PK_Values", "PK_Verbosity", "PK_Version",
                       "UndefinedSymbol", "WS" ]
 
     RULE_start = 0
@@ -584,31 +585,31 @@ class SMTLIBv2Parser ( Parser ):
     RULE_specific_success_response = 94
     RULE_general_response = 95
 
-    ruleNames =  [ "start", "response", "generalReservedWord", "simpleSymbol", 
-                   "quotedSymbol", "predefSymbol", "predefKeyword", "symbol", 
-                   "numeral", "decimal", "hexadecimal", "binary", "string", 
-                   "keyword", "spec_constant", "s_expr", "index", "identifier", 
-                   "attribute_value", "attribute", "sort", "qual_identifier", 
-                   "var_binding", "sorted_var", "pattern", "match_case", 
-                   "term", "sort_symbol_decl", "meta_spec_constant", "fun_symbol_decl", 
-                   "par_fun_symbol_decl", "theory_attribute", "theory_decl", 
-                   "logic_attribue", "logic", "sort_dec", "selector_dec", 
-                   "constructor_dec", "datatype_dec", "function_dec", "function_def", 
-                   "prop_literal", "script", "cmd_assert", "cmd_checkSat", 
-                   "cmd_checkSatAssuming", "cmd_declareConst", "cmd_declareDatatype", 
-                   "cmd_declareDatatypes", "cmd_declareFun", "cmd_declareSort", 
-                   "cmd_defineFun", "cmd_defineFunRec", "cmd_defineFunsRec", 
-                   "cmd_defineSort", "cmd_echo", "cmd_exit", "cmd_getAssertions", 
-                   "cmd_getAssignment", "cmd_getInfo", "cmd_getModel", "cmd_getOption", 
-                   "cmd_getProof", "cmd_getUnsatAssumptions", "cmd_getUnsatCore", 
-                   "cmd_getValue", "cmd_pop", "cmd_push", "cmd_reset", "cmd_resetAssertions", 
-                   "cmd_setInfo", "cmd_setLogic", "cmd_setOption", "command", 
-                   "b_value", "option", "info_flag", "error_behaviour", 
-                   "reason_unknown", "model_response", "info_response", 
-                   "valuation_pair", "t_valuation_pair", "check_sat_response", 
-                   "echo_response", "get_assertions_response", "get_assignment_response", 
-                   "get_info_response", "get_model_response", "get_option_response", 
-                   "get_proof_response", "get_unsat_assump_response", "get_unsat_core_response", 
+    ruleNames =  [ "start", "response", "generalReservedWord", "simpleSymbol",
+                   "quotedSymbol", "predefSymbol", "predefKeyword", "symbol",
+                   "numeral", "decimal", "hexadecimal", "binary", "string",
+                   "keyword", "spec_constant", "s_expr", "index", "identifier",
+                   "attribute_value", "attribute", "sort", "qual_identifier",
+                   "var_binding", "sorted_var", "pattern", "match_case",
+                   "term", "sort_symbol_decl", "meta_spec_constant", "fun_symbol_decl",
+                   "par_fun_symbol_decl", "theory_attribute", "theory_decl",
+                   "logic_attribue", "logic", "sort_dec", "selector_dec",
+                   "constructor_dec", "datatype_dec", "function_dec", "function_def",
+                   "prop_literal", "script", "cmd_assert", "cmd_checkSat",
+                   "cmd_checkSatAssuming", "cmd_declareConst", "cmd_declareDatatype",
+                   "cmd_declareDatatypes", "cmd_declareFun", "cmd_declareSort",
+                   "cmd_defineFun", "cmd_defineFunRec", "cmd_defineFunsRec",
+                   "cmd_defineSort", "cmd_echo", "cmd_exit", "cmd_getAssertions",
+                   "cmd_getAssignment", "cmd_getInfo", "cmd_getModel", "cmd_getOption",
+                   "cmd_getProof", "cmd_getUnsatAssumptions", "cmd_getUnsatCore",
+                   "cmd_getValue", "cmd_pop", "cmd_push", "cmd_reset", "cmd_resetAssertions",
+                   "cmd_setInfo", "cmd_setLogic", "cmd_setOption", "command",
+                   "b_value", "option", "info_flag", "error_behaviour",
+                   "reason_unknown", "model_response", "info_response",
+                   "valuation_pair", "t_valuation_pair", "check_sat_response",
+                   "echo_response", "get_assertions_response", "get_assignment_response",
+                   "get_info_response", "get_model_response", "get_option_response",
+                   "get_proof_response", "get_unsat_assump_response", "get_unsat_core_response",
                    "get_value_response", "specific_success_response", "general_response" ]
 
     EOF = Token.EOF
@@ -2013,13 +2014,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.GRW_Underscore)
                 self.state = 256
                 self.symbol()
-                self.state = 258 
+                self.state = 258
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 257
                     self.index()
-                    self.state = 260 
+                    self.state = 260
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 8388544) != 0) or _la==66 or _la==112):
@@ -2268,13 +2269,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.ParOpen)
                 self.state = 286
                 self.identifier()
-                self.state = 288 
+                self.state = 288
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 287
                     self.sort()
-                    self.state = 290 
+                    self.state = 290
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 8388548) != 0) or _la==112):
@@ -2564,13 +2565,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.ParOpen)
                 self.state = 317
                 self.symbol()
-                self.state = 319 
+                self.state = 319
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 318
                     self.symbol()
-                    self.state = 321 
+                    self.state = 321
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 8388544) != 0) or _la==112):
@@ -2779,13 +2780,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.ParOpen)
                 self.state = 335
                 self.qual_identifier()
-                self.state = 337 
+                self.state = 337
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 336
                     self.term()
-                    self.state = 339 
+                    self.state = 339
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 8388580) != 0) or ((((_la - 66)) & ~0x3f) == 0 and ((1 << (_la - 66)) & 70368744177679) != 0)):
@@ -2803,13 +2804,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.GRW_Let)
                 self.state = 345
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 347 
+                self.state = 347
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 346
                     self.var_binding()
-                    self.state = 349 
+                    self.state = 349
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==2):
@@ -2831,13 +2832,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.GRW_Forall)
                 self.state = 357
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 359 
+                self.state = 359
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 358
                     self.sorted_var()
-                    self.state = 361 
+                    self.state = 361
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==2):
@@ -2859,13 +2860,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.GRW_Exists)
                 self.state = 369
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 371 
+                self.state = 371
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 370
                     self.sorted_var()
-                    self.state = 373 
+                    self.state = 373
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==2):
@@ -2889,13 +2890,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.term()
                 self.state = 382
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 384 
+                self.state = 384
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 383
                     self.match_case()
-                    self.state = 386 
+                    self.state = 386
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==2):
@@ -2915,13 +2916,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.GRW_Exclamation)
                 self.state = 393
                 self.term()
-                self.state = 395 
+                self.state = 395
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 394
                     self.attribute()
-                    self.state = 397 
+                    self.state = 397
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (((((_la - 70)) & ~0x3f) == 0 and ((1 << (_la - 70)) & 4398046511103) != 0)):
@@ -3200,13 +3201,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.ParOpen)
                 self.state = 439
                 self.identifier()
-                self.state = 441 
+                self.state = 441
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 440
                     self.sort()
-                    self.state = 443 
+                    self.state = 443
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 8388548) != 0) or _la==112):
@@ -3330,13 +3331,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.GRW_Par)
                 self.state = 458
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 460 
+                self.state = 460
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 459
                     self.symbol()
-                    self.state = 462 
+                    self.state = 462
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 8388544) != 0) or _la==112):
@@ -3348,13 +3349,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.ParOpen)
                 self.state = 466
                 self.identifier()
-                self.state = 468 
+                self.state = 468
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 467
                     self.sort()
-                    self.state = 470 
+                    self.state = 470
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 8388548) != 0) or _la==112):
@@ -3477,13 +3478,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.PK_Sorts)
                 self.state = 484
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 486 
+                self.state = 486
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 485
                     self.sort_symbol_decl()
-                    self.state = 488 
+                    self.state = 488
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==2):
@@ -3499,13 +3500,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.PK_Funs)
                 self.state = 493
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 495 
+                self.state = 495
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 494
                     self.par_fun_symbol_decl()
-                    self.state = 497 
+                    self.state = 497
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==2):
@@ -3631,13 +3632,13 @@ class SMTLIBv2Parser ( Parser ):
             self.match(SMTLIBv2Parser.PS_Theory)
             self.state = 516
             self.symbol()
-            self.state = 518 
+            self.state = 518
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while True:
                 self.state = 517
                 self.theory_attribute()
-                self.state = 520 
+                self.state = 520
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 if not (((((_la - 70)) & ~0x3f) == 0 and ((1 << (_la - 70)) & 4398046511103) != 0)):
@@ -3732,13 +3733,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.PK_Theories)
                 self.state = 525
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 527 
+                self.state = 527
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 526
                     self.symbol()
-                    self.state = 529 
+                    self.state = 529
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 8388544) != 0) or _la==112):
@@ -3856,13 +3857,13 @@ class SMTLIBv2Parser ( Parser ):
             self.match(SMTLIBv2Parser.PS_Logic)
             self.state = 546
             self.symbol()
-            self.state = 548 
+            self.state = 548
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while True:
                 self.state = 547
                 self.logic_attribue()
-                self.state = 550 
+                self.state = 550
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 if not (((((_la - 70)) & ~0x3f) == 0 and ((1 << (_la - 70)) & 4398046511103) != 0)):
@@ -4152,13 +4153,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.enterOuterAlt(localctx, 1)
                 self.state = 574
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 576 
+                self.state = 576
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 575
                     self.constructor_dec()
-                    self.state = 578 
+                    self.state = 578
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==2):
@@ -4176,13 +4177,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.GRW_Par)
                 self.state = 584
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 586 
+                self.state = 586
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 585
                     self.symbol()
-                    self.state = 588 
+                    self.state = 588
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 8388544) != 0) or _la==112):
@@ -4192,13 +4193,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.ParClose)
                 self.state = 591
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 593 
+                self.state = 593
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 592
                     self.constructor_dec()
-                    self.state = 595 
+                    self.state = 595
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==2):
@@ -6252,13 +6253,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.cmd_declareDatatypes()
                 self.state = 728
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 730 
+                self.state = 730
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 729
                     self.sort_dec()
-                    self.state = 732 
+                    self.state = 732
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==2):
@@ -6268,13 +6269,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.ParClose)
                 self.state = 735
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 737 
+                self.state = 737
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 736
                     self.datatype_dec()
-                    self.state = 739 
+                    self.state = 739
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==2):
@@ -6360,13 +6361,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.cmd_defineFunsRec()
                 self.state = 776
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 778 
+                self.state = 778
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 777
                     self.function_dec()
-                    self.state = 780 
+                    self.state = 780
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==2):
@@ -6376,13 +6377,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.ParClose)
                 self.state = 783
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 785 
+                self.state = 785
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 784
                     self.term()
-                    self.state = 787 
+                    self.state = 787
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 8388580) != 0) or ((((_la - 66)) & ~0x3f) == 0 and ((1 << (_la - 66)) & 70368744177679) != 0)):
@@ -6536,13 +6537,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.cmd_getValue()
                 self.state = 851
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 853 
+                self.state = 853
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 852
                     self.term()
-                    self.state = 855 
+                    self.state = 855
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 8388580) != 0) or ((((_la - 66)) & ~0x3f) == 0 and ((1 << (_la - 66)) & 70368744177679) != 0)):
@@ -7275,13 +7276,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.CMD_DefineFunsRec)
                 self.state = 957
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 959 
+                self.state = 959
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 958
                     self.function_dec()
-                    self.state = 961 
+                    self.state = 961
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not (_la==2):
@@ -7291,13 +7292,13 @@ class SMTLIBv2Parser ( Parser ):
                 self.match(SMTLIBv2Parser.ParClose)
                 self.state = 964
                 self.match(SMTLIBv2Parser.ParOpen)
-                self.state = 966 
+                self.state = 966
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
                     self.state = 965
                     self.term()
-                    self.state = 968 
+                    self.state = 968
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 8388580) != 0) or ((((_la - 66)) & ~0x3f) == 0 and ((1 << (_la - 66)) & 70368744177679) != 0)):
@@ -7879,13 +7880,13 @@ class SMTLIBv2Parser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 1022
             self.match(SMTLIBv2Parser.ParOpen)
-            self.state = 1024 
+            self.state = 1024
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while True:
                 self.state = 1023
                 self.info_response()
-                self.state = 1026 
+                self.state = 1026
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 if not (((((_la - 70)) & ~0x3f) == 0 and ((1 << (_la - 70)) & 4398046511103) != 0)):
@@ -8257,13 +8258,13 @@ class SMTLIBv2Parser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 1061
             self.match(SMTLIBv2Parser.ParOpen)
-            self.state = 1063 
+            self.state = 1063
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while True:
                 self.state = 1062
                 self.valuation_pair()
-                self.state = 1065 
+                self.state = 1065
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 if not (_la==2):
