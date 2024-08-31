@@ -11,5 +11,6 @@
         "**/.pytest_cache": true,
         "**/__pycache__": true,
         "**/.DS_Store": true,
+        "**/.ruff_cache": true,
     }
 }
