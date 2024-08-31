@@ -1,6 +1,6 @@
 from collections import defaultdict
-from typing import Any
 from enum import StrEnum
+from typing import Any
 
 SymbolT = str
 NFAStateT = Any  # 入れ子になる可能性があるので、Anyにしておく
