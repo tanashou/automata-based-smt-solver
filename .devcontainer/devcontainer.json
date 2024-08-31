@@ -1,5 +1,5 @@
 {
-    "name": "smt-solver",
+    "name": "${localWorkspaceFolderBasename}",
     "build": {
         "context": "..",
         "dockerfile": "Dockerfile"
@@ -8,6 +8,7 @@
     "mounts": [
         "source=${localWorkspaceFolder}/benchmarks,target=/workspace/benchmarks,type=bind,consistency=cached"
     ],
+    "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
     "features": {
         "ghcr.io/dhoeric/features/hadolint:1": {}
     },
