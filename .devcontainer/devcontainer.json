@@ -26,7 +26,8 @@
                 "shardulm94.trailing-spaces",
                 "usernamehw.errorlens",
                 "yzhang.markdown-all-in-one",
-                "tamasfe.even-better-toml"
+                "tamasfe.even-better-toml",
+                "mike-lischke.vscode-antlr4"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
