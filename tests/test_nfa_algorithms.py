@@ -22,6 +22,7 @@ def sample_NFAs() -> tuple[NFA, NFA]:
     nfa2.add_transition("f", "*0", "f")
     return bld1.nfa, nfa2
 
+
 @pytest.fixture
 def sample_neq_NFAs() -> NFA:
     p = PresburgerArithmetic(terms=[(1, "z_neq")], relation=Relation.NEQ, const=0)
@@ -39,12 +40,23 @@ def test_nfa_intersection(sample_NFAs: tuple[NFA, NFA]) -> None:
 
     result_nfa = n1.intersection(n2)
 
-    assert result_nfa.states == {("q0", "s"), ("-1", "f"), ("0", "f"), ("1", "f"), ("2", "f")}
+    assert result_nfa.states == {
+        ("q0", "s"),
+        ("-1", "f"),
+        ("0", "f"),
+        ("1", "f"),
+        ("2", "f"),
+    }
     assert result_nfa.input_symbols == {"00", "01", "10", "11"}
     expected_transitions = {
         ("q0", "s"): {"10": {("-1", "f")}, "00": {("0", "f")}},
         ("-1", "f"): {"11": {("0", "f")}, "01": {("-1", "f")}, "10": {("-1", "f")}},
-        ("0", "f"): {"01": {("1", "f")}, "10": {("1", "f")}, "11": {("2", "f")}, "00": {("0", "f")}},
+        ("0", "f"): {
+            "01": {("1", "f")},
+            "10": {("1", "f")},
+            "11": {("2", "f")},
+            "00": {("0", "f")},
+        },
         ("1", "f"): {"00": {("2", "f")}},
     }
     assert expected_transitions.keys() == result_nfa.transitions.keys()
@@ -54,6 +66,7 @@ def test_nfa_intersection(sample_NFAs: tuple[NFA, NFA]) -> None:
 
     assert result_nfa.initial_state == ("q0", "s")
     assert result_nfa.final_states == {("2", "f")}
+
 
 def test_neq_to_nfa(sample_neq_NFAs: NFA) -> None:
     assert sample_neq_NFAs.states == {"q0", "0"}
