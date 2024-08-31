@@ -19,15 +19,17 @@ RUN apt-get update && \
     sudo \
     wget && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    # Install ANTLR4 tools
-    wget https://www.antlr.org/download/antlr-$ANTLR_VERSION-complete.jar -O /usr/local/lib/antlr-$ANTLR_VERSION-complete.jar && \
-    echo '#!/bin/bash\njava -jar /usr/local/lib/antlr-$ANTLR_VERSION-complete.jar "$@"' > /usr/local/bin/antlr4 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install ANTLR4 tools
+RUN wget --progress=dot:giga https://www.antlr.org/download/antlr-$ANTLR_VERSION-complete.jar -O /usr/local/lib/antlr-$ANTLR_VERSION-complete.jar && \
+    printf '#!/bin/bash\njava -jar /usr/local/lib/antlr-%s-complete.jar "$@"' "$ANTLR_VERSION" > /usr/local/bin/antlr4 && \
     chmod +x /usr/local/bin/antlr4 && \
-    echo '#!/bin/bash\njava org.antlr.v4.gui.TestRig "$@"' > /usr/local/bin/grun && \
-    chmod +x /usr/local/bin/grun && \
-    # Install build dependencies and the package
-    pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir ".[dev]"
+    printf '#!/bin/bash\njava org.antlr.v4.gui.TestRig "$@"' > /usr/local/bin/grun && \
+    chmod +x /usr/local/bin/grun
 
 COPY . .
+
+# Install build dependencies and the package. Also, install this project in editable mode.
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir ".[dev]"
