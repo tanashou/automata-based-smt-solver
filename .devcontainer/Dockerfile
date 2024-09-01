@@ -32,4 +32,4 @@ COPY . .
 
 # Install build dependencies and the package. Also, install this project in editable mode.
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir ".[dev]"
+    pip install --no-cache-dir --editable ".[dev]"

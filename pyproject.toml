@@ -12,6 +12,10 @@ dependencies = ["automata-lib[visual]>=8.1.0", "antlr4-python3-runtime==4.13.0"]
 [project.optional-dependencies]
 dev = ["mypy>=1.7.1", "pytest>=7.4.3", "ruff>=0.6.3"]
 
+[build-system]
+requires = ["flit_core<4"]
+build-backend = "flit_core.buildapi"
+
 [tool.mypy]
 ignore_missing_imports = true
 strict = true
