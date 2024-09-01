@@ -1,4 +1,4 @@
-# Generated from src/parser/SMTLIBv2.g4 by ANTLR 4.13.2
+# Generated from src/parser/antlr/SMTLIBv2.g4 by ANTLR 4.13.2
 # type: ignore
 from antlr4 import *
 if "." in __name__:
