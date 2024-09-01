@@ -1,11 +1,11 @@
-# need path from 'src'. otherwise, pytest cannot find the module
-from my_smt_solver import (
-    make_binary_wildcard_strings,
-    dot_product_with_wildcard,
+import pytest
+
+from my_smt_solver.utils import (
     apply_mask,
     decode_symbols_to_int,
+    dot_product_with_wildcard,
+    make_binary_wildcard_strings,
 )
-import pytest
 
 
 # Test cases for the function binary_strings_with_wildcard

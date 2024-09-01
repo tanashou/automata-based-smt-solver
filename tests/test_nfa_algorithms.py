@@ -1,6 +1,11 @@
-import pytest
-from my_smt_solver import AutomataBuilder, NFA as NFA, PresburgerArithmetic, Relation
 from collections import defaultdict
+
+import pytest
+
+from my_smt_solver.automata_builder import AutomataBuilder
+from my_smt_solver.nfa import NFA
+from my_smt_solver.presburger_arithmetic import PresburgerArithmetic
+from my_smt_solver.type import Relation
 
 
 # Define a fixture for creating NFAs with common structure
@@ -33,9 +38,7 @@ def sample_neq_NFAs() -> NFA:
 
 
 def test_nfa_intersection(sample_NFAs: tuple[NFA, NFA]) -> None:
-    """
-    x + z = 2 and x >= 0
-    """
+    """X + z = 2 and x >= 0"""
     n1, n2 = sample_NFAs
 
     result_nfa = n1.intersection(n2)
