@@ -49,7 +49,7 @@ exclude = [
     "node_modules",
     "site-packages",
     "venv",
-    "src/my_smt_solver/parser/*",
+    "src/my_smt_solver/parser/generated/*",
 ]
 
 # Same as Black.
