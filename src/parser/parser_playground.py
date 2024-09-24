@@ -3,19 +3,9 @@ import time
 
 from antlr4 import *
 
-from my_smt_solver.parser.generated.SMTLIBv2Lexer import SMTLIBv2Lexer
-from my_smt_solver.parser.generated.SMTLIBv2Parser import SMTLIBv2Parser
-from my_smt_solver.parser.visitors.CustomVisitor import CustomVisitor
-
-
-def traverse(tree, visitor):
-    if tree.getChildCount() == 0:
-        print(f"Leaf: {tree.getText()}")
-    else:
-        print(f"Node: {type(tree).__name__}")
-        for i in range(tree.getChildCount()):
-            child = tree.getChild(i)
-            traverse(child, visitor)
+from parser.antlr.SMTLIBv2Lexer import SMTLIBv2Lexer
+from parser.antlr.SMTLIBv2Parser import SMTLIBv2Parser
+from parser.visitors.CustomVisitor import CustomVisitor
 
 
 def main(argv):
