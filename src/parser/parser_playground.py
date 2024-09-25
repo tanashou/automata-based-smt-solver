@@ -21,7 +21,7 @@ def timer(section_name):
             start_time = time.time()
             result = func(*args, **kwargs)
             end_time = time.time()
-            logger.info(f"{section_name} time: {end_time - start_time}")
+            logger.info("%s: %s seconds", section_name, end_time - start_time)
             return result
 
         return wrapper
@@ -59,7 +59,7 @@ def main(argv):
     tree = parse_tree(parser)
     result = visit_tree(tree)
 
-    print(result)
+    logger.info("Result: %s", result)
 
 
 if __name__ == "__main__":
