@@ -1,6 +1,8 @@
-from antlr4 import *
+import logging
 
 from parser.antlr.SMTLIBv2Visitor import SMTLIBv2Visitor
+
+logger = logging.getLogger(__name__)
 
 
 class CustomVisitor(SMTLIBv2Visitor):
@@ -17,13 +19,13 @@ class CustomVisitor(SMTLIBv2Visitor):
             symbol_ctx = ctx.symbol(0)
             variable_name = self.visitSymbol(symbol_ctx)
             if variable_name:
-                print("Declared variable:", variable_name)
+                logger.info("Declare function: %s", variable_name)
                 # TODO: visitor.visit(tree) の戻り値に入れたいが、うまくいかない。
                 return variable_name
         elif ctx.cmd_setLogic():
             symbol = ctx.symbol(0)
             rslt = self.visitSymbol(symbol)
-            print(rslt)
+            logger.info("Set logic: %s", rslt)
         return None  # これ以上探索する必要がないため
 
     def visitSymbol(self, ctx):
