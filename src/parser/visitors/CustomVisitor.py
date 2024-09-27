@@ -11,46 +11,59 @@ class CustomVisitor(SMTLIBv2Visitor):
         self._result = []
 
     def visitStart(self, ctx: SMTLIBv2Parser.StartContext):
+        # 最初に呼ばれる
         self.visitChildren(ctx)
+        # visitor.visit(tree) の戻り値になる
         return self._result
-    # visitChildren を呼び出さないと、子ノードが再帰的に訪問されない
-    # 中の処理でvisitChildrenを呼び出していればいい。戻り値にしなくてもいい。戻り値は Driver.py のresult に格納される
+
     def visitCommand(self, ctx: SMTLIBv2Parser.CommandContext):
         if ctx.cmd_declareFun():
-            # 引数を持つ関数は想定しない。
-            if len(ctx.sort()) > 1:
-                error_message = "Function with 1 or more arguments is not supported"
-                raise ValueError(error_message)
-
             # 同じ command 内に複数の declare-fun が存在しないので0を指定
             symbol_ctx = ctx.symbol(0)
             variable_name = self.visitSymbol(symbol_ctx)
-            if variable_name:
-                logger.info("Declare function: %s", variable_name)
-                self._result.append(variable_name)
-                return
+            sort_ctxs = ctx.sort()
+            # declareFun で定義される関数は戻り値が1つのみ。
+            # 最後が戻り値の型なので、それ以外を引数とする。
+            *fun_args, fun_return_type = [
+                self.visitSort(sort_ctx) for sort_ctx in sort_ctxs
+            ]
+
+            logger.info(
+                "Declare function: %s (%s) -> %s",
+                variable_name,
+                fun_args,
+                fun_return_type,
+            )
+            # TODO: 変数名、引数、戻り値を結果に入れたい
+            self._result.append(variable_name)
+
         elif ctx.cmd_setLogic():
             # 同じ command 内に複数の set-logic が存在しないので0を指定
             symbol = ctx.symbol(0)
-            rslt = self.visitSymbol(symbol)
-            logger.info("Set logic: %s", rslt)
-        return  # これ以上探索する必要がないため
+            logic_name = self.visitSymbol(symbol)
+            if logic_name:
+                logger.info("Set logic: %s", logic_name)
+                self._result.append(logic_name)
+                return
+        return  # これ以上探索する必要がない
 
     def visitSymbol(self, ctx: SMTLIBv2Parser.SymbolContext):
         # Handle simpleSymbol and quotedSymbol
+        rslt = None
         if ctx.simpleSymbol():
-            return self.visitSimpleSymbol(ctx.simpleSymbol())
-        if ctx.quotedSymbol():
-            return self.visitQuotedSymbol(ctx.quotedSymbol())
-        return None
+            rslt = self.visitSimpleSymbol(ctx.simpleSymbol())
+        elif ctx.quotedSymbol():
+            rslt = self.visitQuotedSymbol(ctx.quotedSymbol())
+        return rslt
 
     def visitSimpleSymbol(self, ctx: SMTLIBv2Parser.SimpleSymbolContext):
         # Handle predefined symbols and undefined symbols
+        rslt = None
         if ctx.predefSymbol():
-            return ctx.predefSymbol().getText()
+            rslt = ctx.predefSymbol().getText()
         if ctx.UndefinedSymbol():
-            return ctx.UndefinedSymbol().getText()
-        return None
+            rslt = ctx.UndefinedSymbol().getText()
+        return rslt
 
     def visitQuotedSymbol(self, ctx: SMTLIBv2Parser.QuotedSymbolContext):
         # Return the text of the quoted symbol, stripping the surrounding '|'
