@@ -1,5 +1,6 @@
 # Generated from src/parser/antlr/SMTLIBv2.g4 by ANTLR 4.13.2
 # type: ignore
+# ruff: noqa
 from antlr4 import *
 from io import StringIO
 import sys
