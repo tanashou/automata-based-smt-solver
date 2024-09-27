@@ -59,7 +59,8 @@ def main(argv):
     tree = parse_tree(parser)
     result = visit_tree(tree)
 
-    logger.info("Result: %s", result)
+    for r in result:
+        logger.info(r)
 
 
 if __name__ == "__main__":
