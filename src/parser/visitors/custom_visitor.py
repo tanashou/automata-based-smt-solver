@@ -34,6 +34,10 @@ class CustomVisitor(SMTLIBv2Visitor):
         )
         self._result.append(variable_name)
 
+    def visitCmd_assert(self, ctx: SMTLIBv2Parser.Cmd_assertContext):
+        command_ctx = ctx.parentCtx
+        return super().visitCmd_assert(ctx)
+
     def visitCmd_setLogic(self, ctx: SMTLIBv2Parser.Cmd_setLogicContext):
         command_ctx = ctx.parentCtx
         symbol = command_ctx.symbol(0)
@@ -42,22 +46,13 @@ class CustomVisitor(SMTLIBv2Visitor):
         self._result.append(logic_name)
 
     def visitSymbol(self, ctx: SMTLIBv2Parser.SymbolContext):
-        # Handle simpleSymbol and quotedSymbol
-        rslt = None
-        if ctx.simpleSymbol():
-            rslt = self.visitSimpleSymbol(ctx.simpleSymbol())
-        elif ctx.quotedSymbol():
-            rslt = self.visitQuotedSymbol(ctx.quotedSymbol())
-        return rslt
-
-    def visitSimpleSymbol(self, ctx: SMTLIBv2Parser.SimpleSymbolContext):
-        # Handle predefined symbols and undefined symbols
-        rslt = None
-        if ctx.predefSymbol():
-            rslt = ctx.predefSymbol().getText()
-        if ctx.UndefinedSymbol():
-            rslt = ctx.UndefinedSymbol().getText()
-        return rslt
-
-    def visitQuotedSymbol(self, ctx: SMTLIBv2Parser.QuotedSymbolContext):
         return ctx.getText()
+
+    def visitTerm(self, ctx: SMTLIBv2Parser.TermContext):
+        if not ctx.term():
+            # spec_constant or qual_identifier
+            if ctx.spec_constant():
+                logger.info("spec constant: %s", ctx.spec_constant().getText())
+            elif ctx.qual_identifier():
+                logger.info("qual identifier: %s", ctx.qual_identifier().getText())
+        return super().visitTerm(ctx)
