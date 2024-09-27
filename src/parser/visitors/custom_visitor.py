@@ -51,10 +51,67 @@ class CustomVisitor(SMTLIBv2Visitor):
             if ctx.spec_constant():
                 spec_constant = self.visitSpec_constant(ctx.spec_constant())
                 logger.info("spec constant: %s", spec_constant)
-            elif ctx.qual_identifier():
+                return spec_constant
+            if ctx.qual_identifier():
                 qual_ideitifier = self.visitQual_identifier(ctx.qual_identifier())
                 logger.info("qual identifier: %s", qual_ideitifier)
-        return super().visitTerm(ctx)
+                return qual_ideitifier
+        elif ctx.qual_identifier():
+            # Handle (qual_identifier term+)
+            qual_ideitifier = self.visitQual_identifier(ctx.qual_identifier())
+            terms = [self.visitTerm(term) for term in ctx.term()]
+            logger.info("qual identifier with terms: %s, %s", qual_ideitifier, terms)
+            return (qual_ideitifier, terms)
+        elif ctx.GRW_Let():
+            # Handle (let (var_binding+) term)
+            var_bindings = [
+                self.visitVar_binding(binding) for binding in ctx.var_binding()
+            ]
+            term = self.visitTerm(ctx.term(0))
+            logger.info("let with bindings: %s and term: %s", var_bindings, term)
+            return ("let", var_bindings, term)
+        elif ctx.GRW_Forall():
+            # Handle (forall (sorted_var+) term)
+            sorted_vars = [self.visitSorted_var(var) for var in ctx.sorted_var()]
+            term = self.visitTerm(ctx.term(0))
+            logger.info("forall with sorted vars: %s and term: %s", sorted_vars, term)
+            return ("forall", sorted_vars, term)
+        elif ctx.GRW_Exists():
+            # Handle (exists (sorted_var+) term)
+            sorted_vars = [self.visitSorted_var(var) for var in ctx.sorted_var()]
+            term = self.visitTerm(ctx.term(0))
+            logger.info("exists with sorted vars: %s and term: %s", sorted_vars, term)
+            return ("exists", sorted_vars, term)
+        elif ctx.GRW_Match():
+            # Handle (match term (match_case+))
+            match_term = self.visitTerm(ctx.term(0))
+            match_cases = [self.visitMatch_case(case) for case in ctx.match_case()]
+            logger.info("match with term: %s and cases: %s", match_term, match_cases)
+            return ("match", match_term, match_cases)
+        elif ctx.GRW_Exclamation():
+            # Handle (! term attribute+)
+            exclam_term = self.visitTerm(ctx.term(0))
+            attributes = [self.visitAttribute(attr) for attr in ctx.attribute()]
+            logger.info(
+                "exclamation with term: %s and attributes: %s", exclam_term, attributes
+            )
+            return ("exclamation", exclam_term, attributes)
+        else:
+            # ここには到達しないはず
+            raise NotImplementedError("Unknown term")
+        return None
+
+    def visitVar_binding(self, ctx: SMTLIBv2Parser.Var_bindingContext):
+        pass
+
+    def visitSorted_var(self, ctx: SMTLIBv2Parser.Sorted_varContext):
+        return super().visitSorted_var(ctx)
+
+    def visitMatch_case(self, ctx: SMTLIBv2Parser.Match_caseContext):
+        return super().visitMatch_case(ctx)
+
+    def visitAttribute(self, ctx: SMTLIBv2Parser.AttributeContext):
+        return super().visitAttribute(ctx)
 
     def visitSpec_constant(self, ctx: SMTLIBv2Parser.Spec_constantContext) -> tuple:
         # List of method references and their corresponding names
