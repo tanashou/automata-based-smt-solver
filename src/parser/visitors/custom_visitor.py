@@ -36,7 +36,7 @@ class CustomVisitor(SMTLIBv2Visitor):
 
     def visitCmd_assert(self, ctx: SMTLIBv2Parser.Cmd_assertContext):
         command_ctx = ctx.parentCtx
-        return super().visitCmd_assert(ctx)
+        self._result.append(self.visitTerm(command_ctx.term(0)))
 
     def visitCmd_setLogic(self, ctx: SMTLIBv2Parser.Cmd_setLogicContext):
         command_ctx = ctx.parentCtx
@@ -50,18 +50,16 @@ class CustomVisitor(SMTLIBv2Visitor):
             # spec_constant or qual_identifier
             if ctx.spec_constant():
                 spec_constant = self.visitSpec_constant(ctx.spec_constant())
-                logger.info("spec constant: %s", spec_constant)
                 return spec_constant
             if ctx.qual_identifier():
                 qual_ideitifier = self.visitQual_identifier(ctx.qual_identifier())
-                logger.info("qual identifier: %s", qual_ideitifier)
                 return qual_ideitifier
         elif ctx.qual_identifier():
             # Handle (qual_identifier term+)
             qual_ideitifier = self.visitQual_identifier(ctx.qual_identifier())
             terms = [self.visitTerm(term) for term in ctx.term()]
-            logger.info("qual identifier with terms: %s, %s", qual_ideitifier, terms)
             return (qual_ideitifier, terms)
+        # QF_LIA では上3つだけ使用されるはず
         elif ctx.GRW_Let():
             # Handle (let (var_binding+) term)
             var_bindings = [
@@ -137,6 +135,7 @@ class CustomVisitor(SMTLIBv2Visitor):
         indicies = []
         if ctx.index():
             indicies = [self.visitSymbol(index).getText() for index in ctx.index()]
+        # TODO: ほとんどがindiciesなし。戻り値に空リストが含まれて使いにくい。
         return (ctx.symbol().getText(), indicies)
 
     def visitQual_identifier(self, ctx: SMTLIBv2Parser.Qual_identifierContext):
