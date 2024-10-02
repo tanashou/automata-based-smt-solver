@@ -1,7 +1,9 @@
+# ruff: noqa: N802: ignore snake_case naming style for visitor methods
 import logging
 
 from parser.antlr.SMTLIBv2Parser import SMTLIBv2Parser
 from parser.antlr.SMTLIBv2Visitor import SMTLIBv2Visitor
+from parser.visitors.smtlib_v2_type import SMTLIBv2Type
 
 logger = logging.getLogger(__name__)
 
@@ -67,25 +69,25 @@ class CustomVisitor(SMTLIBv2Visitor):
             ]
             term = self.visitTerm(ctx.term(0))
             logger.info("let with bindings: %s and term: %s", var_bindings, term)
-            return ("let", var_bindings, term)
+            return (SMTLIBv2Type.GRW_Let, var_bindings, term)
         elif ctx.GRW_Forall():
             # Handle (forall (sorted_var+) term)
             sorted_vars = [self.visitSorted_var(var) for var in ctx.sorted_var()]
             term = self.visitTerm(ctx.term(0))
             logger.info("forall with sorted vars: %s and term: %s", sorted_vars, term)
-            return ("forall", sorted_vars, term)
+            return (SMTLIBv2Type.GRW_Forall, sorted_vars, term)
         elif ctx.GRW_Exists():
             # Handle (exists (sorted_var+) term)
             sorted_vars = [self.visitSorted_var(var) for var in ctx.sorted_var()]
             term = self.visitTerm(ctx.term(0))
             logger.info("exists with sorted vars: %s and term: %s", sorted_vars, term)
-            return ("exists", sorted_vars, term)
+            return (SMTLIBv2Type.GRW_Exists, sorted_vars, term)
         elif ctx.GRW_Match():
             # Handle (match term (match_case+))
             match_term = self.visitTerm(ctx.term(0))
             match_cases = [self.visitMatch_case(case) for case in ctx.match_case()]
             logger.info("match with term: %s and cases: %s", match_term, match_cases)
-            return ("match", match_term, match_cases)
+            return (SMTLIBv2Type.GRW_Match, match_term, match_cases)
         elif ctx.GRW_Exclamation():
             # Handle (! term attribute+)
             exclam_term = self.visitTerm(ctx.term(0))
@@ -93,7 +95,7 @@ class CustomVisitor(SMTLIBv2Visitor):
             logger.info(
                 "exclamation with term: %s and attributes: %s", exclam_term, attributes
             )
-            return ("exclamation", exclam_term, attributes)
+            return (SMTLIBv2Type.GRW_Exclamation, exclam_term, attributes)
         else:
             # ここには到達しないはず
             raise NotImplementedError("Unknown term")
@@ -113,17 +115,17 @@ class CustomVisitor(SMTLIBv2Visitor):
 
     def visitSpec_constant(self, ctx: SMTLIBv2Parser.Spec_constantContext) -> tuple:
         # List of method references and their corresponding names
-        methods = [
-            (ctx.numeral, "numeral"),
-            (ctx.decimal, "decimal"),
-            (ctx.hexadecimal, "hexadecimal"),
-            (ctx.binary, "binary"),
-            (ctx.string, "string"),
+        type_conversion_map = [
+            (ctx.numeral, SMTLIBv2Type.Numeral, int),
+            (ctx.decimal, SMTLIBv2Type.Decimal, float),
+            (ctx.hexadecimal, SMTLIBv2Type.HexDecimal, lambda x: hex(int(x, 16))),
+            (ctx.binary, SMTLIBv2Type.Binary, lambda x: bin(int(x, 2))),
+            (ctx.string, SMTLIBv2Type.String, str),
         ]
 
-        for method, name in methods:
-            if method():
-                return (name, method().getText())
+        for context_method, smt_type, conversion_func in type_conversion_map:
+            if context_method():
+                return (smt_type, conversion_func(context_method().getText()))
 
         # ctx はいずれかに当てはまるため、ここには到達しない
         msg = "context did not match any spec_constant"
