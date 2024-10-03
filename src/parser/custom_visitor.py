@@ -3,7 +3,8 @@ import logging
 
 from parser.antlr.SMTLIBv2Parser import SMTLIBv2Parser
 from parser.antlr.SMTLIBv2Visitor import SMTLIBv2Visitor
-from parser.visitors.smtlib_v2_type import SMTLIBv2Type
+from parser.smtlib_v2_statement import *
+from parser.smtlib_v2_type import SMTLIBv2Type
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +29,10 @@ class CustomVisitor(SMTLIBv2Visitor):
         *fun_arg_types, fun_return_type = [
             self.visitSort(sort_ctx) for sort_ctx in sort_ctxs
         ]
-        logger.info(
-            "Declare function: %s (%s) -> %s",
-            variable_name,
-            fun_arg_types,
-            fun_return_type,
+
+        self._result.append(
+            SMTLIBv2Function(variable_name, fun_arg_types, fun_return_type)
         )
-        self._result.append(variable_name)
 
     def visitCmd_assert(self, ctx: SMTLIBv2Parser.Cmd_assertContext):
         command_ctx = ctx.parentCtx
@@ -52,7 +50,7 @@ class CustomVisitor(SMTLIBv2Visitor):
             # spec_constant or qual_identifier
             if ctx.spec_constant():
                 spec_constant = self.visitSpec_constant(ctx.spec_constant())
-                return spec_constant
+                return SMTLIBv2Term(spec_constant=spec_constant)
             if ctx.qual_identifier():
                 qual_ideitifier = self.visitQual_identifier(ctx.qual_identifier())
                 return qual_ideitifier
@@ -113,36 +111,41 @@ class CustomVisitor(SMTLIBv2Visitor):
     def visitAttribute(self, ctx: SMTLIBv2Parser.AttributeContext):
         return super().visitAttribute(ctx)
 
-    def visitSpec_constant(self, ctx: SMTLIBv2Parser.Spec_constantContext) -> tuple:
+    def visitSpec_constant(
+        self, ctx: SMTLIBv2Parser.Spec_constantContext
+    ) -> SpecConstant:
         # List of method references and their corresponding names
         type_conversion_map = [
             (ctx.numeral, SMTLIBv2Type.Numeral, int),
             (ctx.decimal, SMTLIBv2Type.Decimal, float),
-            (ctx.hexadecimal, SMTLIBv2Type.HexDecimal, lambda x: hex(int(x, 16))),
-            (ctx.binary, SMTLIBv2Type.Binary, lambda x: bin(int(x, 2))),
+            # hex, binary は先頭に #b, #x がついているので、それを取り除いて変換する
+            (ctx.hexadecimal, SMTLIBv2Type.HexDecimal, lambda x: hex(int(x[2:], 16))),
+            (ctx.binary, SMTLIBv2Type.Binary, lambda x: bin(int(x[2:], 2))),
             (ctx.string, SMTLIBv2Type.String, str),
         ]
 
         for context_method, smt_type, conversion_func in type_conversion_map:
             if context_method():
-                return (smt_type, conversion_func(context_method().getText()))
+                return SpecConstant(
+                    smt_type, conversion_func(context_method().getText())
+                )
 
         # ctx はいずれかに当てはまるため、ここには到達しない
         msg = "context did not match any spec_constant"
         raise ValueError(msg)
 
-    def visitIdentifier(
-        self, ctx: SMTLIBv2Parser.IdentifierContext
-    ) -> tuple[str, list]:
-        indicies = []
+    def visitIdentifier(self, ctx: SMTLIBv2Parser.IdentifierContext) -> Identifier:
         if ctx.index():
-            indicies = [self.visitSymbol(index).getText() for index in ctx.index()]
-        # TODO: ほとんどがindiciesなし。戻り値に空リストが含まれて使いにくい。
-        return (ctx.symbol().getText(), indicies)
+            mssg = "QF_LIA does not use index"
+            raise NotImplementedError(mssg)
+        return Identifier(ctx.symbol().getText())
 
-    def visitQual_identifier(self, ctx: SMTLIBv2Parser.Qual_identifierContext):
+    def visitQual_identifier(
+        self, ctx: SMTLIBv2Parser.Qual_identifierContext
+    ) -> QualIdentifier:
         if ctx.GRW_As():
             # QF_LIA には必要なさそうなので対応しない。
-            raise NotImplementedError("GRW_As is not supported")
+            mssg = "GRW_As is not supported"
+            raise NotImplementedError(mssg)
 
-        return self.visitIdentifier(ctx.identifier())
+        return QualIdentifier(self.visitIdentifier(ctx.identifier()))

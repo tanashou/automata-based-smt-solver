@@ -7,7 +7,7 @@ from antlr4 import *
 
 from parser.antlr.SMTLIBv2Lexer import SMTLIBv2Lexer
 from parser.antlr.SMTLIBv2Parser import SMTLIBv2Parser
-from parser.visitors.custom_visitor import CustomVisitor
+from parser.custom_visitor import CustomVisitor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
