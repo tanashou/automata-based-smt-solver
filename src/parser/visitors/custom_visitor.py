@@ -1,9 +1,9 @@
 import logging
 
-from parser.antlr.SMTLIBv2Parser import SMTLIBv2Parser
-from parser.antlr.SMTLIBv2Visitor import SMTLIBv2Visitor
-from parser.smtlib_v2_statement import *
-from parser.smtlib_v2_type import SMTLIBv2Type
+from parser.antlr_generated.SMTLIBv2Parser import SMTLIBv2Parser
+from parser.antlr_generated.SMTLIBv2Visitor import SMTLIBv2Visitor
+from parser.statements.smtlib_v2_statement import *
+from parser.types.smtlib_v2_type import SMTLIBv2Type
 
 logger = logging.getLogger(__name__)
 
