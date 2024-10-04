@@ -1,17 +1,15 @@
-# 1行の情報を保持するクラス。どんな型の変数か、引数は何か、戻り値は何か
-# 再帰がかかるので、変数やterm, assert などそれぞれ定義したい
-
 from dataclasses import dataclass, field
 from typing import Any
 
 from parser.types.smtlib_v2_type import SMTLIBv2Type
+from parser.types.sorts import Sorts
 
 
 @dataclass
 class SMTLIBv2Function:
     name: str
-    args: list[SMTLIBv2Type] | None
-    return_type: SMTLIBv2Type
+    args: list["Sorts"] | None
+    return_type: "Sorts"
 
     def __str__(self) -> str:
         args_str = ", ".join(map(str, self.args)) if self.args else ""
@@ -37,11 +35,22 @@ class QualIdentifier:
 
 @dataclass
 class Identifier:
-    value: str
+    symbol: "Symbol"
     # indicies はQF_LIA では使わないはず
 
     def __str__(self):
-        return self.value
+        return str(self.symbol)
+
+
+@dataclass
+class Symbol:
+    type: SMTLIBv2Type
+    value: str
+
+    def __str__(self):
+        if self.type == SMTLIBv2Type.UndefinedSymbol:
+            return self.value
+        return self.type
 
 
 @dataclass

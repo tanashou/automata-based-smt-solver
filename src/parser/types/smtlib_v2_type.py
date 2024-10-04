@@ -116,13 +116,22 @@ class SMTLIBv2Type(StrEnum):
     UndefinedSymbol = auto()
     WS = auto()
 
+    # custom type
+    INT = "Int"
+    AND = "and"
+    OR = "or"
+    TIMES = "*"
+    MINUS = "-"
+    EQUAL = "="
+    GREATER_EQUAL = ">="
+    LESS_EQUAL = "<="
+    LESS_THAN = "<"
+    GREATER_THAN = ">"
+
 
 # Create a dictionary mapping values to enum members
 value_to_member_map = {member.value: member for member in SMTLIBv2Type}
 
 
-def get_SMTLIBv2Type_by_value(value: str) -> SMTLIBv2Type:
-    if value in value_to_member_map:
-        return value_to_member_map[value]
-    mssg = f"Value '{value}' is not a valid SMTLIBv2Type"
-    raise ValueError(mssg)
+def get_SMTLIBv2Type_by_value(value: str) -> SMTLIBv2Type | None:
+    return value_to_member_map.get(value)
