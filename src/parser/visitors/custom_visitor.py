@@ -3,7 +3,8 @@ import logging
 from parser.antlr_generated.SMTLIBv2Parser import SMTLIBv2Parser
 from parser.antlr_generated.SMTLIBv2Visitor import SMTLIBv2Visitor
 from parser.statements.smtlib_v2_statement import *
-from parser.types.smtlib_v2_type import SMTLIBv2Type
+from parser.types.smtlib_v2_type import SMTLIBv2Type, get_SMTLIBv2Type_by_value
+from parser.types.sorts import Sorts
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +26,19 @@ class CustomVisitor(SMTLIBv2Visitor):
         sort_ctxs = command_ctx.sort()
         # declareFun で定義される関数は戻り値が1つのみ
         # 最後が戻り値の型なので、それ以外を引数とする
-        *fun_arg_types, fun_return_type = [
+        *fun_arg_sorts, fun_return_sort = [
             self.visitSort(sort_ctx) for sort_ctx in sort_ctxs
         ]
-
         self._result.append(
-            SMTLIBv2Function(variable_name, fun_arg_types, fun_return_type)
+            SMTLIBv2Function(variable_name, fun_arg_sorts, fun_return_sort)
         )
+
+    def visitSort(self, ctx: SMTLIBv2Parser.SortContext) -> Sorts:
+        sort_value = ctx.getText()
+        try:
+            return Sorts(sort_value)
+        except ValueError:
+            raise ValueError(f"Invalid Sort: {sort_value}")
 
     def visitCmd_assert(self, ctx: SMTLIBv2Parser.Cmd_assertContext):
         command_ctx = ctx.parentCtx
@@ -91,7 +98,8 @@ class CustomVisitor(SMTLIBv2Visitor):
         if ctx.index():
             mssg = "QF_LIA does not use index"
             raise NotImplementedError(mssg)
-        return Identifier(ctx.symbol().getText())
+        symbol = self.visitSymbol(ctx.symbol())
+        return Identifier(symbol)
 
     def visitQual_identifier(
         self, ctx: SMTLIBv2Parser.Qual_identifierContext
@@ -102,3 +110,14 @@ class CustomVisitor(SMTLIBv2Visitor):
             raise NotImplementedError(mssg)
 
         return QualIdentifier(self.visitIdentifier(ctx.identifier()))
+
+    def visitSymbol(self, ctx: SMTLIBv2Parser.SymbolContext) -> Symbol:
+        return self.visitChildren(ctx)
+
+    def visitSimpleSymbol(self, ctx: SMTLIBv2Parser.SimpleSymbolContext) -> Symbol:
+        if symbol_type := get_SMTLIBv2Type_by_value(ctx.getText()):
+            return Symbol(symbol_type, ctx.getText())
+        return Symbol(SMTLIBv2Type.UndefinedSymbol, ctx.getText())
+
+    def visitQuotedSymbol(self, ctx: SMTLIBv2Parser.QuotedSymbolContext) -> Symbol:
+        return Symbol(SMTLIBv2Type.QuotedSymbol, ctx.getText())

@@ -51,16 +51,17 @@ def main(argv):
     @timer("Visitor")
     def visit_tree(tree):
         visitor = CustomVisitor()
-        return visitor.visit(tree)
+        result = visitor.visit(tree)
+        for r in result:
+            logger.info(r)
 
     lexer = create_lexer(input_stream)
     stream = create_stream(lexer)
     parser = create_parser(stream)
     tree = parse_tree(parser)
-    result = visit_tree(tree)
+    visit_tree(tree)
 
-    for r in result:
-        logger.info(r)
+
 
 
 if __name__ == "__main__":
