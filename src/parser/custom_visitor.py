@@ -1,4 +1,3 @@
-# ruff: noqa: N802: ignore snake_case naming style for visitor methods
 import logging
 
 from parser.antlr.SMTLIBv2Parser import SMTLIBv2Parser
