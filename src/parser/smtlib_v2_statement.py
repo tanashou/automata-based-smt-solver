@@ -2,7 +2,6 @@
 # 再帰がかかるので、変数やterm, assert などそれぞれ定義したい
 
 from dataclasses import dataclass, field
-from os import name
 from typing import Any
 
 from parser.smtlib_v2_type import SMTLIBv2Type
@@ -24,19 +23,38 @@ class SpecConstant:
     type: SMTLIBv2Type
     value: Any
 
+    def __str__(self):
+        return str(self.value)
+
 
 @dataclass
 class QualIdentifier:
     value: "Identifier"
+
+    def __str__(self):
+        return str(self.value)
+
 
 @dataclass
 class Identifier:
     value: str
     # indicies はQF_LIA では使わないはず
 
+    def __str__(self):
+        return self.value
+
 
 @dataclass
 class SMTLIBv2Term:
     spec_constant: SpecConstant | None = None
     qual_identifier: QualIdentifier | None = None
-    sub_terms: list["SMTLIBv2Term"] = field(default_factory=list)
+    terms: list["SMTLIBv2Term"] = field(default_factory=list)
+
+    def __str__(self):
+        if self.spec_constant:
+            return str(self.spec_constant)
+        if self.terms:
+            return (
+                str(self.qual_identifier) + "(" + " ".join(map(str, self.terms)) + ")"
+            )
+        return f"{self.qual_identifier}"
