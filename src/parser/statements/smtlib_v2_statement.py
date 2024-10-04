@@ -4,7 +4,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from parser.smtlib_v2_type import SMTLIBv2Type
+from parser.types.smtlib_v2_type import SMTLIBv2Type
 
 
 @dataclass

@@ -1,6 +1,4 @@
-# Generated from src/parser/antlr/SMTLIBv2.g4 by ANTLR 4.13.2
-# type: ignore
-# ruff: noqa
+# Generated from SMTLIBv2.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .SMTLIBv2Parser import SMTLIBv2Parser

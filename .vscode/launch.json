@@ -25,7 +25,7 @@
             "type": "antlr-debug", // 決め打ち(多分)
             "request": "launch", // 決め打ち(多分)
             "input": "${workspaceFolder}/benchmarks/QF_LIA/check/bignum_lia1.smt2", // 入力となるテキストを記述したファイル
-            "grammar": "${workspaceFolder}/src/parser/antlr/SMTLIBv2.g4", // 使用するグラマーファイル
+            "grammar": "${workspaceFolder}/src/parser/antlr_generated/SMTLIBv2.g4", // 使用するグラマーファイル
             "printParseTree": true, // デバッグ結果をデバッグコンソールに表示するか
             "visualParseTree": true // デバッグ結果をグラフィカルなツリーで表示するか
         }
