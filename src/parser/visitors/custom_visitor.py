@@ -1,3 +1,4 @@
+import keyword
 import logging
 
 from parser.antlr_generated.SMTLIBv2Parser import SMTLIBv2Parser
@@ -48,8 +49,33 @@ class CustomVisitor(SMTLIBv2Visitor):
         command_ctx = ctx.parentCtx
         symbol = command_ctx.symbol(0)
         logic_name = symbol.getText()
-        logger.info("Set logic: %s", logic_name)
         self._result.append(logic_name)
+
+    def visitCmd_setInfo(self, ctx: SMTLIBv2Parser.Cmd_setInfoContext):
+        command_ctx = ctx.parentCtx
+        keyword, attribute_value = self.visitAttribute(command_ctx.attribute())
+        self._result.append(Info(keyword, attribute_value))
+
+    def visitAttribute(self, ctx: SMTLIBv2Parser.AttributeContext):
+        keyword = self.visitKeyword(ctx.keyword())
+        attribute_value = (
+            self.visitAttribute_value(ctx.attribute_value())
+            if ctx.attribute_value()
+            else None
+        )
+        return (keyword, attribute_value)
+
+    def visitKeyword(self, ctx: SMTLIBv2Parser.KeywordContext):
+        if ctx.predefKeyword():
+            return SMTLIBv2Type(ctx.predefKeyword().getText())
+        raise NotImplementedError("custom keyword not implemented")
+
+    def visitAttribute_value(self, ctx: SMTLIBv2Parser.Attribute_valueContext | Any):
+        if ctx.spec_constant():
+            return self.visitSpec_constant(ctx.spec_constant())
+        if ctx.symbol():
+            return self.visitSymbol(ctx.symbol())
+        return ctx.s_expr().getText()
 
     def visitTerm(self, ctx: SMTLIBv2Parser.TermContext) -> SMTLIBv2Term:
         # Handle spec_constant or qual_identifier without terms
@@ -110,9 +136,6 @@ class CustomVisitor(SMTLIBv2Visitor):
             raise NotImplementedError(mssg)
 
         return QualIdentifier(self.visitIdentifier(ctx.identifier()))
-
-    def visitSymbol(self, ctx: SMTLIBv2Parser.SymbolContext) -> Symbol:
-        return self.visitChildren(ctx)
 
     def visitSimpleSymbol(self, ctx: SMTLIBv2Parser.SimpleSymbolContext) -> Symbol:
         if symbol_type := get_SMTLIBv2Type_by_value(ctx.getText()):

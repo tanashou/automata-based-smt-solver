@@ -67,3 +67,11 @@ class SMTLIBv2Term:
                 str(self.qual_identifier) + "(" + " ".join(map(str, self.terms)) + ")"
             )
         return f"{self.qual_identifier}"
+
+@dataclass
+class Info:
+    keyword: SMTLIBv2Type
+    attribute_value: Any
+
+    def __str__(self):
+        return f"set-info {self.keyword} {self.attribute_value}"
