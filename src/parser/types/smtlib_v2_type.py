@@ -128,6 +128,9 @@ class SMTLIBv2Type(StrEnum):
     LESS_THAN = "<"
     GREATER_THAN = ">"
 
+    def __str__(self) -> str:
+        return self.value
+
 
 # Create a dictionary mapping values to enum members
 value_to_member_map = {member.value: member for member in SMTLIBv2Type}
