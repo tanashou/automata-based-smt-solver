@@ -8,26 +8,16 @@
             "name": "Debug parser",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/parser/parser_playground.py",
+            "program": "${workspaceFolder}/src/parser/playground.py",
             "console": "integratedTerminal",
-            "args": ["${workspaceFolder}/benchmarks/QF_LIA/check/bignum_lia1.smt2"]
         },
         {
             "name": "Debug parser with large file",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/parser/parser_playground.py",
+            "program": "${workspaceFolder}/src/parser/playground.py",
             "console": "integratedTerminal",
             "args": ["${workspaceFolder}/benchmarks/QF_LIA/bofill-scheduling/SMT_random_LIA/ex5000_2600_100.smt2"]
         },
-        {
-            "name": "Debug ANTLR4 grammar", // 任意の名前
-            "type": "antlr-debug", // 決め打ち(多分)
-            "request": "launch", // 決め打ち(多分)
-            "input": "${workspaceFolder}/benchmarks/QF_LIA/check/bignum_lia1.smt2", // 入力となるテキストを記述したファイル
-            "grammar": "${workspaceFolder}/src/parser/antlr_generated/SMTLIBv2.g4", // 使用するグラマーファイル
-            "printParseTree": true, // デバッグ結果をデバッグコンソールに表示するか
-            "visualParseTree": true // デバッグ結果をグラフィカルなツリーで表示するか
-        }
     ]
 }
