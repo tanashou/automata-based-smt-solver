@@ -11,6 +11,7 @@ dependencies = [
     "automata-lib[visual]>=8.1.0",
     "antlr4-python3-runtime==4.13.0",
     "pysmt==0.9.6",
+    "sympy==1.13.3"
 ]
 
 [project.optional-dependencies]
