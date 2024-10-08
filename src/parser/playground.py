@@ -1,7 +1,7 @@
 from pysmt.smtlib.parser import SmtLibParser
 from sympy import to_dnf
 
-from parser.sympy_converter import SymPyConverter
+from parser.pysmt_to_sympy import PySMTToSymPy
 
 # Add more walk_* methods for other operators as needed
 
@@ -13,7 +13,9 @@ parser = SmtLibParser()
 # The method SmtLibParser.get_script takes a buffer in input. We use
 # StringIO to simulate an open file.
 # See SmtLibParser.get_script_fname() if to pass the path of a file.
-script = parser.get_script_fname("benchmarks/QF_LIA/check/bignum_lia1.smt2")
+script = parser.get_script_fname(
+    "benchmarks/QF_LIA/20220307-SMPT/2PhLockVParam/RC-00.smt2"
+)
 
 
 # The SmtLibScript provides an iterable representation of the commands
@@ -29,10 +31,12 @@ for cmd in script.commands:
         break
 
 f = script.get_strict_formula().simplify()
-sympy_expr = SymPyConverter().walk(f)
+print(f)
+sympy_expr = PySMTToSymPy(f).get_sympy_expression()
 print(sympy_expr)
-dnf_expr = to_dnf(sympy_expr)
-components = list(dnf_expr.args)
+dnf = to_dnf(sympy_expr)
+
+components = list(dnf.args)
 for c in components:
     print(c)
     for a in c.args:
