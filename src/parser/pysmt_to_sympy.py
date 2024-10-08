@@ -3,7 +3,19 @@ from pysmt.walkers import DagWalker
 from sympy.logic.boolalg import Boolean
 
 
-class SympyConverter(DagWalker):
+class PySMTToSymPy:
+    def __init__(self, pysmt_formula):
+        self.converter = self._create_converter()
+        self.sympy_expr = self.converter.walk(pysmt_formula)
+
+    def _create_converter(self):
+        return PySMTToSymPyConverter()
+
+    def get_sympy_expression(self):
+        return self.sympy_expr
+
+
+class PySMTToSymPyConverter(DagWalker):
     def __init__(self):
         super().__init__()
 
