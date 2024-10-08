@@ -1,8 +1,9 @@
 import sympy
 from pysmt.walkers import DagWalker
+from sympy.logic.boolalg import Boolean
 
 
-class SymPyConverter(DagWalker):
+class SympyConverter(DagWalker):
     def __init__(self):
         super().__init__()
 
@@ -54,4 +55,16 @@ class SymPyConverter(DagWalker):
         return sympy.Pow(*args)
 
     def walk_ite(self, formula, args, **kwargs):
-        return sympy.Piecewise((args[1], args[0]), (args[2], True))
+        condition, then_branch, else_branch = args
+
+        # If both branches are Boolean, return a Boolean expression
+        if isinstance(then_branch, Boolean | bool) and isinstance(
+            else_branch, Boolean | bool
+        ):
+            return sympy.Or(
+                sympy.And(condition, then_branch),
+                sympy.And(sympy.Not(condition), else_branch),
+            )
+
+        # Otherwise, return a Piecewise expression
+        return sympy.Piecewise((then_branch, condition), (else_branch, True))
