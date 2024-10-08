@@ -1,18 +1,31 @@
+from io import StringIO
+
 import sympy
+from pysmt.smtlib.parser import SmtLibParser
 from pysmt.walkers import DagWalker
+from sympy import to_dnf
 from sympy.logic.boolalg import Boolean
 
 
-class PySMTToSymPy:
-    def __init__(self, pysmt_formula):
-        self.converter = self._create_converter()
-        self.sympy_expr = self.converter.walk(pysmt_formula)
+class SMTToSymPy:
+    def __init__(self):
+        self.sympified_smt = None
+        self._converter = PySMTToSymPyConverter()
 
-    def _create_converter(self):
-        return PySMTToSymPyConverter()
+    def set_smt_script(self, source, is_file=False):
+        parser = SmtLibParser()
+        if is_file:
+            smt_script = parser.get_script_fname(source)
+        else:
+            smt_script = parser.get_script(StringIO(source))
+        smt_script = smt_script.get_strict_formula().simplify()
+        self.sympified_smt = self._converter.walk(smt_script)
 
-    def get_sympy_expression(self):
-        return self.sympy_expr
+    def get_sympy_expression_as_dnf(self):
+        if not self.sympified_smt:
+            msg = "SMT script is not set"
+            raise ValueError(msg)
+        return to_dnf(self.sympified_smt)
 
 
 class PySMTToSymPyConverter(DagWalker):
