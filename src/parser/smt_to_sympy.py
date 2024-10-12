@@ -3,7 +3,6 @@ from io import StringIO
 import sympy
 from pysmt.smtlib.parser import SmtLibParser
 from pysmt.walkers import DagWalker
-from sympy import to_dnf
 from sympy.logic.boolalg import Boolean
 
 
@@ -25,7 +24,7 @@ class SMTToSymPy:
         if not self.sympified_smt:
             msg = "SMT script is not set"
             raise ValueError(msg)
-        return to_dnf(self.sympified_smt)
+        return sympy.to_dnf(self.sympified_smt)
 
 
 class PySMTToSymPyConverter(DagWalker):
