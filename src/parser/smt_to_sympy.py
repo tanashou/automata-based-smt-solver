@@ -9,6 +9,7 @@ from sympy.logic.boolalg import Boolean
 class SMTToSymPy:
     def __init__(self):
         self.sympified_smt = None
+        self.sat_status = None  # TODO: sat, unsat, unknown を enum で管理する
         self._converter = PySMTToSymPyConverter()
 
     def set_smt_script(self, source, is_file=False):
@@ -17,6 +18,7 @@ class SMTToSymPy:
             smt_script = parser.get_script_fname(source)
         else:
             smt_script = parser.get_script(StringIO(source))
+        self._set_status_info(smt_script)
         smt_script = smt_script.get_strict_formula().simplify()
         self.sympified_smt = self._converter.walk(smt_script)
 
@@ -26,7 +28,14 @@ class SMTToSymPy:
             raise ValueError(msg)
         return sympy.to_dnf(self.sympified_smt)
 
+    def _set_status_info(self, script):
+        for cmd in script.commands:
+            if cmd.name == "set-info" and cmd.args[0] == ":status":
+                self.sat_status = cmd.args[1]
+                break
 
+
+# ignore
 class PySMTToSymPyConverter(DagWalker):
     def __init__(self):
         super().__init__()

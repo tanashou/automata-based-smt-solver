@@ -1,5 +1,4 @@
 from pysmt.smtlib.parser import SmtLibParser
-from sympy import to_dnf
 
 from parser.smt_to_sympy import SMTToSymPy
 
@@ -20,11 +19,10 @@ smt2sympy = SMTToSymPy()
 smt2sympy.set_smt_script(smt_file_path, is_file=True)
 sympy_expr = smt2sympy.get_sympy_expression_as_dnf()
 print(sympy_expr)
-dnf = to_dnf(sympy_expr)
+print(smt2sympy.sat_status)
 
-components = list(dnf.args)
+components = list(sympy_expr.args)
 for c in components:
-    print(type(c))
     print(c)
 
 # # Solve the formula using Z3
