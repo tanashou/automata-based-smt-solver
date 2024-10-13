@@ -1,11 +1,11 @@
 from pysmt.smtlib.parser import SmtLibParser
 
 from parser.smt_to_sympy import SMTToSymPy
-
+from sympy import collect
 parser = SmtLibParser()
 
 
-smt_file_path = "benchmarks/QF_LIA/20220307-SMPT/2PhLockVParam/RC-00.smt2"
+smt_file_path = "benchmarks/QF_LIA/check/int_incompleteness2.smt2"
 
 # TODO: sat, unsat, unknown を定数として扱う。enum で定義する。
 # expected_status = None
@@ -24,6 +24,7 @@ print(smt2sympy.sat_status)
 components = list(sympy_expr.args)
 for c in components:
     print(c)
+    print(smt2sympy.rearrange_formula(c))
 
 # # Solve the formula using Z3
 # with Solver(name="z3") as solver:

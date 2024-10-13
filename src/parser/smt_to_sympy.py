@@ -34,8 +34,36 @@ class SMTToSymPy:
                 self.sat_status = cmd.args[1]
                 break
 
+    def rearrange_formula(self, formula):
+        lhs, rhs = formula.lhs, formula.rhs
 
-# ignore
+        # Collect all terms with variables on the left
+        left_terms = []
+        right_terms = []
+
+        for arg in sympy.Add.make_args(lhs - rhs):
+            if arg.free_symbols:
+                left_terms.append(arg)
+            elif isinstance(arg, sympy.Number):
+                right_terms.append(-arg)
+
+        new_lhs = sympy.Add(*left_terms)
+        new_rhs = sympy.Add(*right_terms)
+
+        # Use the same relation as the original formula
+        if isinstance(formula, sympy.Eq):
+            return sympy.Eq(new_lhs, new_rhs)
+        if isinstance(formula, sympy.Le):
+            return sympy.Le(new_lhs, new_rhs)
+        if isinstance(formula, sympy.Lt):
+            return sympy.Lt(new_lhs, new_rhs)
+        if isinstance(formula, sympy.Ge):
+            return sympy.Ge(new_lhs, new_rhs)
+        if isinstance(formula, sympy.Gt):
+            return sympy.Gt(new_lhs, new_rhs)
+        raise ValueError("Unsupported formula type")
+
+
 class PySMTToSymPyConverter(DagWalker):
     def __init__(self):
         super().__init__()
