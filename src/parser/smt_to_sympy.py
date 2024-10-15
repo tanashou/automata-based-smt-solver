@@ -9,6 +9,7 @@ from sympy.logic.boolalg import Boolean
 class SMTToSymPy:
     def __init__(self):
         self.sympified_smt = None
+        self.rearranged_smt = None
         self.sat_status = None  # TODO: sat, unsat, unknown を enum で管理する
         self._converter = PySMTToSymPyConverter()
 
@@ -62,6 +63,33 @@ class SMTToSymPy:
         if isinstance(formula, sympy.Gt):
             return sympy.Gt(new_lhs, new_rhs)
         raise ValueError("Unsupported formula type")
+
+    # TODO: And とかの時、エラー
+    def rearrange_all_formulas(self):
+        if not self.sympified_smt:
+            raise ValueError("SMT script is not set")
+
+        def rearrange_recursive(expr):
+            if isinstance(expr, (sympy.Eq, sympy.Le, sympy.Lt, sympy.Ge, sympy.Gt)):
+                return self.rearrange_formula(expr)
+            if isinstance(expr, sympy.And):
+                return sympy.And(*[rearrange_recursive(arg) for arg in expr.args])
+            if isinstance(expr, sympy.Or):
+                return sympy.Or(*[rearrange_recursive(arg) for arg in expr.args])
+            return expr
+
+        self.rearranged_smt = rearrange_recursive(self.sympified_smt)
+        return self.rearranged_smt
+
+    def get_rearranged_sympy_expression(self):
+        if self.rearranged_smt is None:
+            self.rearrange_all_formulas()
+        return self.rearranged_smt
+
+    def get_rearranged_sympy_expression_as_dnf(self):
+        if self.rearranged_smt is None:
+            self.rearrange_all_formulas()
+        return sympy.to_dnf(self.rearranged_smt)
 
 
 class PySMTToSymPyConverter(DagWalker):
