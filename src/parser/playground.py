@@ -5,7 +5,7 @@ from parser.smt_to_sympy import SMTToSymPy
 parser = SmtLibParser()
 
 
-smt_file_path = "benchmarks/QF_LIA/check/bignum_lia2.smt2"
+smt_file_path = "benchmarks/QF_LIA/prime-cone/prime_cone_sat_2.smt2"
 
 # TODO: sat, unsat, unknown を定数として扱う。enum で定義する。
 # expected_status = None
