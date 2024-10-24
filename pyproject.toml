@@ -4,12 +4,11 @@ version = "0.1.0"
 description = "Add your description here"
 authors = [{ name = "tanashou", email = "tanashou0210@gmail.com" }]
 readme = "README.md"
-requires-python = ">= 3.8"
+requires-python = ">= 3.11"
 license = { file = "LICENSE" }
 
 dependencies = [
     "automata-lib[visual]>=8.1.0",
-    "antlr4-python3-runtime==4.13.0",
     "pysmt==0.9.6",
     "sympy==1.13.3"
 ]
