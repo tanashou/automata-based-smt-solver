@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug solver playground",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/my_smt_solver/playground.py",
+            "console": "integratedTerminal",
+        },
+        {
             "name": "Debug parser",
             "type": "debugpy",
             "request": "launch",
