@@ -16,7 +16,7 @@ class SMTToSymPy:
             smt_script = parser.get_script_fname(source)
         else:
             smt_script = parser.get_script(StringIO(source))
-        self.declared_vars = list(smt_script.get_declared_symbols())
+        self.declared_vars = list(map(str, smt_script.get_declared_symbols()))
         self.declared_vars_index_map = {
             var: idx for idx, var in enumerate(self.declared_vars)
         }
