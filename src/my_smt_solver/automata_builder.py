@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from sympy import Eq, Ge, Gt, Le, Lt, Ne
+from sympy.core.relational import Relational
 
 from .nfa import NFA
 from .utils import (
@@ -15,15 +15,24 @@ class AutomataBuilder:
 
     def __init__(
         self,
-        formula: Eq | Le | Ne | Ge | Gt | Lt,
+        formula: Relational,
         declared_vars_index_map: dict[str, int],
+        *,
         create_all: bool = False,
     ) -> None:
         # lhs, rhs は sympy.core や sympy.numbersとなる。
         # リンターはBasicとして認識するので無視する
-        self.coefs: defaultdict[str, int] = formula.lhs.as_coefficients_dict()  # type: ignore[attr-defined]
+        self.coefs: defaultdict[str, int] = defaultdict(
+            int,
+            {
+                str(key): var
+                for key, var in formula.lhs.as_coefficients_dict().items()  # type: ignore[attr-defined]
+            },
+        )
+        # 同様に無視
         self.const: int = int(formula.rhs)  # type: ignore[attr-defined]
-        self.relation: str = formula.rel_op
+        # formula は Eq, Leq, Geq, Lt, Gt のみ。Eq が Relational を含むクラスなので無視
+        self.relation: str = formula.rel_op  # type: ignore[attr-defined]
         self.declared_vars_index_map: dict[str, int] = declared_vars_index_map
         self.create_all: bool = create_all  # for debug
         self.nfa = NFA(
@@ -43,7 +52,7 @@ class AutomataBuilder:
         return self.__build_completed
 
     def next(self) -> None:
-        # FIXME: self.relation が str になったので、それの対応
+        # FIXME: self.relation が str になったので、
         match self.relation:
             case "==":
                 self.eq_to_nfa()
