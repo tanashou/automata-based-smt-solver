@@ -1,17 +1,4 @@
 {
-    "python.analysis.typeCheckingMode": "basic",
-    "git.closeDiffOnOperation": true,
-    "python.analysis.autoImportCompletions": true,
-    "python.testing.pytestArgs": ["tests"],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
-    "files.exclude": {
-        "**/.pytest_cache": true,
-        "**/__pycache__": true,
-        "**/.DS_Store": true,
-        "**/.ruff_cache": true,
-        "**/.mypy_cache": true
-    },
     "files.insertFinalNewline": true,
     "files.trimTrailingWhitespace": true,
     "python.defaultInterpreterPath": ".venv/bin/python",
