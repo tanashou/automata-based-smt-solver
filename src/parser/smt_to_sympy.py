@@ -5,7 +5,7 @@ from pysmt.smtlib.parser import SmtLibParser
 from pysmt.smtlib.script import SmtLibScript
 from sympy.core.relational import Relational
 
-from parser.pysmt_to_sympy_converter import PySMTToSymPyConverter
+from parser.neq_converter import PySMTToSymPyConverter
 from parser.sat_status import SatStatus
 
 
