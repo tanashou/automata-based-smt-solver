@@ -185,6 +185,5 @@ README.md
 ruff.toml
 tests
 
-
-# Ignore the benchmarks directory
+# Project specific
 benchmarks/
