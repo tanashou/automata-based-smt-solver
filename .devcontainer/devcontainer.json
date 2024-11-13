@@ -1,14 +1,12 @@
 {
     "name": "${localWorkspaceFolderBasename}",
     "build": {
-        "context": "..",
-        "dockerfile": "Dockerfile"
+        "dockerfile": "../Dockerfile"
     },
     // since the benchmarks directory is large, we mount it as a volume
-    "mounts": [
-        "source=${localWorkspaceFolder}/benchmarks,target=/workspace/benchmarks,type=bind,consistency=cached"
-    ],
-    "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+    // "mounts": [
+    //     "source=${localWorkspaceFolder}/benchmarks,target=/workspace/benchmarks,type=bind,consistency=cached"
+    // ],
     "features": {
         "ghcr.io/dhoeric/features/hadolint:1": {}
     },
@@ -17,38 +15,31 @@
             "extensions": [
                 "charliermarsh.ruff",
                 "codezombiech.gitignore",
+                "eamodio.gitlens",
                 "exiasr.hadolint",
                 "kevinrose.vsc-python-indent",
                 "mosapride.zenkaku",
                 "ms-azuretools.vscode-docker",
                 "ms-python.python",
                 "njpwerner.autodocstring",
+                "oderwat.indent-rainbow",
                 "pkief.material-icon-theme",
+                "redhat.vscode-yaml",
                 "shardulm94.trailing-spaces",
+                "tamasfe.even-better-toml",
                 "usernamehw.errorlens",
-                "yzhang.markdown-all-in-one",
-                "tamasfe.even-better-toml"
+                "yzhang.markdown-all-in-one"
             ],
             "settings": {
-                "python.defaultInterpreterPath": "/usr/local/bin/python",
-                "[python]": {
-                    "editor.defaultFormatter": "charliermarsh.ruff",
-                    "editor.codeActionsOnSave": {
-                        "source.fixAll.ruff": "explicit",
-                        "source.organizeImports.ruff": "explicit"
-                    },
-                    "editor.formatOnSave": true
-                },
-                "files.insertFinalNewline": true,
-                "files.trimTrailingWhitespace": true,
-                "terminal.integrated.defaultProfile.linux": "zsh",
+                "terminal.integrated.defaultProfile.linux": "bash",
                 "terminal.integrated.profiles.linux": {
-                    "zsh": {
-                        "path": "/bin/zsh"
+                    "bash": {
+                        "path": "/bin/bash"
                     }
                 }
             }
         }
     },
-    "remoteUser": "vscode"
+    "postCreateCommand": "uv python pin $(cat .python-version) && uv sync --dev",
+    "postStartCommand": "uv run pre-commit install"
 }
