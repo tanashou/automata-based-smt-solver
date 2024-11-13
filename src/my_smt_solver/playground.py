@@ -5,6 +5,8 @@ from pysmt.shortcuts import (
     And,
     Equals,
     Int,
+    Not,
+    NotEquals,
     Or,
     Plus,
     Symbol,
@@ -21,11 +23,12 @@ z = Symbol("z", INT)
 formula = And(
     LE(Plus(Times(Int(2), x), y), Int(10)),  # 2x + y <= 10
     GE(Plus(x, Times(Int(3), y)), Int(0)),  # x + 3y >= 0
-    Equals(z, Plus(x, Times(Int(-1), y))),  # z = x - y
+    NotEquals(z, Plus(x, Times(Int(-1), y))),  # z = x - y
     Or(
         LE(z, Int(-5)),  # z <= -5
         GE(z, Int(5)),  # z >= 5
     ),
+    Not(Equals(x, Int(0))),
 )
 
 # Print the original formula
@@ -36,13 +39,11 @@ print(formula)
 cnfizer = CNFizer()
 
 # Convert the formula to CNF
-cnf = cnfizer.convert(formula)
-
-# Print the CNF formula
-print("\nCNF formula:")
-print(cnf)
+cnf = cnfizer.convert_as_formula(formula)
 
 # Print individual clauses
-print("\nIndividual clauses:")
-for clause in cnf:
+for clause in cnf.args():
     print(clause)
+    for shiki in clause.args():
+        print(shiki)
+        print(type(shiki))
