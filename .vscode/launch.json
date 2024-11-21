@@ -8,14 +8,14 @@
             "name": "Debug solver playground",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/my_smt_solver/playground.py",
+            "program": "${workspaceFolder}/src/automata_based_smt_solver/my_smt_solver/playground.py",
             "console": "integratedTerminal",
         },
         {
             "name": "Debug parser",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/parser/playground.py",
+            "program": "${workspaceFolder}/src/automata_based_smt_solver/parser/playground.py",
             "console": "integratedTerminal",
         },
         {
