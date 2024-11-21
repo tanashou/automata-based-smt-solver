@@ -21,7 +21,7 @@ from pysmt.shortcuts import (
 )
 from pysmt.typing import INT
 
-from src.parser.neq_converter import NeqConverter
+from automata_based_smt_solver.parser.neq_converter import NeqConverter
 
 # Create integer variables
 x = Symbol("x", INT)
@@ -44,21 +44,19 @@ formula = And(
 print("Original formula:")
 print(formula)
 
-converter = NeqConverter()
-converter.walk(formula)
-
 # Create a CNFizer instance
 cnfizer = CNFizer()
 
 # Convert the formula to CNF
 cnf = cnfizer.convert_as_formula(formula)
 
+converter = NeqConverter()
+cnf = converter.walk(cnf)
 # Print individual clauses
 for clause in cnf.args():
     print(clause)
     for shiki in clause.args():
         print(shiki)
-        print(type(shiki))
 
 
 # Create a CNFizer instance

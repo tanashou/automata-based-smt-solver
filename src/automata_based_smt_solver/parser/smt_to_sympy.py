@@ -22,7 +22,9 @@ class SMTToSymPy:
         }
         self.sat_status = self._get_sat_status(smt_script)
         self.sympified_smt = self._sympify_smt_script(smt_script)
-        self.rearranged_smt = self._rearrange_all_formulas() # TODO: Solver クラスでやる。色々機能をつけ過ぎ
+        self.rearranged_smt = (
+            self._rearrange_all_formulas()
+        )  # TODO: Solver クラスでやる。色々機能をつけ過ぎ
 
     def _sympify_smt_script(self, script: SmtLibScript) -> None:
         converter = PySMTToSymPyConverter()
