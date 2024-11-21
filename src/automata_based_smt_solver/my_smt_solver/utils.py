@@ -25,7 +25,9 @@ def make_binary_wildcard_strings(
     return result
 
 
-def dot_product_with_wildcard(var_index_map: dict[str, int], coefs: defaultdict[str, int], symbol: str) -> int:
+def dot_product_with_wildcard(
+    var_index_map: dict[str, int], coefs: defaultdict[str, int], symbol: str
+) -> int:
     result = 0
     # 0 * WILDCARD か (0以外の数値) * (0 or 1) の場合のみ出てくるので、片方のみ判定すればいい
     for key, value in coefs.items():
