@@ -5,26 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug solver playground",
+            "name": "Run playground",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/automata_based_smt_solver/my_smt_solver/playground.py",
+            "program": "${workspaceFolder}/src/playground.py",
             "console": "integratedTerminal",
-        },
-        {
-            "name": "Debug parser",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/automata_based_smt_solver/parser/playground.py",
-            "console": "integratedTerminal",
-        },
-        {
-            "name": "Debug parser with large file",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/parser/playground.py",
-            "console": "integratedTerminal",
-            "args": ["${workspaceFolder}/benchmarks/QF_LIA/bofill-scheduling/SMT_random_LIA/ex5000_2600_100.smt2"]
         },
     ]
 }
