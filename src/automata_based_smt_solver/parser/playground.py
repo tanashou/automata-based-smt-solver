@@ -1,3 +1,4 @@
+from automata_based_smt_solver.parser.neq_converter import NeqConverter
 from pysmt.rewritings import CNFizer
 
 # smt_file_path = "benchmarks/QF_LIA/convert/convert-jpg2gif-query-901.smt2"
@@ -20,8 +21,6 @@ from pysmt.shortcuts import (
     Times,
 )
 from pysmt.typing import INT
-
-from automata_based_smt_solver.parser.neq_converter import NeqConverter
 
 # Create integer variables
 x = Symbol("x", INT)
