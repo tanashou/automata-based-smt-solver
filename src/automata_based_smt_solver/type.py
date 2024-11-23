@@ -2,16 +2,11 @@ from collections import defaultdict
 from enum import StrEnum
 from typing import Any
 
-import sympy
-from sympy.core.relational import Relational
-
 SymbolT = str
 NFAStateT = Any  # 入れ子になる可能性があるので、Anyにしておく
 NFAPathT = defaultdict[SymbolT, set[NFAStateT]]
 NFATransitionT = defaultdict[NFAStateT, NFAPathT]
 InputPathListT = list[tuple[NFAStateT, NFAStateT, SymbolT]]
-
-PrbExpr = Relational | sympy.And | sympy.Or
 
 
 class Relation(StrEnum):
@@ -27,7 +22,8 @@ class Relation(StrEnum):
         for relation in cls:
             if relation.value == relation_str:
                 return relation
-        raise ValueError(f"Invalid relation: {relation_str}")
+        msg = f"Invalid relation: {relation_str}"
+        raise ValueError(msg)
 
     def flip(self) -> "Relation":
         match self:
@@ -40,4 +36,5 @@ class Relation(StrEnum):
             case Relation.GEQ:
                 return Relation.LEQ
             case _:
-                raise ValueError("Cannot flip the relation")
+                msg = f"Cannot flip the relation: {self}"
+                raise ValueError(msg)
