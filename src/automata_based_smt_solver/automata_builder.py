@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from sympy.core.relational import Relational
+from pysmt.fnode import FNode
 
 from .nfa import NFA
 from .utils import (
@@ -15,7 +15,7 @@ class AutomataBuilder:
 
     def __init__(
         self,
-        formula: Relational,
+        formula: FNode,
         declared_vars_index_map: dict[str, int],
         *,
         create_all: bool = False,
@@ -52,12 +52,9 @@ class AutomataBuilder:
         return self.__build_completed
 
     def next(self) -> None:
-        # FIXME: self.relation が str になったので、
         match self.relation:
             case "==":
                 self.eq_to_nfa()
-            case "!=":
-                raise NotImplementedError("NEQ is not implemented yet")
             case "<=":
                 self.leq_to_nfa()
 
@@ -90,26 +87,6 @@ class AutomataBuilder:
 
         # when the work_list is empty, building nfa is completed.
         self.__build_completed = True
-
-    # TODO: Fix this method
-    # def neq_to_nfa(self) -> None:
-    #     # extract the only element from the set. Raises ValueError if the set is has too many or too few elements.
-    #     # This nfa must have only one final state.
-    #     (final_state,) = self.nfa.final_states
-    #     for input_symbol in self.nfa.input_symbols:
-    #         if "0" in input_symbol:
-    #             self.nfa.add_transition(
-    #                 self.nfa.initial_state, input_symbol, self.nfa.initial_state
-    #             )
-    #             self.nfa.add_transition(final_state, input_symbol, final_state)
-
-    #         else:  # '1' in input_symbol
-    #             self.nfa.add_transition(
-    #                 self.nfa.initial_state, input_symbol, final_state
-    #             )
-    #             self.nfa.add_transition(final_state, input_symbol, final_state)
-
-    #     self.__build_completed = True
 
     def leq_to_nfa(self) -> None:
         partial_sat = False

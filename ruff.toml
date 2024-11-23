@@ -44,10 +44,12 @@ ignore = [
     "ANN001",
     "ANN003",
     "ANN101",
+    "ANN102",
     "D100",
     "D101",
     "D102",
     "D104",
+    "D105",
     "D107",
     "D203",
     "D213",
@@ -70,6 +72,8 @@ unfixable = []
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+pylint.max-args = 6
 
 [format]
 # Like Black, use double quotes for strings.
