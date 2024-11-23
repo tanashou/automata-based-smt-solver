@@ -1,6 +1,8 @@
 import itertools
 from collections import defaultdict, deque
 
+from automata.fa.nfa import NFA as AutomataLibNFA  # noqa: N811
+
 from .type import NFAStateT, NFATransitionT, SymbolT
 from .utils import apply_mask, intersection_containing_wildcard
 
@@ -77,8 +79,6 @@ class NFA:
         return self.__transitions[current_state][symbol]
 
     def show_diagram(self, path: str) -> None:
-        from automata.fa.nfa import NFA as AutomataLibNFA
-
         base_nfa = AutomataLibNFA(
             states=self.__states,
             input_symbols=self.__input_symbols,

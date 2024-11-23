@@ -2,11 +2,16 @@ from collections import defaultdict
 from enum import StrEnum
 from typing import Any
 
+import sympy
+from sympy.core.relational import Relational
+
 SymbolT = str
 NFAStateT = Any  # 入れ子になる可能性があるので、Anyにしておく
 NFAPathT = defaultdict[SymbolT, set[NFAStateT]]
 NFATransitionT = defaultdict[NFAStateT, NFAPathT]
 InputPathListT = list[tuple[NFAStateT, NFAStateT, SymbolT]]
+
+PrbExpr = Relational | sympy.And | sympy.Or
 
 
 class Relation(StrEnum):
