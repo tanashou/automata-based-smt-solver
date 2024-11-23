@@ -9,6 +9,6 @@ class Rewriter:
         self.cnfizer = CNFizer()
         self.walker = RewriteWalker()
 
-    def rewrite(self, formula: FNode) -> FNode:
+    def cnfize_and_rewrite(self, formula: FNode) -> FNode:
         cnf = self.cnfizer.convert_as_formula(formula)
         return self.walker.walk(cnf)
