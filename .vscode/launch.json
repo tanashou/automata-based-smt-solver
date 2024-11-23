@@ -5,19 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug parser",
+            "name": "Run playground",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/parser/playground.py",
+            "program": "${workspaceFolder}/src/playground.py",
             "console": "integratedTerminal",
-        },
-        {
-            "name": "Debug parser with large file",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/parser/playground.py",
-            "console": "integratedTerminal",
-            "args": ["${workspaceFolder}/benchmarks/QF_LIA/bofill-scheduling/SMT_random_LIA/ex5000_2600_100.smt2"]
         },
     ]
 }

@@ -1,38 +1,39 @@
-import itertools
+from collections import defaultdict
+from itertools import product
 
 from .type import SymbolT
 
 WILDCARD = "*"
 
 
-def make_binary_wildcard_strings(coefs: list[int]) -> set[str]:
-    # Generate combinations of "01" for the positions to keep
-    count_not_zero = sum(1 for coef in coefs if coef != 0)
-    combinations = list(itertools.product("01", repeat=count_not_zero))
-    # Convert combinations into binary strings
-    binary_wildcard_strings = {"".join(x) for x in combinations}
+# 全体の変数のうち、coefsに含まれる箇所を0, 1、ないものを*とした全ての文字列を生成
+def make_binary_wildcard_strings(
+    var_index_map: dict[str, int], coefs: defaultdict[str, int]
+) -> set[str]:
+    all_vars = list(var_index_map.keys())
+    coef_vars = [var for var in all_vars if var in coefs]
+    combinations = product("01", repeat=len(coef_vars))
+    result = set()
 
-    # Iterate over the mask and insert the wildcard (*) at specified positions
-    for i, coef in enumerate(coefs):
-        if coef == 0:
-            binary_wildcard_strings = {
-                s[:i] + WILDCARD + s[i:] for s in binary_wildcard_strings
-            }
+    for combination in combinations:
+        encoded = [WILDCARD] * len(all_vars)
+        for index, var in enumerate(coef_vars):
+            encoded[var_index_map[var]] = combination[index]
 
-    return binary_wildcard_strings
+        result.add("".join(encoded))
+
+    return result
 
 
-def dot_product_with_wildcard(coefs: list[int], symbol: SymbolT) -> int:
-    if len(coefs) != len(symbol):
-        raise ValueError(
-            "The length of the mask must be equal to the length of the coefficients"
-        )
-
+def dot_product_with_wildcard(
+    var_index_map: dict[str, int], coefs: defaultdict[str, int], symbol: str
+) -> int:
     result = 0
     # 0 * WILDCARD か (0以外の数値) * (0 or 1) の場合のみ出てくるので、片方のみ判定すればいい
-    for c, s in zip(coefs, symbol, strict=False):
-        if s != WILDCARD:
-            result += c * int(s)
+    for key, value in coefs.items():
+        if symbol[var_index_map[key]] == WILDCARD:
+            continue
+        result += value * int(symbol[var_index_map[key]])
     return result
 
 
@@ -69,7 +70,7 @@ def intersection_containing_wildcard(
 ) -> set[SymbolT]:
     """example: if '01*' and '0*0' are given, add '010' to result"""
     result = set()
-    for s1, s2 in itertools.product(symbols1, symbols2):
+    for s1, s2 in product(symbols1, symbols2):
         s = symbol_intersection(s1, s2)
         if s:
             result.add(s)
