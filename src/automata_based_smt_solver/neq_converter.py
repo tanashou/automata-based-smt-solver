@@ -8,7 +8,10 @@ class NeqConverter(IdentityDagWalker):
         super().__init__()
 
     def walk_not(self, formula, args, **kwargs):
-        # CNF に変換後に実行されるので、not は単一リテラルにのみ現れる。len(args) == 1
+        # CNF に変換後に実行されるので、not は単一リテラルにのみ現れる。
+        if len(args)!= 1:
+            msg = "Not should have exactly one argument"
+            raise ValueError(msg)
         if args[0].is_equals():
             lhs, rhs = args[0].args()
             return Or(LT(lhs, rhs), GT(lhs, rhs))
