@@ -5,7 +5,7 @@ from pysmt.walkers import IdentityDagWalker
 
 
 # neq の変換、式の整形(定数が右辺か左辺のみに現れる)を行う
-class FormulaRewriteWalker(IdentityDagWalker):
+class RewriteWalker(IdentityDagWalker):
     def __init__(self):
         super().__init__()
 

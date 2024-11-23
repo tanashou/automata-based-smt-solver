@@ -7,7 +7,7 @@ from pysmt.smtlib.script import SmtLibScript
 from automata_based_smt_solver.sat_status import SatStatus
 
 
-class FormulaReader:
+class Reader:
     def __init__(self) -> None:
         self.parser = SmtLibParser()
 
