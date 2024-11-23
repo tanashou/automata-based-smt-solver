@@ -1,15 +1,12 @@
 from io import StringIO
 
-import sympy
 from pysmt.smtlib.parser import SmtLibParser
 from pysmt.smtlib.script import SmtLibScript
-from sympy.core.relational import Relational
 
-from parser.neq_converter import PySMTToSymPyConverter
-from parser.sat_status import SatStatus
+from automata_based_smt_solver.parser.sat_status import SatStatus
 
 
-class SMTToSymPy:
+class FormulaReader:
     def __init__(self, source: str, *, is_file: bool = False) -> None:
         parser = SmtLibParser()
         if is_file:
@@ -26,10 +23,18 @@ class SMTToSymPy:
             self._rearrange_all_formulas()
         )  # TODO: Solver クラスでやる。色々機能をつけ過ぎ
 
-    def _sympify_smt_script(self, script: SmtLibScript) -> None:
-        converter = PySMTToSymPyConverter()
-        smt_script = script.get_strict_formula().simplify()
-        return converter.walk(smt_script)
+    def __init__(self):
+        self.parser = SmtLibParser()
+
+    def from_smt_lib(self, source: str, *, is_file: bool = False):
+        if is_file:
+            smt_script = self.parser.get_script_fname(source)
+        else:
+            smt_script = self.parser.get_script(StringIO(source))
+        # SAT 情報と式を返す
+        return self._get_sat_status(
+            smt_script
+        ), smt_script.get_strict_formula().simplify()
 
     def _get_sat_status(self, script: SmtLibScript) -> SatStatus:
         for cmd in script.commands:
@@ -83,6 +88,3 @@ class SMTToSymPy:
             return expr
 
         return rearrange_recursive(self.sympified_smt)
-
-    def get_sympy_expression_as_dnf(self) -> sympy.Basic:
-        return sympy.to_dnf(self.rearranged_smt)
