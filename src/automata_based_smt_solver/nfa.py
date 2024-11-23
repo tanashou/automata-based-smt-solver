@@ -1,15 +1,8 @@
 import itertools
 from collections import defaultdict, deque
 
-from automata.fa.nfa import NFA as AutomataLibNFA  # noqa: N811
-
 from .type import NFAStateT, NFATransitionT, SymbolT
 from .utils import apply_mask, intersection_containing_wildcard
-
-"""
-The instance variables, such as 'states', in the NFA class from automata-lib are immutable.
-I needed a mutable version of these variables to modify them during runtime, so I created a separate mutable object.
-"""
 
 
 class NFA:
@@ -31,7 +24,13 @@ class NFA:
     def __str__(self) -> str:
         # Convert defaultdict to dict
         d = {k: dict(v) for k, v in self.transitions.items()}
-        return f"states={self.states},\ninput_symbols={self.input_symbols},\ntransitions={d},\ninitial_state={self.initial_state},\nfinal_states={self.final_states}"
+        return (
+            f"states={self.states},\n"
+            f"input_symbols={self.input_symbols},\n"
+            f"transitions={d},\n"
+            f"initial_state={self.initial_state},\n"
+            f"final_states={self.final_states}"
+        )
 
     @property
     def states(self) -> set[NFAStateT]:
@@ -78,16 +77,6 @@ class NFA:
     ) -> set[NFAStateT]:
         return self.__transitions[current_state][symbol]
 
-    def show_diagram(self, path: str) -> None:
-        base_nfa = AutomataLibNFA(
-            states=self.__states,
-            input_symbols=self.__input_symbols,
-            transitions=self.__transitions,
-            initial_state=self.__initial_state,
-            final_states=self.__final_states,
-        )
-        base_nfa.show_diagram(path=path)
-
     def dfs_with_path(self) -> list[SymbolT]:
         # Define get_neighbors within dfs to include the symbol for the transition.
         def get_neighbors(state: NFAStateT) -> set[tuple[NFAStateT, SymbolT]]:
@@ -121,7 +110,7 @@ class NFA:
                         neighbor_state
                     )  # Move add operation here to avoid duplicate work
                     # Update new_symbols to include the symbol
-                    new_symbols = path_of_symbols + [symbol]
+                    new_symbols = [*path_of_symbols, symbol]
                     stack.append((neighbor_state, new_symbols))
 
         return []
@@ -159,7 +148,7 @@ class NFA:
                         neighbor_state
                     )  # Move add operation here to avoid duplicate work
                     # Update new_symbols to include the symbol
-                    new_symbols = path_of_symbols + [symbol]
+                    new_symbols = [*path_of_symbols, symbol]
                     stack.append((neighbor_state, new_symbols))
 
         return []
@@ -178,12 +167,14 @@ class NFA:
         work_list: list[NFAStateT] = [initial_state]
 
         if not nfa.input_symbols:
-            raise ValueError("The given NFAs have no common input symbols")
+            msg = "The given NFAs have no common input symbols"
+            raise ValueError(msg)
 
-        # create a mask for each nfa. The mask is used to apply wildcard to the input symbol.
+        # create a mask for each nfa. The mask is used to apply wildcard
+        # to the input symbol.
         # use the first input symbol to create the mask
-        mask1: list[bool] = [char != "*" for char in list(self.input_symbols)[0]]
-        mask2: list[bool] = [char != "*" for char in list(other.input_symbols)[0]]
+        mask1: list[bool] = [char != "*" for char in next(iter(self.input_symbols))]
+        mask2: list[bool] = [char != "*" for char in next(iter(other.input_symbols))]
 
         while work_list:
             current_state1, current_state2 = work_list.pop()
