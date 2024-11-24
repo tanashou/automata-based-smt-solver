@@ -1,8 +1,8 @@
 import itertools
 from collections import defaultdict, deque
 
-from .type import NFAStateT, NFATransitionT, SymbolT
-from .utils import apply_mask, intersection_containing_wildcard
+from automata_based_smt_solver.type import NFAStateT, NFATransitionT, SymbolT
+from automata_based_smt_solver.utils import apply_mask, intersection_containing_wildcard
 
 
 class NFA:
