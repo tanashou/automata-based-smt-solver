@@ -10,6 +10,28 @@ class TestInputSymbol:
         symbol = InputSymbol(binary_value)
         assert symbol.value == binary_value
 
+    @pytest.mark.parametrize("binary_value", [0b1010, 0b0, 0b1111])
+    def test_hash(self, binary_value):
+        """Test the hash function."""
+        symbol = InputSymbol(binary_value)
+        assert hash(symbol) == hash(binary_value)
+
+    @pytest.mark.parametrize(
+        ("value1", "value2", "expected"),
+        [
+            (0b1010, 0b1010, True),
+            (0b1010, 0b0101, False),
+            (0b1111, 0b1111, True),
+            (0b0000, 0b0000, True),
+            (0b0, 0b1001, False),
+        ],
+    )
+    def test_eq(self, value1, value2, expected):
+        """Test the equality operator."""
+        symbol1 = InputSymbol(value1)
+        symbol2 = InputSymbol(value2)
+        assert (symbol1 == symbol2) == expected
+
     @pytest.mark.parametrize(
         ("binary_value", "vector", "expected_result"),
         [
