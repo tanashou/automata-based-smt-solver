@@ -1,4 +1,5 @@
 import pytest
+
 from automata_based_smt_solver.automata.input_symbol import InputSymbol
 
 
