@@ -20,11 +20,11 @@ class NFA:
         initial_state: NFAStateT,
         final_states: set[NFAStateT],
     ) -> None:
-        self.__states = states
-        self.__input_symbols = input_symbols
-        self.__transitions = transitions
-        self.__initial_state = initial_state
-        self.__final_states = final_states
+        self._states = states
+        self._input_symbols = input_symbols
+        self._transitions = transitions
+        self._initial_state = initial_state
+        self._final_states = final_states
 
     def __str__(self) -> str:
         # Convert defaultdict to dict
@@ -39,48 +39,48 @@ class NFA:
 
     @property
     def states(self) -> set[NFAStateT]:
-        return self.__states
+        return self._states
 
     @property
     def input_symbols(self) -> set[InputSymbol]:
-        return self.__input_symbols
+        return self._input_symbols
 
     @property
     def transitions(self) -> NFATransitionT:
-        return self.__transitions
+        return self._transitions
 
     @property
     def initial_state(self) -> NFAStateT:
-        return self.__initial_state
+        return self._initial_state
 
     @property
     def final_states(self) -> set[NFAStateT]:
-        return self.__final_states
+        return self._final_states
 
     def add_state(self, new_state: NFAStateT) -> None:
-        self.__states.add(new_state)
+        self._states.add(new_state)
 
     def add_states(self, new_states: set[NFAStateT]) -> None:
-        self.__states.update(new_states)
+        self._states.update(new_states)
 
     def add_input_symbol(self, new_input_symbol: InputSymbol) -> None:
-        self.__input_symbols.add(new_input_symbol)
+        self._input_symbols.add(new_input_symbol)
 
     def add_transition(
         self, current_state: NFAStateT, symbol: InputSymbol, next_state: NFAStateT
     ) -> None:
-        self.__transitions[current_state][symbol].add(next_state)
+        self._transitions[current_state][symbol].add(next_state)
 
     def add_initial_state(self, new_initial_state: NFAStateT) -> None:
-        self.__initial_state = new_initial_state
+        self._initial_state = new_initial_state
 
     def add_final_state(self, new_final_state: NFAStateT) -> None:
-        self.__final_states.add(new_final_state)
+        self._final_states.add(new_final_state)
 
     def get_next_states(
         self, current_state: NFAStateT, symbol: InputSymbol
     ) -> set[NFAStateT]:
-        return self.__transitions[current_state][symbol]
+        return self._transitions[current_state][symbol]
 
     def dfs_with_path(self) -> list[InputSymbol]:
         # Define get_neighbors within dfs to include the symbol for the transition.
