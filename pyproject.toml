@@ -10,7 +10,6 @@ readme = "README.md"
 license = { file = "LICENSE" }
 
 dependencies = [
-    "automata-lib==8.4.0",
     "pysmt==0.9.6",
 ]
 
