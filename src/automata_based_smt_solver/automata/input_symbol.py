@@ -5,7 +5,7 @@ class InputSymbol:
     def __hash__(self) -> int:
         return hash(self.value)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, InputSymbol):
             return self.value == other.value
         return False
