@@ -1,8 +1,13 @@
+# automata-lib v8.4.0 | MIT License | github.com/caleb531/automata
 import itertools
 from collections import defaultdict, deque
+from typing import Any
 
-from automata_based_smt_solver.type import NFAStateT, NFATransitionT, SymbolT
+from automata_based_smt_solver.automata.input_symbol import InputSymbol
 from automata_based_smt_solver.utils import apply_mask, intersection_containing_wildcard
+
+type NFAStateT = Any
+type NFATransitionT = defaultdict[NFAStateT, defaultdict[InputSymbol, set[NFAStateT]]]
 
 
 class NFA:
@@ -10,7 +15,7 @@ class NFA:
         self,
         *,
         states: set[NFAStateT],
-        input_symbols: set[SymbolT],
+        input_symbols: set[InputSymbol],
         transitions: NFATransitionT,
         initial_state: NFAStateT,
         final_states: set[NFAStateT],
@@ -37,7 +42,7 @@ class NFA:
         return self.__states
 
     @property
-    def input_symbols(self) -> set[SymbolT]:
+    def input_symbols(self) -> set[InputSymbol]:
         return self.__input_symbols
 
     @property
@@ -58,11 +63,11 @@ class NFA:
     def add_states(self, new_states: set[NFAStateT]) -> None:
         self.__states.update(new_states)
 
-    def add_input_symbol(self, new_input_symbol: str) -> None:
+    def add_input_symbol(self, new_input_symbol: InputSymbol) -> None:
         self.__input_symbols.add(new_input_symbol)
 
     def add_transition(
-        self, current_state: NFAStateT, symbol: str, next_state: NFAStateT
+        self, current_state: NFAStateT, symbol: InputSymbol, next_state: NFAStateT
     ) -> None:
         self.__transitions[current_state][symbol].add(next_state)
 
@@ -73,13 +78,13 @@ class NFA:
         self.__final_states.add(new_final_state)
 
     def get_next_states(
-        self, current_state: NFAStateT, symbol: SymbolT
+        self, current_state: NFAStateT, symbol: InputSymbol
     ) -> set[NFAStateT]:
         return self.__transitions[current_state][symbol]
 
-    def dfs_with_path(self) -> list[SymbolT]:
+    def dfs_with_path(self) -> list[InputSymbol]:
         # Define get_neighbors within dfs to include the symbol for the transition.
-        def get_neighbors(state: NFAStateT) -> set[tuple[NFAStateT, SymbolT]]:
+        def get_neighbors(state: NFAStateT) -> set[tuple[NFAStateT, InputSymbol]]:
             neighbors = set()
             for symbol in self.input_symbols:
                 next_states = self.get_next_states(state, symbol)
@@ -90,7 +95,7 @@ class NFA:
             return neighbors
 
         # Initialize the stack with the initial state.
-        stack: deque[tuple[NFAStateT, list[SymbolT]]] = deque(
+        stack: deque[tuple[NFAStateT, list[InputSymbol]]] = deque(
             [(self.initial_state, [])]
         )
         visited: set[NFAStateT] = {self.initial_state}
@@ -115,9 +120,9 @@ class NFA:
 
         return []
 
-    def bfs_with_path(self) -> list[SymbolT]:
+    def bfs_with_path(self) -> list[InputSymbol]:
         # Define get_neighbors within dfs to include the symbol for the transition.
-        def get_neighbors(state: NFAStateT) -> set[tuple[NFAStateT, SymbolT]]:
+        def get_neighbors(state: NFAStateT) -> set[tuple[NFAStateT, InputSymbol]]:
             neighbors = set()
             for symbol in self.input_symbols:
                 next_states = self.get_next_states(state, symbol)
@@ -128,7 +133,7 @@ class NFA:
             return neighbors
 
         # Initialize the stack with the initial state.
-        stack: deque[tuple[NFAStateT, list[SymbolT]]] = deque(
+        stack: deque[tuple[NFAStateT, list[InputSymbol]]] = deque(
             [(self.initial_state, [])]
         )
         visited: set[NFAStateT] = {self.initial_state}
@@ -154,6 +159,7 @@ class NFA:
         return []
 
     def intersection(self, other: "NFA") -> "NFA":
+        return NotImplemented
         initial_state = (self.initial_state, other.initial_state)
         nfa = NFA(
             states=set(),
