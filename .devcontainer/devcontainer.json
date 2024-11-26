@@ -41,5 +41,8 @@
         }
     },
     "postCreateCommand": "uv python pin $(cat .python-version) && uv sync --dev",
-    "postStartCommand": "uv run pre-commit install"
+    "postStartCommand": [
+        "uv run pre-commit install",
+        "git config --global --add safe.directory /workspaces/SMT-Solver"
+    ]
 }
