@@ -37,3 +37,7 @@ class InputSymbol:
             msg = "Cannot apply mask to epsilon symbol"
             raise ValueError(msg)
         return self.value & mask
+
+
+# create epsilon as a singleton
+epsilon = InputSymbol(None)
