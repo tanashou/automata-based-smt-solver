@@ -1,10 +1,9 @@
 # automata-lib v8.4.0 | MIT License | github.com/caleb531/automata
-import itertools
 from collections import defaultdict, deque
+from itertools import chain, product, repeat
 from typing import Any
 
-from automata_based_smt_solver.automata.input_symbol import InputSymbol
-from automata_based_smt_solver.utils import apply_mask, intersection_containing_wildcard
+from automata_based_smt_solver.automata.input_symbol import InputSymbol, epsilon
 
 type NFAStateT = Any
 type NFATransitionT = defaultdict[NFAStateT, defaultdict[InputSymbol, set[NFAStateT]]]
@@ -19,12 +18,14 @@ class NFA:
         transitions: NFATransitionT,
         initial_state: NFAStateT,
         final_states: set[NFAStateT],
+        mask: int | None = None,
     ) -> None:
         self._states = states
         self._input_symbols = input_symbols
         self._transitions = transitions
         self._initial_state = initial_state
         self._final_states = final_states
+        self._mask = mask
 
     def __str__(self) -> str:
         # Convert defaultdict to dict
@@ -57,6 +58,10 @@ class NFA:
     def final_states(self) -> set[NFAStateT]:
         return self._final_states
 
+    @property
+    def mask(self) -> int | None:
+        return self._mask
+
     def add_state(self, new_state: NFAStateT) -> None:
         self._states.add(new_state)
 
@@ -67,9 +72,9 @@ class NFA:
         self._input_symbols.add(new_input_symbol)
 
     def add_transition(
-        self, current_state: NFAStateT, symbol: InputSymbol, next_state: NFAStateT
+        self, start_state: NFAStateT, symbol: InputSymbol, end_state: NFAStateT
     ) -> None:
-        self._transitions[current_state][symbol].add(next_state)
+        self._transitions[start_state][symbol].add(end_state)
 
     def add_initial_state(self, new_initial_state: NFAStateT) -> None:
         self._initial_state = new_initial_state
@@ -158,54 +163,124 @@ class NFA:
 
         return []
 
+    @staticmethod
+    def _union_of_input_symbols(
+        symbols1: set[InputSymbol],
+        symbols2: set[InputSymbol],
+        mask1: int | None,
+        mask2: int | None,
+    ) -> set[InputSymbol]:
+        if mask1 and not mask2:
+            mask2 = (1 << mask1.bit_length()) - 1
+        if mask2 and not mask1:
+            mask1 = (1 << mask2.bit_length()) - 1
+        new_symbols = set()
+        if mask1 and mask2:
+            """
+            両方とも1の場合、0, 1が揃っている
+            片方のみは1が足りてない
+            両方とも0の場合、そのまま
+            """
+            xor_mask = mask1 ^ mask2
+            bit_length = max(mask1.bit_length(), mask2.bit_length())
+
+            # Extract bits from the mask in MSB to LSB order
+            bits = [(xor_mask >> i) & 1 for i in reversed(range(bit_length))]
+
+            # Define options: [1] if bit is 1, else [0, 1]
+            options = [[1] if bit == 1 else [0, 1] for bit in bits]
+
+            # Generate all combinations of bits and convert to integers
+            generated_symbols = {
+                sum(bit << (bit_length - 1 - idx) for idx, bit in enumerate(bits_comb))
+                for bits_comb in product(*options)
+            }
+
+            # Wrap each generated integer as an InputSymbol instance
+            new_symbols = {InputSymbol(symbol) for symbol in generated_symbols}
+
+        new_symbols.update(symbols1)
+        new_symbols.update(symbols2)
+
+        return new_symbols
+
     def intersection(self, other: "NFA") -> "NFA":
-        return NotImplemented
-        initial_state = (self.initial_state, other.initial_state)
-        nfa = NFA(
-            states=set(),
-            input_symbols=intersection_containing_wildcard(
-                self.input_symbols, other.input_symbols
-            ),
-            transitions=defaultdict(lambda: defaultdict(set)),
-            initial_state=initial_state,
-            final_states=set(),
+        new_states = set()
+        new_input_symbols = self._union_of_input_symbols(
+            self.input_symbols, other.input_symbols, self.mask, other.mask
         )
-        work_list: list[NFAStateT] = [initial_state]
+        new_transitions: NFATransitionT = defaultdict(lambda: defaultdict(set))
+        new_initial_state = (self.initial_state, other.initial_state)
 
-        if not nfa.input_symbols:
-            msg = "The given NFAs have no common input symbols"
-            raise ValueError(msg)
+        queue: deque[NFAStateT] = deque()
 
-        # create a mask for each nfa. The mask is used to apply wildcard
-        # to the input symbol.
-        # use the first input symbol to create the mask
-        mask1: list[bool] = [char != "*" for char in next(iter(self.input_symbols))]
-        mask2: list[bool] = [char != "*" for char in next(iter(other.input_symbols))]
+        queue.append(new_initial_state)
+        new_states.add(new_initial_state)
 
-        while work_list:
-            current_state1, current_state2 = work_list.pop()
-            nfa.add_state((current_state1, current_state2))
-            if (
-                current_state1 in self.final_states
-                and current_state2 in other.final_states
-            ):
-                nfa.add_final_state((current_state1, current_state2))
-            for symbol in nfa.input_symbols:
-                next_states1 = self.get_next_states(
-                    current_state1, apply_mask(symbol, mask1)
+        while queue:
+            curr_state = queue.popleft()
+            q_a, q_b = curr_state
+            # States we will consider adding to the queue
+            next_states_iterables: list[list[NFAStateT]] = []
+
+            # Get transition dict for states in self
+            transitions_a = self.transitions.get(q_a, {})
+            # Add epsilon transitions for first set of transitions
+            epsilon_transitions_a = transitions_a.get(epsilon)
+            if epsilon_transitions_a is not None:
+                state_dict = new_transitions.setdefault(curr_state, defaultdict(set))
+                state_dict.setdefault(epsilon, set()).update(
+                    zip(epsilon_transitions_a, repeat(q_b))
                 )
-                next_states2 = other.get_next_states(
-                    current_state2, apply_mask(symbol, mask2)
+                next_states_iterables.append(
+                    list(zip(epsilon_transitions_a, repeat(q_b)))
                 )
-                for next_state1, next_state2 in set(
-                    itertools.product(next_states1, next_states2)
-                ):
-                    nfa.add_transition(
-                        (current_state1, current_state2),
-                        symbol,
-                        (next_state1, next_state2),
+
+            # Get transition dict for states in other
+            transitions_b = other.transitions.get(q_b, {})
+            # Add epsilon transitions for second set of transitions
+            epsilon_transitions_b = transitions_b.get(epsilon)
+            if epsilon_transitions_b is not None:
+                state_dict = new_transitions.setdefault(curr_state, defaultdict(set))
+                state_dict.setdefault(epsilon, set()).update(
+                    zip(repeat(q_a), epsilon_transitions_b, strict=False)
+                )
+                next_states_iterables.append(
+                    list(zip(repeat(q_a), epsilon_transitions_b, strict=False))
+                )
+
+            # Add all transitions moving over same input symbols
+            for symbol in new_input_symbols:
+                end_states_a = transitions_a.get(symbol)
+                end_states_b = transitions_b.get(symbol)
+
+                if end_states_a is not None and end_states_b is not None:
+                    state_dict = new_transitions.setdefault(
+                        curr_state, defaultdict(set)
                     )
-                    if (next_state1, next_state2) not in nfa.states:
-                        work_list.append((next_state1, next_state2))
+                    state_dict.setdefault(symbol, set()).update(
+                        product(end_states_a, end_states_b)
+                    )
+                    next_states_iterables.append(
+                        list(product(end_states_a, end_states_b))
+                    )
 
-        return nfa
+            # Finally, try visiting every state we found.
+            for product_state in chain.from_iterable(next_states_iterables):
+                if product_state not in new_states:
+                    new_states.add(product_state)
+                    queue.append(product_state)
+
+        new_final_states = {
+            (state_a, state_b)
+            for (state_a, state_b) in new_states
+            if state_a in self.final_states and state_b in other.final_states
+        }
+
+        return self.__class__(
+            states=new_states,
+            input_symbols=new_input_symbols,
+            transitions=new_transitions,
+            initial_state=new_initial_state,
+            final_states=new_final_states,
+        )
