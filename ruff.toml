@@ -78,7 +78,8 @@ pylint.max-args = 6
 [lint.per-file-ignores]
 "tests/*" = [
     "ANN201",
-    "S101"
+    "S101",
+    "D103",
     ]
 
 [format]
