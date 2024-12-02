@@ -18,7 +18,7 @@ class NFA:
         transitions: NFATransitionT,
         initial_state: NFAStateT,
         final_states: set[NFAStateT],
-        mask: int | None = None,
+        mask: int,
     ) -> None:
         self._states = states
         self._input_symbols = input_symbols
@@ -59,7 +59,7 @@ class NFA:
         return self._final_states
 
     @property
-    def mask(self) -> int | None:
+    def mask(self) -> int:
         return self._mask
 
     def add_state(self, new_state: NFAStateT) -> None:
@@ -164,38 +164,54 @@ class NFA:
         return []
 
     @staticmethod
+    def _create_input_symbols_from_mask(mask: int) -> set[InputSymbol]:
+        bit_length = mask.bit_length()
+        bits = [(mask >> i) & 1 for i in reversed(range(bit_length))]
+        options = [[0, 1] if bit == 1 else [0] for bit in bits]
+
+        return {
+            InputSymbol(
+                sum(bit << (bit_length - 1 - idx) for idx, bit in enumerate(combo))
+            )
+            for combo in product(*options)
+        }
+
+    # 毎回新しく作りたくない。足りない部分のみを作る
+    @staticmethod
+    def _create_insufficient_input_symbols(xor_mask: int) -> set[InputSymbol]:
+        """Create input symbols from an XOR mask.
+
+        When mask bit is:
+        - 1: Only digit 1 is needed (already has 0)
+        - 0: Both 0 and 1 are needed
+        """
+        if xor_mask == 0:
+            return set()
+
+        bit_length = xor_mask.bit_length()
+        result = set()
+
+        # Get all possible combinations using bit manipulation
+        max_combinations = 1 << bit_length
+        for i in range(max_combinations):
+            # Check if this combination is valid
+            if all(
+                ((i >> j) & 1) == 1 if (xor_mask >> j) & 1 else True
+                for j in range(bit_length)
+            ):
+                result.add(InputSymbol(i))
+
+        return result
+
+    @staticmethod
     def _union_of_input_symbols(
         symbols1: set[InputSymbol],
         symbols2: set[InputSymbol],
-        mask1: int | None,
-        mask2: int | None,
+        mask1: int,
+        mask2: int,
     ) -> set[InputSymbol]:
-        if mask1 and not mask2:
-            mask2 = (1 << mask1.bit_length()) - 1
-        if mask2 and not mask1:
-            mask1 = (1 << mask2.bit_length()) - 1
         new_symbols = set()
-        if mask1 and mask2:
-            """
-            両方とも1の場合、0, 1が揃っている
-            片方のみは1が足りてない
-            両方とも0の場合、そのまま
-            """
-            xor_mask = mask1 ^ mask2
-            bit_length = max(mask1.bit_length(), mask2.bit_length())
-
-            # Generate all possible combinations of bits
-            bits = [(xor_mask >> i) & 1 for i in reversed(range(bit_length))]
-            options = [[1] if bit == 1 else [0, 1] for bit in bits]
-
-            # Generate all combinations of bits and convert to integers
-            generated_symbols = {
-                sum(bit << (bit_length - 1 - idx) for idx, bit in enumerate(bits_comb))
-                for bits_comb in product(*options)
-            }
-
-            # Wrap each generated integer as an InputSymbol instance
-            new_symbols = {InputSymbol(symbol) for symbol in generated_symbols}
+        new_symbols = NFA._create_insufficient_input_symbols(mask1 ^ mask2)
 
         return new_symbols | symbols1 | symbols2
 
@@ -278,4 +294,5 @@ class NFA:
             transitions=new_transitions,
             initial_state=new_initial_state,
             final_states=new_final_states,
+            mask=self.mask | other.mask,
         )
