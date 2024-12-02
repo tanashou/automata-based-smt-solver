@@ -184,10 +184,8 @@ class NFA:
             xor_mask = mask1 ^ mask2
             bit_length = max(mask1.bit_length(), mask2.bit_length())
 
-            # Extract bits from the mask in MSB to LSB order
+            # Generate all possible combinations of bits
             bits = [(xor_mask >> i) & 1 for i in reversed(range(bit_length))]
-
-            # Define options: [1] if bit is 1, else [0, 1]
             options = [[1] if bit == 1 else [0, 1] for bit in bits]
 
             # Generate all combinations of bits and convert to integers
@@ -199,10 +197,7 @@ class NFA:
             # Wrap each generated integer as an InputSymbol instance
             new_symbols = {InputSymbol(symbol) for symbol in generated_symbols}
 
-        new_symbols.update(symbols1)
-        new_symbols.update(symbols2)
-
-        return new_symbols
+        return new_symbols | symbols1 | symbols2
 
     def intersection(self, other: "NFA") -> "NFA":
         new_states = set()
