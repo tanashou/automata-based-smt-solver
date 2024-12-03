@@ -38,6 +38,7 @@ class NFA:
             f"final_states={self.final_states}"
         )
 
+    # for creating image using automata-lib
     def to_dict(self) -> dict[str, Any]:
         """Convert NFA to dictionary format with JSON serializable types."""
         return {
