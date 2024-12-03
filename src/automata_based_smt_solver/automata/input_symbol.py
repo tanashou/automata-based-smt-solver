@@ -14,6 +14,10 @@ class InputSymbol:
             return self.value == other.value
         return False
 
+    def __str__(self) -> str:
+        # remove the prefix "0b" from the binary representation
+        return bin(self.value)[2:] if self.value is not None else ""
+
     def dot(self, vector: list[int]) -> int:
         if self.value is None:
             msg = "Cannot calculate dot product with epsilon symbol"
