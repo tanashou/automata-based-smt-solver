@@ -1,6 +1,8 @@
 # automata-lib v8.4.0 | MIT License | github.com/caleb531/automata
+import json
 from collections import defaultdict, deque
 from itertools import chain, product, repeat
+from pathlib import Path
 from typing import Any
 
 from automata_based_smt_solver.automata.input_symbol import InputSymbol, epsilon
@@ -28,15 +30,42 @@ class NFA:
         self._mask = mask
 
     def __str__(self) -> str:
-        # Convert defaultdict to dict
-        d = {k: dict(v) for k, v in self.transitions.items()}
         return (
             f"states={self.states},\n"
             f"input_symbols={self.input_symbols},\n"
-            f"transitions={d},\n"
+            f"transitions={self.transitions},\n"
             f"initial_state={self.initial_state},\n"
             f"final_states={self.final_states}"
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert NFA to dictionary format with JSON serializable types."""
+        return {
+            "states": sorted(
+                str(state) for state in self._states
+            ),  # Convert to sorted list of strings
+            "input_symbols": sorted(
+                str(sym) for sym in self._input_symbols
+            ),  # Convert to sorted list
+            "transitions": {
+                str(state): {
+                    str(symbol) if symbol != epsilon else "": sorted(
+                        str(t) for t in transitions
+                    )  # Convert inner sets to sorted lists
+                    for symbol, transitions in trans_dict.items()
+                }
+                for state, trans_dict in self._transitions.items()
+            },
+            "initial_state": str(self._initial_state),
+            "final_states": sorted(
+                str(state) for state in self._final_states
+            ),  # Convert to sorted list
+            "mask": self._mask,
+        }
+
+    def save_to_json(self, filename: str) -> None:
+        with Path(filename).open("w") as f:
+            json.dump(self.to_dict(), f, indent=4)
 
     @property
     def states(self) -> set[NFAStateT]:
