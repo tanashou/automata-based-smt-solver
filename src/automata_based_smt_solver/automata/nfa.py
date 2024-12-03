@@ -164,62 +164,21 @@ class NFA:
         return []
 
     @staticmethod
-    def _create_input_symbols_from_mask(mask: int) -> set[InputSymbol]:
+    def create_input_symbols_from_mask(mask: int) -> set[InputSymbol]:
+        if mask == 0:
+            return set()
+
         bit_length = mask.bit_length()
-        bits = [(mask >> i) & 1 for i in reversed(range(bit_length))]
-        options = [[0, 1] if bit == 1 else [0] for bit in bits]
+        options = [[0, 1] if (mask & (1 << i)) else [0] for i in range(bit_length)]
 
         return {
-            InputSymbol(
-                sum(bit << (bit_length - 1 - idx) for idx, bit in enumerate(combo))
-            )
+            InputSymbol(sum(bit << i for i, bit in enumerate(combo)))
             for combo in product(*options)
         }
 
-    # 毎回新しく作りたくない。足りない部分のみを作る
-    @staticmethod
-    def _create_insufficient_input_symbols(xor_mask: int) -> set[InputSymbol]:
-        """Create input symbols from an XOR mask.
-
-        When mask bit is:
-        - 1: Only digit 1 is needed (already has 0)
-        - 0: Both 0 and 1 are needed
-        """
-        if xor_mask == 0:
-            return set()
-
-        bit_length = xor_mask.bit_length()
-        result = set()
-
-        # Get all possible combinations using bit manipulation
-        max_combinations = 1 << bit_length
-        for i in range(max_combinations):
-            # Check if this combination is valid
-            if all(
-                ((i >> j) & 1) == 1 if (xor_mask >> j) & 1 else True
-                for j in range(bit_length)
-            ):
-                result.add(InputSymbol(i))
-
-        return result
-
-    @staticmethod
-    def _union_of_input_symbols(
-        symbols1: set[InputSymbol],
-        symbols2: set[InputSymbol],
-        mask1: int,
-        mask2: int,
-    ) -> set[InputSymbol]:
-        new_symbols = set()
-        new_symbols = NFA._create_insufficient_input_symbols(mask1 ^ mask2)
-
-        return new_symbols | symbols1 | symbols2
-
     def intersection(self, other: "NFA") -> "NFA":
         new_states = set()
-        new_input_symbols = self._union_of_input_symbols(
-            self.input_symbols, other.input_symbols, self.mask, other.mask
-        )
+        new_input_symbols = self.create_input_symbols_from_mask(self.mask | other.mask)
         new_transitions: NFATransitionT = defaultdict(lambda: defaultdict(set))
         new_initial_state = (self.initial_state, other.initial_state)
 
