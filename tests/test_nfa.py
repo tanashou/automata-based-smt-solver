@@ -10,7 +10,7 @@ from automata_based_smt_solver.automata.nfa import NFA
 def nfa():
     mask = 0b1
     states = {"q0", "q1", "q2"}
-    input_symbols = NFA._create_input_symbols_from_mask(mask)
+    input_symbols = NFA.create_input_symbols_from_mask(mask)
     initial_state = "q0"
     final_states = {"q2"}
     nfa = NFA(
@@ -31,7 +31,7 @@ def nfa():
 def other_nfa():
     mask = 0b1
     states = {"q0", "q1", "q2"}
-    input_symbols = NFA._create_input_symbols_from_mask(mask)
+    input_symbols = NFA.create_input_symbols_from_mask(mask)
     initial_state = "q0"
     final_states = {"q2"}
     nfa = NFA(
@@ -93,29 +93,24 @@ def create_symbols(*bits: int) -> set[InputSymbol]:
     return {InputSymbol(bit) for bit in bits}
 
 
-def create_symbols_from_mask(mask: int) -> set[InputSymbol]:
-    return {InputSymbol(1 << i) for i in range(32) if mask & (1 << i)}
-
-
 @pytest.mark.parametrize(
-    ("symbols1", "symbols2", "mask1", "mask2", "expected_symbols"),
+    ("mask", "expected_symbols"),
     [
+        (0b110, create_symbols(0b000, 0b010, 0b100, 0b110)),
         (
-            NFA._create_input_symbols_from_mask(0b110),
-            NFA._create_input_symbols_from_mask(0b011),
-            0b110,
-            0b011,
-            NFA._create_input_symbols_from_mask(0b110 | 0b011),
+            0b0,
+            set(),
         ),
         (
-            NFA._create_input_symbols_from_mask(0b001),
-            NFA._create_input_symbols_from_mask(0b011),
-            0b001,
-            0b011,
-            NFA._create_input_symbols_from_mask(0b001 | 0b011),
+            0b1,
+            create_symbols(0b0, 0b1),
+        ),
+        (
+            0b111,
+            create_symbols(0b000, 0b001, 0b010, 0b011, 0b100, 0b101, 0b110, 0b111),
         ),
     ],
 )
-def test_union_of_input_symbols(symbols1, symbols2, mask1, mask2, expected_symbols):
-    new_symbols = NFA._union_of_input_symbols(symbols1, symbols2, mask1, mask2)
+def test_union_of_input_symbols(mask, expected_symbols):
+    new_symbols = NFA.create_input_symbols_from_mask(mask)
     assert new_symbols == expected_symbols
