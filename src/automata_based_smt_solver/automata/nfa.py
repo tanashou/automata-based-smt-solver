@@ -1,14 +1,15 @@
 # automata-lib v8.4.0 | MIT License | github.com/caleb531/automata
 import json
 from collections import defaultdict, deque
-from itertools import chain, product, repeat
+from collections.abc import Mapping
+from itertools import chain, count, product, repeat
 from pathlib import Path
 from typing import Any
 
-from automata_based_smt_solver.automata.input_symbol import InputSymbol, epsilon
+from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
 
 type NFAStateT = Any
-type NFATransitionT = defaultdict[NFAStateT, defaultdict[InputSymbol, set[NFAStateT]]]
+type NFATransitionsT = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
 
 
 class NFA:
@@ -17,7 +18,7 @@ class NFA:
         *,
         states: set[NFAStateT],
         input_symbols: set[InputSymbol],
-        transitions: NFATransitionT,
+        transitions: NFATransitionsT,
         initial_state: NFAStateT,
         final_states: set[NFAStateT],
         mask: int,
@@ -50,7 +51,7 @@ class NFA:
             ),  # Convert to sorted list
             "transitions": {
                 str(state): {
-                    str(symbol) if symbol != epsilon else "": sorted(
+                    str(symbol) if symbol != EPSILON else "": sorted(
                         str(t) for t in transitions
                     )  # Convert inner sets to sorted lists
                     for symbol, transitions in trans_dict.items()
@@ -77,7 +78,7 @@ class NFA:
         return self._input_symbols
 
     @property
-    def transitions(self) -> NFATransitionT:
+    def transitions(self) -> NFATransitionsT:
         return self._transitions
 
     @property
@@ -209,7 +210,7 @@ class NFA:
     def intersection(self, other: "NFA") -> "NFA":
         new_states = set()
         new_input_symbols = self.create_input_symbols_from_mask(self.mask | other.mask)
-        new_transitions: NFATransitionT = defaultdict(lambda: defaultdict(set))
+        new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
         new_initial_state = (self.initial_state, other.initial_state)
 
         queue: deque[NFAStateT] = deque()
@@ -226,10 +227,10 @@ class NFA:
             # Get transition dict for states in self
             transitions_a = self.transitions.get(q_a, {})
             # Add epsilon transitions for first set of transitions
-            epsilon_transitions_a = transitions_a.get(epsilon)
+            epsilon_transitions_a = transitions_a.get(EPSILON)
             if epsilon_transitions_a is not None:
                 state_dict = new_transitions.setdefault(curr_state, defaultdict(set))
-                state_dict.setdefault(epsilon, set()).update(
+                state_dict.setdefault(EPSILON, set()).update(
                     zip(epsilon_transitions_a, repeat(q_b))
                 )
                 next_states_iterables.append(
@@ -239,10 +240,10 @@ class NFA:
             # Get transition dict for states in other
             transitions_b = other.transitions.get(q_b, {})
             # Add epsilon transitions for second set of transitions
-            epsilon_transitions_b = transitions_b.get(epsilon)
+            epsilon_transitions_b = transitions_b.get(EPSILON)
             if epsilon_transitions_b is not None:
                 state_dict = new_transitions.setdefault(curr_state, defaultdict(set))
-                state_dict.setdefault(epsilon, set()).update(
+                state_dict.setdefault(EPSILON, set()).update(
                     zip(repeat(q_a), epsilon_transitions_b, strict=False)
                 )
                 next_states_iterables.append(
@@ -285,3 +286,81 @@ class NFA:
             final_states=new_final_states,
             mask=self.mask | other.mask,
         )
+
+    @staticmethod
+    def _load_new_transition_dict(
+        state_map_dict: Mapping[NFAStateT, NFAStateT],
+        old_transition_dict: NFATransitionsT,
+        new_transition_dict: NFATransitionsT,
+    ) -> None:
+        for state_a, transitions in old_transition_dict.items():
+            for symbol, states in transitions.items():
+                new_transition_dict[state_map_dict[state_a]][symbol] = {
+                    state_map_dict[state_b] for state_b in states
+                }
+
+    @staticmethod
+    def _get_state_maps(
+        state_set_a: set[NFAStateT],
+        state_set_b: set[NFAStateT],
+        *,
+        start: int = 0,
+    ) -> tuple[dict[NFAStateT, int], dict[NFAStateT, int]]:
+        """Generate state map dicts from given sets.
+
+        Useful when the state set has to
+        be a union of the state sets of component FAs.
+        """
+        state_name_counter = count(start)
+
+        state_map_a = dict(zip(state_set_a, state_name_counter, strict=False))
+        state_map_b = dict(zip(state_set_b, state_name_counter, strict=False))
+
+        return (state_map_a, state_map_b)
+
+    def union(self, other: "NFA") -> "NFA":
+        """Return an NFA which accepts the union of L1 and L2.
+
+        Given two NFAs, M1 and M2, which accept the languages
+        L1 and L2 respectively, returns an NFA which accepts
+        the union of L1 and L2.
+        """
+        # Starting at 1 because 0 is for the initial state
+        (state_map_a, state_map_b) = self._get_state_maps(
+            self.states, other.states, start=1
+        )
+
+        new_states = set(chain(state_map_a.values(), state_map_b.values(), [0]))
+        new_transitions: NFATransitionsT = {state: {} for state in new_states}
+
+        # Connect new initial state to both branch
+        new_transitions[0] = {
+            EPSILON: {state_map_a[self.initial_state], state_map_b[other.initial_state]}
+        }
+
+        # Transitions of self
+        self._load_new_transition_dict(state_map_a, self.transitions, new_transitions)
+        # Transitions of other
+        self._load_new_transition_dict(state_map_b, other.transitions, new_transitions)
+
+        # Final states
+        new_final_states = set(
+            chain(
+                (state_map_a[state] for state in self.final_states),
+                (state_map_b[state] for state in other.final_states),
+            )
+        )
+
+        new_input_symbols = self.create_input_symbols_from_mask(self.mask | other.mask)
+
+        return self.__class__(
+            states=new_states,
+            input_symbols=new_input_symbols,
+            transitions=new_transitions,
+            initial_state=0,
+            final_states=new_final_states,
+            mask=self.mask | other.mask,
+        )
+
+    # def concatenate(self, other: "NFA") -> "NFA":
+    #     pass

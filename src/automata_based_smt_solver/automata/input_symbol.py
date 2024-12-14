@@ -44,4 +44,4 @@ class InputSymbol:
 
 
 # create epsilon as a singleton
-epsilon = InputSymbol(None)
+EPSILON = InputSymbol(None)
