@@ -58,6 +58,10 @@ class InputSymbol:
             val_bits[i] if mask_bits[i] == "1" else "*" for i in range(length)
         )
 
+    def __repr__(self) -> str:
+        """Return string representation for collections."""
+        return self.__str__()
+
     def is_epsilon(self) -> bool:
         return self.value is None
 
