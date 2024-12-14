@@ -21,14 +21,12 @@ class NFA:
         transitions: NFATransitionsT,
         initial_state: NFAStateT,
         final_states: set[NFAStateT],
-        mask: int,
     ) -> None:
         self._states = states
         self._input_symbols = input_symbols
         self._transitions = transitions
         self._initial_state = initial_state
         self._final_states = final_states
-        self._mask = mask
 
     def __str__(self) -> str:
         return (
@@ -62,7 +60,6 @@ class NFA:
             "final_states": sorted(
                 str(state) for state in self._final_states
             ),  # Convert to sorted list
-            "mask": self._mask,
         }
 
     def save_to_json(self, filename: str) -> None:
@@ -88,10 +85,6 @@ class NFA:
     @property
     def final_states(self) -> set[NFAStateT]:
         return self._final_states
-
-    @property
-    def mask(self) -> int:
-        return self._mask
 
     def add_state(self, new_state: NFAStateT) -> None:
         self._states.add(new_state)
@@ -194,22 +187,9 @@ class NFA:
 
         return []
 
-    @staticmethod
-    def create_input_symbols_from_mask(mask: int) -> set[InputSymbol]:
-        if mask == 0:
-            return set()
-
-        bit_length = mask.bit_length()
-        options = [[0, 1] if (mask & (1 << i)) else [0] for i in range(bit_length)]
-
-        return {
-            InputSymbol(sum(bit << i for i, bit in enumerate(combo)))
-            for combo in product(*options)
-        }
-
     def intersection(self, other: "NFA") -> "NFA":
         new_states = set()
-        new_input_symbols = self.create_input_symbols_from_mask(self.mask | other.mask)
+        new_input_symbols = self.input_symbols | other.input_symbols
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
         new_initial_state = (self.initial_state, other.initial_state)
 
@@ -284,7 +264,6 @@ class NFA:
             transitions=new_transitions,
             initial_state=new_initial_state,
             final_states=new_final_states,
-            mask=self.mask | other.mask,
         )
 
     @staticmethod
@@ -351,7 +330,7 @@ class NFA:
             )
         )
 
-        new_input_symbols = self.create_input_symbols_from_mask(self.mask | other.mask)
+        new_input_symbols = self.input_symbols | other.input_symbols
 
         return self.__class__(
             states=new_states,
@@ -359,7 +338,6 @@ class NFA:
             transitions=new_transitions,
             initial_state=0,
             final_states=new_final_states,
-            mask=self.mask | other.mask,
         )
 
     # def concatenate(self, other: "NFA") -> "NFA":
