@@ -187,6 +187,18 @@ class NFA:
 
         return []
 
+    @staticmethod
+    def create_input_symbols_from_mask(mask: str) -> set[InputSymbol]:
+        if not mask:
+            return set()
+        # Create options list based on mask bits: ["0","1"] or ["0"]
+        options = [["0", "1"] if bit == "1" else ["0"] for bit in mask]
+
+        # Generate all combinations as strings
+        return {
+            InputSymbol(value="".join(combo), mask=mask) for combo in product(*options)
+        }
+
     def intersection(self, other: "NFA") -> "NFA":
         new_states = set()
         new_input_symbols = self.input_symbols | other.input_symbols
