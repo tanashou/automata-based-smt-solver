@@ -17,7 +17,9 @@ class InputSymbol:
             raise ValueError(msg)
 
     def __hash__(self) -> int:
-        return hash(self.value)
+        if self.is_epsilon():
+            return hash(None)
+        return hash((self.value, self.mask))
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, InputSymbol):
