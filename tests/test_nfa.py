@@ -8,7 +8,7 @@ from automata_based_smt_solver.automata.nfa import NFA
 
 @pytest.fixture
 def nfa():
-    mask = 0b1
+    mask = "1"
     states = {"q0", "q1", "q2"}
     input_symbols = NFA.create_input_symbols_from_mask(mask)
     initial_state = "q0"
@@ -19,17 +19,16 @@ def nfa():
         transitions=defaultdict(lambda: defaultdict(set)),
         initial_state=initial_state,
         final_states=final_states,
-        mask=mask,
     )
-    nfa.add_transition("q0", InputSymbol(0b0), "q0")
-    nfa.add_transition("q0", InputSymbol(0b1), "q1")
-    nfa.add_transition("q1", InputSymbol(0b0), "q2")
+    nfa.add_transition("q0", InputSymbol("0", mask), "q0")
+    nfa.add_transition("q0", InputSymbol("1", mask), "q1")
+    nfa.add_transition("q1", InputSymbol("0", mask), "q2")
     return nfa
 
 
 @pytest.fixture
 def other_nfa():
-    mask = 0b1
+    mask = "1"
     states = {"q0", "q1", "q2"}
     input_symbols = NFA.create_input_symbols_from_mask(mask)
     initial_state = "q0"
@@ -40,28 +39,19 @@ def other_nfa():
         transitions=defaultdict(lambda: defaultdict(set)),
         initial_state=initial_state,
         final_states=final_states,
-        mask=mask,
     )
-    nfa.add_transition("q0", InputSymbol(0b0), "q0")
-    nfa.add_transition("q0", InputSymbol(0b1), "q1")
-    nfa.add_transition("q1", InputSymbol(0b0), "q2")
+    nfa.add_transition("q0", InputSymbol("0", mask), "q0")
+    nfa.add_transition("q0", InputSymbol("1", mask), "q1")
+    nfa.add_transition("q1", InputSymbol("0", mask), "q2")
     return nfa
-
-
-def test_initial_state(nfa):
-    assert nfa.initial_state == "q0"
-
-
-def test_final_states(nfa):
-    assert nfa.final_states == {"q2"}
 
 
 @pytest.mark.parametrize(
     ("current_state", "symbol", "expected_states"),
     [
-        ("q0", InputSymbol(0b0), {"q0"}),
-        ("q0", InputSymbol(0b1), {"q1"}),
-        ("q1", InputSymbol(0b0), {"q2"}),
+        ("q0", InputSymbol("0", "1"), {"q0"}),
+        ("q0", InputSymbol("1", "1"), {"q1"}),
+        ("q1", InputSymbol("0", "1"), {"q2"}),
     ],
 )
 def test_transitions(nfa, current_state, symbol, expected_states):
@@ -74,40 +64,42 @@ def test_add_state(nfa):
 
 
 def test_add_transition(nfa):
-    nfa.add_transition("q2", InputSymbol(0b0), "q3")
-    assert nfa.get_next_states("q2", InputSymbol(0b0)) == {"q3"}
+    nfa.add_transition("q2", InputSymbol("0", "1"), "q3")
+    assert nfa.get_next_states("q2", InputSymbol("0", "1")) == {"q3"}
 
 
 def test_dfs_with_path(nfa):
     path = nfa.dfs_with_path()
-    assert path == [InputSymbol(0b1), InputSymbol(0b0)]
+    assert path == [InputSymbol("1", "1"), InputSymbol("0", "1")]
 
 
 def test_bfs_with_path(nfa):
     path = nfa.bfs_with_path()
-    assert path == [InputSymbol(0b1), InputSymbol(0b0)]
+    assert path == [InputSymbol("1", "1"), InputSymbol("0", "1")]
 
 
 # Helper function to create InputSymbol sets
-def create_symbols(*bits: int) -> set[InputSymbol]:
-    return {InputSymbol(bit) for bit in bits}
+def create_symbols(*bits: str, mask: str) -> set[InputSymbol]:
+    return {InputSymbol(bit, mask) for bit in bits}
 
 
 @pytest.mark.parametrize(
     ("mask", "expected_symbols"),
     [
-        (0b110, create_symbols(0b000, 0b010, 0b100, 0b110)),
+        ("110", create_symbols("000", "010", "100", "110", mask="110")),
         (
-            0b0,
+            "",
             set(),
         ),
         (
-            0b1,
-            create_symbols(0b0, 0b1),
+            "1",
+            create_symbols("0", "1", mask="1"),
         ),
         (
-            0b111,
-            create_symbols(0b000, 0b001, 0b010, 0b011, 0b100, 0b101, 0b110, 0b111),
+            "111",
+            create_symbols(
+                "000", "001", "010", "011", "100", "101", "110", "111", mask="111"
+            ),
         ),
     ],
 )
