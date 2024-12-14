@@ -1,20 +1,24 @@
-from dataclasses import dataclass
-
-
-@dataclass(frozen=True)
 class InputSymbol:
-    # None represents epsilon symbol
-    value: int | None
-    mask: int | None
+    """Represents an input symbol with optional mask.
 
-    def __post_init__(self) -> None:
-        """Validate input symbol state."""
-        if self.value is None and self.mask is not None:
-            msg = "Epsilon symbol cannot have a mask"
-            raise ValueError(msg)
-        if self.value is not None and self.mask is None:
+    value and mask are binary strings like "1010" or empty string for epsilon.
+    """
+
+    def __init__(self, value: str, mask: str) -> None:
+        if value and not mask:
             msg = "Non-epsilon symbol must have a mask"
             raise ValueError(msg)
+        if not value and mask:
+            msg = "Epsilon symbol cannot have a mask"
+            raise ValueError(msg)
+        if len(value) != len(mask):
+            msg = "Value and mask must have the same length"
+            raise ValueError(msg)
+
+        self.value: int | None = int(value, 2) if value else None
+        self.mask: int | None = int(mask, 2) if mask else None
+        self.masked_value: int | None = self._apply_mask()
+        self._bin_length: int = len(value)
 
     def __hash__(self) -> int:
         if self.is_epsilon():
@@ -23,11 +27,9 @@ class InputSymbol:
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, InputSymbol):
-            return self._apply_mask() == other._apply_mask()
+            return self.masked_value == other.masked_value
         return False
 
-    # for now, 0b000 (mask: 0b000) would be "*". if the left bit is 0,
-    # it would be shortened. Fix this later.
     def __str__(self) -> str:
         """Convert to string representation using mask.
 
@@ -49,13 +51,12 @@ class InputSymbol:
         mask_bits = bin(self.mask)[2:]
 
         # Ensure same length by padding with zeros
-        length = max(len(val_bits), len(mask_bits))
-        val_bits = val_bits.zfill(length)
-        mask_bits = mask_bits.zfill(length)
+        val_bits = val_bits.zfill(self._bin_length)
+        mask_bits = mask_bits.zfill(self._bin_length)
 
         # Create result string using mask
         return "".join(
-            val_bits[i] if mask_bits[i] == "1" else "*" for i in range(length)
+            val_bits[i] if mask_bits[i] == "1" else "*" for i in range(self._bin_length)
         )
 
     def __repr__(self) -> str:
@@ -71,22 +72,20 @@ class InputSymbol:
         return self.value & self.mask  # type: ignore[union-attr]
 
     def dot(self, vector: list[int]) -> int:
-        value = self._apply_mask()
-        if value is None:
+        if self.masked_value is None:
             msg = "Cannot calculate dot product with epsilon symbol"
             raise ValueError(msg)
 
-        bit_length = value.bit_length()
-        if bit_length > len(vector):
+        if self._bin_length > len(vector):
             msg = "Vector length is smaller than the number of bits in value"
             raise ValueError(msg)
 
         result = 0
         for i, v in enumerate(reversed(vector)):
-            if value & (1 << i):
+            if self.masked_value & (1 << i):
                 result += v
         return result
 
 
 # create epsilon as a singleton
-EPSILON = InputSymbol(value=None, mask=None)
+EPSILON = InputSymbol(value="", mask="")
