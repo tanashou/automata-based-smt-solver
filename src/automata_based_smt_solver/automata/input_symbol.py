@@ -24,6 +24,8 @@ class InputSymbol:
             return self._apply_mask() == other._apply_mask()
         return False
 
+    # for now, 0b000 (mask: 0b000) would be "*". if the left bit is 0,
+    # it would be shortened. Fix this later.
     def __str__(self) -> str:
         """Convert to string representation using mask.
 
