@@ -37,6 +37,9 @@ class NFA:
             f"final_states={self.final_states}"
         )
 
+    def __repr__(self) -> str:
+        return f"NFA({self})"
+
     # for creating image using automata-lib
     def to_dict(self) -> dict[str, Any]:
         """Convert NFA to dictionary format with JSON serializable types."""
@@ -63,7 +66,7 @@ class NFA:
         }
 
     def save_to_json(self, filename: str) -> None:
-        with Path(filename).open("w") as f:
+        with Path("nfa_jsons/" + filename).open("w") as f:
             json.dump(self.to_dict(), f, indent=4)
 
     @property
