@@ -304,6 +304,9 @@ class NFA:
 
         Useful when the state set has to
         be a union of the state sets of component FAs.
+
+        同じ名前の状態が複数ある場合、区別しないといけないので、番号をつけている。
+        fixme: union の intersection は違う状態に同じ番号がついてしまう。避けたい。
         """
         state_name_counter = count(start)
 
@@ -352,6 +355,58 @@ class NFA:
             input_symbols=new_input_symbols,
             transitions=new_transitions,
             initial_state=0,
+            final_states=new_final_states,
+        )
+
+    def union2(self, other: "NFA") -> "NFA":
+        """Return NFA accepting union of L1 and L2 with unique state naming."""
+        # Create new states with source identifier prefixes
+        states_a = {("A", state) for state in self.states}
+        states_b = {("B", state) for state in other.states}
+
+        # Map original states to new prefixed states
+        state_map_a = dict(zip(self.states, states_a, strict=False))
+        state_map_b = dict(zip(other.states, states_b, strict=False))
+
+        # Create initial state
+        initial_state = ("I", "q0")  # Special initial state
+
+        # Create new states set
+        new_states = states_a | states_b | {initial_state}
+
+        # Create transitions with new state names
+        new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
+
+        # Connect initial state
+        new_transitions[initial_state][EPSILON] = {
+            state_map_a[self.initial_state],
+            state_map_b[other.initial_state],
+        }
+
+        # Map transitions from first NFA
+        for state, trans in self.transitions.items():
+            for symbol, destinations in trans.items():
+                new_transitions[state_map_a[state]][symbol] = {
+                    state_map_a[dest] for dest in destinations
+                }
+
+        # Map transitions from second NFA
+        for state, trans in other.transitions.items():
+            for symbol, destinations in trans.items():
+                new_transitions[state_map_b[state]][symbol] = {
+                    state_map_b[dest] for dest in destinations
+                }
+
+        # Create final states
+        new_final_states = {state_map_a[state] for state in self.final_states} | {
+            state_map_b[state] for state in other.final_states
+        }
+
+        return self.__class__(
+            states=new_states,
+            input_symbols=self.input_symbols | other.input_symbols,
+            transitions=new_transitions,
+            initial_state=initial_state,
             final_states=new_final_states,
         )
 
