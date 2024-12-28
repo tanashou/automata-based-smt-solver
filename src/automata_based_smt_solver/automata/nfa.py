@@ -5,13 +5,13 @@ from collections import defaultdict, deque
 from collections.abc import Mapping
 from itertools import chain, count, product, repeat
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeAlias
 
 from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
 from automata_based_smt_solver.automata.state import State
 
-type NFAStateT = Any
-type NFATransitionsT = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
+NFAStateT: TypeAlias = Any
+NFATransitionsT: TypeAlias = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
 
 
 class NFA:
