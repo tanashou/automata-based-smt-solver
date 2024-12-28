@@ -1,5 +1,6 @@
 # automata-lib v8.4.0 | MIT License | github.com/caleb531/automata
-import json
+import pickle
+import uuid
 from collections import defaultdict, deque
 from collections.abc import Mapping
 from itertools import chain, count, product, repeat
@@ -7,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
+from automata_based_smt_solver.automata.state import State
 
 type NFAStateT = Any
 type NFATransitionsT = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
@@ -27,6 +29,7 @@ class NFA:
         self._transitions = transitions
         self._initial_state = initial_state
         self._final_states = final_states
+        self._uuid = uuid.uuid4()
 
     def __str__(self) -> str:
         return (
@@ -41,33 +44,9 @@ class NFA:
         return f"NFA({self})"
 
     # for creating image using automata-lib
-    def to_dict(self) -> dict[str, Any]:
-        """Convert NFA to dictionary format with JSON serializable types."""
-        return {
-            "states": sorted(
-                str(state) for state in self._states
-            ),  # Convert to sorted list of strings
-            "input_symbols": sorted(
-                str(sym) for sym in self._input_symbols
-            ),  # Convert to sorted list
-            "transitions": {
-                str(state): {
-                    str(symbol) if symbol != EPSILON else "": sorted(
-                        str(t) for t in transitions
-                    )  # Convert inner sets to sorted lists
-                    for symbol, transitions in trans_dict.items()
-                }
-                for state, trans_dict in self._transitions.items()
-            },
-            "initial_state": str(self._initial_state),
-            "final_states": sorted(
-                str(state) for state in self._final_states
-            ),  # Convert to sorted list
-        }
-
-    def save_to_json(self, filename: str) -> None:
-        with Path("nfa_jsons/" + filename).open("w") as f:
-            json.dump(self.to_dict(), f, indent=4)
+    def save_to_pickle(self, filename: str) -> None:
+        with Path("nfa_pickles/" + filename).open("wb") as f:
+            pickle.dump(self, f)
 
     @property
     def states(self) -> set[NFAStateT]:
@@ -88,6 +67,10 @@ class NFA:
     @property
     def final_states(self) -> set[NFAStateT]:
         return self._final_states
+
+    @property
+    def uuid(self) -> uuid.UUID:
+        return self._uuid
 
     def add_state(self, new_state: NFAStateT) -> None:
         self._states.add(new_state)
@@ -361,21 +344,21 @@ class NFA:
     def union2(self, other: "NFA") -> "NFA":
         """Return NFA accepting union of L1 and L2 with unique state naming."""
         # Create new states with source identifier prefixes
-        states_a = {("A", state) for state in self.states}
-        states_b = {("B", state) for state in other.states}
+        states_a = {State(state, uuid=self.uuid) for state in self.states}
+        states_b = {State(state, uuid=other.uuid) for state in other.states}
 
         # Map original states to new prefixed states
         state_map_a = dict(zip(self.states, states_a, strict=False))
         state_map_b = dict(zip(other.states, states_b, strict=False))
 
         # Create initial state
-        initial_state = ("I", "q0")  # Special initial state
+        initial_state = State("q0")  # Special initial state
 
         # Create new states set
         new_states = states_a | states_b | {initial_state}
 
         # Create transitions with new state names
-        new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
+        new_transitions: NFATransitionsT = {state: {} for state in new_states}
 
         # Connect initial state
         new_transitions[initial_state][EPSILON] = {
