@@ -171,4 +171,4 @@ cython_debug/
 src/playground.py
 image/
 benchmarks/
-nfa_jsons/
+nfa_pickles/
