@@ -2,10 +2,10 @@
 import pickle
 import uuid
 from collections import defaultdict, deque
-from collections.abc import Mapping
 from itertools import chain, count, product, repeat
 from pathlib import Path
 from typing import Any, TypeAlias
+from uuid import UUID
 
 from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
 from automata_based_smt_solver.automata.state import State
@@ -17,6 +17,7 @@ NFATransitionsT: TypeAlias = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
 class NFA:
     def __init__(
         self,
+        nfa_id: UUID | None = None,
         *,
         states: set[NFAStateT],
         input_symbols: set[InputSymbol],
@@ -29,7 +30,7 @@ class NFA:
         self._transitions = transitions
         self._initial_state = initial_state
         self._final_states = final_states
-        self._uuid = uuid.uuid4()
+        self._uuid = nfa_id if nfa_id is not None else uuid.uuid4()
 
     def __str__(self) -> str:
         return (
@@ -266,15 +267,14 @@ class NFA:
 
     @staticmethod
     def _load_new_transition_dict(
-        state_map_dict: Mapping[NFAStateT, NFAStateT],
         old_transition_dict: NFATransitionsT,
         new_transition_dict: NFATransitionsT,
     ) -> None:
         for state_a, transitions in old_transition_dict.items():
+            if state_a not in new_transition_dict:
+                new_transition_dict[state_a] = defaultdict(set)
             for symbol, states in transitions.items():
-                new_transition_dict[state_map_dict[state_a]][symbol] = {
-                    state_map_dict[state_b] for state_b in states
-                }
+                new_transition_dict[state_a][symbol].update(states)
 
     @staticmethod
     def _get_state_maps(
@@ -305,89 +305,26 @@ class NFA:
         L1 and L2 respectively, returns an NFA which accepts
         the union of L1 and L2.
         """
-        # Starting at 1 because 0 is for the initial state
-        (state_map_a, state_map_b) = self._get_state_maps(
-            self.states, other.states, start=1
-        )
-
-        new_states = set(chain(state_map_a.values(), state_map_b.values(), [0]))
-        new_transitions: NFATransitionsT = {state: {} for state in new_states}
+        initial_state = State("special")  # 特別な初期状態。
+        new_states = {State(state, self.uuid) for state in self.states} | {
+            State(state, other.uuid) for state in other.states
+        }
+        new_states.add(initial_state)
+        new_transitions: NFATransitionsT = {}
 
         # Connect new initial state to both branch
-        new_transitions[0] = {
-            EPSILON: {state_map_a[self.initial_state], state_map_b[other.initial_state]}
+        new_transitions[initial_state] = {
+            EPSILON: {self.initial_state, other.initial_state}
         }
+        new_transitions.update(self.transitions)
+        new_transitions.update(other.transitions)
 
-        # Transitions of self
-        self._load_new_transition_dict(state_map_a, self.transitions, new_transitions)
-        # Transitions of other
-        self._load_new_transition_dict(state_map_b, other.transitions, new_transitions)
-
-        # Final states
-        new_final_states = set(
-            chain(
-                (state_map_a[state] for state in self.final_states),
-                (state_map_b[state] for state in other.final_states),
-            )
-        )
-
+        new_final_states = self.final_states | other.final_states
         new_input_symbols = self.input_symbols | other.input_symbols
 
         return self.__class__(
             states=new_states,
             input_symbols=new_input_symbols,
-            transitions=new_transitions,
-            initial_state=0,
-            final_states=new_final_states,
-        )
-
-    def union2(self, other: "NFA") -> "NFA":
-        """Return NFA accepting union of L1 and L2 with unique state naming."""
-        # Create new states with source identifier prefixes
-        states_a = {State(state, uuid=self.uuid) for state in self.states}
-        states_b = {State(state, uuid=other.uuid) for state in other.states}
-
-        # Map original states to new prefixed states
-        state_map_a = dict(zip(self.states, states_a, strict=False))
-        state_map_b = dict(zip(other.states, states_b, strict=False))
-
-        # Create initial state
-        initial_state = State("q0")  # Special initial state
-
-        # Create new states set
-        new_states = states_a | states_b | {initial_state}
-
-        # Create transitions with new state names
-        new_transitions: NFATransitionsT = {state: {} for state in new_states}
-
-        # Connect initial state
-        new_transitions[initial_state][EPSILON] = {
-            state_map_a[self.initial_state],
-            state_map_b[other.initial_state],
-        }
-
-        # Map transitions from first NFA
-        for state, trans in self.transitions.items():
-            for symbol, destinations in trans.items():
-                new_transitions[state_map_a[state]][symbol] = {
-                    state_map_a[dest] for dest in destinations
-                }
-
-        # Map transitions from second NFA
-        for state, trans in other.transitions.items():
-            for symbol, destinations in trans.items():
-                new_transitions[state_map_b[state]][symbol] = {
-                    state_map_b[dest] for dest in destinations
-                }
-
-        # Create final states
-        new_final_states = {state_map_a[state] for state in self.final_states} | {
-            state_map_b[state] for state in other.final_states
-        }
-
-        return self.__class__(
-            states=new_states,
-            input_symbols=self.input_symbols | other.input_symbols,
             transitions=new_transitions,
             initial_state=initial_state,
             final_states=new_final_states,

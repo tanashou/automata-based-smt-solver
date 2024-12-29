@@ -9,6 +9,14 @@ class State:
     state_value: Any
     uuid: UUID = field(default_factory=lambda: UUID(int=0))
 
+    def __hash__(self) -> int:
+        return hash((self.state_value, self.uuid))
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, State):
+            return self.state_value == other.state_value and self.uuid == other.uuid
+        return False
+
     def __str__(self) -> str:
         return str(self.state_value)
 
