@@ -7,7 +7,7 @@ class TestInputSymbol:
     def test_epsilon_creation(self):
         """Test creating epsilon symbol."""
         assert EPSILON.is_epsilon()
-        assert str(EPSILON) == ""
+        assert str(EPSILON) == "ε"
 
     def test_invalid_creation(self):
         """Test invalid symbol creation."""
@@ -37,7 +37,7 @@ class TestInputSymbol:
             ("0101", "1101", "01*1"),
             ("1111", "1111", "1111"),
             ("0000", "0000", "****"),
-            ("", "", ""),
+            ("", "", "ε"),
         ],
     )
     def test_string_representation(self, value, mask, expected_str):
