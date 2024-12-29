@@ -44,26 +44,18 @@ class InputSymbol(str):
         if self.is_epsilon():
             return "ε"
 
-        # オプション型の値を使っているため、Noneチェックが必要
         if self.value is None or self.mask is None:
             msg = "Value and mask must not be None"
             raise ValueError(msg)
 
-        # Remove '0b' prefix and pad with zeros if needed
-        val_bits = bin(self.value)[2:]
-        mask_bits = bin(self.mask)[2:]
+        val_bits = bin(self.value)[2:].zfill(self.bin_length)
+        mask_bits = bin(self.mask)[2:].zfill(self.bin_length)
 
-        # Ensure same length by padding with zeros
-        val_bits = val_bits.zfill(self.bin_length)
-        mask_bits = mask_bits.zfill(self.bin_length)
-
-        # Create result string using mask
         return "".join(
             val_bits[i] if mask_bits[i] == "1" else "*" for i in range(self.bin_length)
         )
 
     def __repr__(self) -> str:
-        """Return string representation for collections."""
         return self.__str__()
 
     def is_epsilon(self) -> bool:
@@ -88,6 +80,18 @@ class InputSymbol(str):
             if self.masked_value & (1 << i):
                 result += v
         return result
+
+    def __reduce__(self) -> tuple:
+        """Define how the object should be serialized and deserialized by pickle."""
+        return (
+            self.__class__,
+            (
+                "" if str(self) == "ε" else str(self),
+                bin(self.mask)[2:].zfill(self.bin_length)
+                if self.mask is not None
+                else "",
+            ),
+        )
 
 
 # create epsilon as a singleton
