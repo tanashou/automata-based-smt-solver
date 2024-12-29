@@ -35,11 +35,11 @@ class InputSymbol:
 
         Examples:
             value=0b0101, mask=0b1101 -> "01*1"
-            value=None -> "ε"
+            value=None -> ""
 
         """
         if self.is_epsilon():
-            return "ε"
+            return ""
 
         # オプション型の値を使っているため、Noneチェックが必要
         if self.value is None or self.mask is None:
