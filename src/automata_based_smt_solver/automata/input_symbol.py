@@ -5,22 +5,6 @@ class InputSymbol(str):
     value and mask are binary strings like "1010" or empty string for epsilon.
     """
 
-    def __init__(self, value: str, mask: str) -> None:
-        if value and not mask:
-            msg = "Non-epsilon symbol must have a mask"
-            raise ValueError(msg)
-        if not value and mask:
-            msg = "Epsilon symbol cannot have a mask"
-            raise ValueError(msg)
-        if len(value) != len(mask):
-            msg = "Value and mask must have the same length"
-            raise ValueError(msg)
-
-        self.value: int | None = int(value, 2) if value else None
-        self.mask: int | None = int(mask, 2) if mask else None
-        self.masked_value: int | None = self.apply_mask()
-        self.bin_length: int = len(value)
-
     def __new__(cls, value: str, mask: str) -> "InputSymbol":
         if value and not mask:
             msg = "Non-epsilon symbol must have a mask"
