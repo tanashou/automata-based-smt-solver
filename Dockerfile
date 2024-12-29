@@ -9,6 +9,20 @@ ARG USER_GID=$USER_UID
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
 
+# Add proxy configuration
+RUN echo 'Acquire::http::Pipeline-Depth 0;' >> /etc/apt/apt.conf.d/99fixbadproxy \
+    && echo 'Acquire::http::No-Cache true;' >> /etc/apt/apt.conf.d/99fixbadproxy \
+    && echo 'Acquire::BrokenProxy true;' >> /etc/apt/apt.conf.d/99fixbadproxy
+
+# Clear APT cache and update package lists
+RUN rm -rf /var/lib/apt/lists/* \
+    && apt-get clean \
+    && apt-get update
+
+# Install required packages
+# hadolint ignore=DL3008, DL3015
+RUN apt-get install -y graphviz graphviz-dev gcc
+
 # Install the project into `/app`
 WORKDIR /app
 
