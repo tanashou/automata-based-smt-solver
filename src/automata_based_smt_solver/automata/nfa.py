@@ -306,8 +306,8 @@ class NFA:
         the union of L1 and L2.
         """
         initial_state = State("special")  # 特別な初期状態。
-        new_states = {State(state, self.uuid) for state in self.states} | {
-            State(state, other.uuid) for state in other.states
+        new_states = {State(state.state_value, self.uuid) for state in self.states} | {
+            State(state.state_value, other.uuid) for state in other.states
         }
         new_states.add(initial_state)
         new_transitions: NFATransitionsT = {}
