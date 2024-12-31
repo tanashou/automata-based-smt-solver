@@ -9,6 +9,12 @@ class State:
     state_value: Any
     uuid: UUID = field(default_factory=lambda: UUID(int=0))
 
+    # for better usage
+    def __post_init__(self) -> None:
+        if isinstance(self.state_value, State):
+            msg = "state_value cannot be an instance of State"
+            raise TypeError(msg)
+
     def __hash__(self) -> int:
         return hash((self.state_value, self.uuid))
 
