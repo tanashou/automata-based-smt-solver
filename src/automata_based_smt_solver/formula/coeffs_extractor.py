@@ -1,4 +1,5 @@
 # ruff: noqa: ANN201, ANN204, ANN001, ANN003, ARG002, D101, D107, D102
+from pysmt.fnode import FNode
 from pysmt.walkers import DagWalker
 
 
@@ -30,7 +31,7 @@ class CoefficientExtractor(DagWalker):
         return formula
 
 
-def get_coefficients(f) -> dict[int, int]:
+def get_coefficients(f) -> dict[FNode, int]:
     """Get coefficients of a formula.
 
     If there is a Bool type variable, the coefficient is 0.
