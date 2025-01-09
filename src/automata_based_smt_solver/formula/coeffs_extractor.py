@@ -31,7 +31,7 @@ class CoefficientExtractor(DagWalker):
         return formula
 
 
-def get_coefficients(f) -> dict[FNode, int]:
+def get_coeffs(f) -> dict[FNode, int]:
     """Get coefficients of a formula.
 
     If there is a Bool type variable, the coefficient is 0.
