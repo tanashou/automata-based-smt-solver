@@ -10,7 +10,7 @@ from automata.fa.nfa import NFA as BaseNFA  # noqa: N811
 from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
 from automata_based_smt_solver.automata.state import State
 
-NFAStateT: TypeAlias = Any
+NFAStateT: TypeAlias = Any  # Stateにしたい。
 NFATransitionsT: TypeAlias = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
 
 
@@ -73,9 +73,6 @@ class NFA:
 
     def add_state(self, new_state: NFAStateT) -> None:
         self._states.add(new_state)
-
-    def add_states(self, new_states: set[NFAStateT]) -> None:
-        self._states.update(new_states)
 
     def add_input_symbol(self, new_input_symbol: InputSymbol) -> None:
         self._input_symbols.add(new_input_symbol)
@@ -202,6 +199,7 @@ class NFA:
         new_states = set()
         new_input_symbols = self.input_symbols | other.input_symbols
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
+        # new_initial_state を State にしたい
         new_initial_state = (self.initial_state, other.initial_state)
 
         queue: deque[NFAStateT] = deque()
@@ -222,7 +220,7 @@ class NFA:
             if epsilon_transitions_a is not None:
                 state_dict = new_transitions.setdefault(curr_state, defaultdict(set))
                 state_dict.setdefault(EPSILON, set()).update(
-                    zip(epsilon_transitions_a, repeat(q_b))
+                    set(zip(epsilon_transitions_a, repeat(q_b)))
                 )
                 next_states_iterables.append(
                     list(zip(epsilon_transitions_a, repeat(q_b)))
