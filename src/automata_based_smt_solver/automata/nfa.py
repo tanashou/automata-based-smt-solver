@@ -1,11 +1,11 @@
 # automata-lib v8.4.0 | MIT License | github.com/caleb531/automata
-import pickle
-import uuid
+import os
 from collections import defaultdict, deque
 from itertools import chain, count, product, repeat
-from pathlib import Path
 from typing import Any, TypeAlias
-from uuid import UUID
+
+import pygraphviz as pgv
+from automata.fa.nfa import NFA as BaseNFA  # noqa: N811
 
 from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
 from automata_based_smt_solver.automata.state import State
@@ -15,9 +15,10 @@ NFATransitionsT: TypeAlias = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
 
 
 class NFA:
+    id_counter: int = 0
+
     def __init__(
         self,
-        nfa_id: UUID | None = None,
         *,
         states: set[NFAStateT],
         input_symbols: set[InputSymbol],
@@ -25,12 +26,14 @@ class NFA:
         initial_state: NFAStateT,
         final_states: set[NFAStateT],
     ) -> None:
+        self._id = NFA.id_counter
         self._states = states
         self._input_symbols = input_symbols
         self._transitions = transitions
         self._initial_state = initial_state
         self._final_states = final_states
-        self._uuid = nfa_id if nfa_id is not None else uuid.uuid4()
+
+        NFA.id_counter += 1
 
     def __str__(self) -> str:
         return (
@@ -43,11 +46,6 @@ class NFA:
 
     def __repr__(self) -> str:
         return f"NFA({self})"
-
-    # for creating image using automata-lib
-    def save_to_pickle(self, filename: str) -> None:
-        with Path("nfa_pickles/" + filename).open("wb") as f:
-            pickle.dump(self, f)
 
     @property
     def states(self) -> set[NFAStateT]:
@@ -70,8 +68,8 @@ class NFA:
         return self._final_states
 
     @property
-    def uuid(self) -> uuid.UUID:
-        return self._uuid
+    def id(self) -> int:
+        return self._id
 
     def add_state(self, new_state: NFAStateT) -> None:
         self._states.add(new_state)
@@ -97,6 +95,20 @@ class NFA:
         self, current_state: NFAStateT, symbol: InputSymbol
     ) -> set[NFAStateT]:
         return self._transitions[current_state][symbol]
+
+    def show_diagram(
+        self,
+        input_str: str | None = None,
+        path: str | os.PathLike | None = None,
+    ) -> pgv.AGraph:
+        base_nfa = BaseNFA(
+            states=self.states,
+            input_symbols=self.input_symbols,
+            transitions=self.transitions,  # type: ignore[assignment]
+            initial_state=self.initial_state,
+            final_states=self.final_states,
+        )
+        return base_nfa.show_diagram(input_str=input_str, path=path)
 
     def dfs_with_path(self) -> list[InputSymbol]:
         # Define get_neighbors within dfs to include the symbol for the transition.
@@ -305,9 +317,9 @@ class NFA:
         L1 and L2 respectively, returns an NFA which accepts
         the union of L1 and L2.
         """
-        initial_state = State("special")  # 特別な初期状態。
-        new_states = {State(state.state_value, self.uuid) for state in self.states} | {
-            State(state.state_value, other.uuid) for state in other.states
+        initial_state = State("")  # 特別な初期状態。
+        new_states = {State(state.state_value, self.id) for state in self.states} | {
+            State(state.state_value, other.id) for state in other.states
         }
         new_states.add(initial_state)
         new_transitions: NFATransitionsT = {}
