@@ -40,7 +40,7 @@
             }
         }
     },
-    "postCreateCommand": "uv python pin $(cat .python-version) && uv sync --dev && uv run pre-commit install",
-    "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}"
+    "postCreateCommand": "uv python pin $(cat .python-version) && uv sync --dev && git config --global --add safe.directory ${containerWorkspaceFolder} && uv run pre-commit install",
+    "postStartCommand": ""
 
 }
