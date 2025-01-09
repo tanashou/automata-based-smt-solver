@@ -8,7 +8,7 @@ import pygraphviz as pgv
 from automata.fa.nfa import NFA as BaseNFA  # noqa: N811
 
 from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
-from automata_based_smt_solver.automata.state import State
+from automata_based_smt_solver.automata.state import INITIAL_STATE, State
 
 NFAStateT: TypeAlias = Any  # Stateにしたい。
 NFATransitionsT: TypeAlias = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
@@ -315,15 +315,14 @@ class NFA:
         L1 and L2 respectively, returns an NFA which accepts
         the union of L1 and L2.
         """
-        initial_state = State("")  # 特別な初期状態。
         new_states = {State(state.state_value, self.id) for state in self.states} | {
             State(state.state_value, other.id) for state in other.states
         }
-        new_states.add(initial_state)
+        new_states.add(INITIAL_STATE)
         new_transitions: NFATransitionsT = {}
 
         # Connect new initial state to both branch
-        new_transitions[initial_state] = {
+        new_transitions[INITIAL_STATE] = {
             EPSILON: {self.initial_state, other.initial_state}
         }
         new_transitions.update(self.transitions)
@@ -336,7 +335,7 @@ class NFA:
             states=new_states,
             input_symbols=new_input_symbols,
             transitions=new_transitions,
-            initial_state=initial_state,
+            initial_state=INITIAL_STATE,
             final_states=new_final_states,
         )
 
