@@ -33,3 +33,6 @@ class State:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+
+INITIAL_STATE = State("")
