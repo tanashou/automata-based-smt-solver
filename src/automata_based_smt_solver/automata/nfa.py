@@ -1,7 +1,7 @@
 # automata-lib v8.4.0 | MIT License | github.com/caleb531/automata
 import os
 from collections import defaultdict, deque
-from itertools import chain, count, product, repeat
+from itertools import chain, product, repeat
 from typing import Any, TypeAlias
 
 import pygraphviz as pgv
@@ -274,39 +274,6 @@ class NFA:
             initial_state=new_initial_state,
             final_states=new_final_states,
         )
-
-    @staticmethod
-    def _load_new_transition_dict(
-        old_transition_dict: NFATransitionsT,
-        new_transition_dict: NFATransitionsT,
-    ) -> None:
-        for state_a, transitions in old_transition_dict.items():
-            if state_a not in new_transition_dict:
-                new_transition_dict[state_a] = defaultdict(set)
-            for symbol, states in transitions.items():
-                new_transition_dict[state_a][symbol].update(states)
-
-    @staticmethod
-    def _get_state_maps(
-        state_set_a: set[NFAStateT],
-        state_set_b: set[NFAStateT],
-        *,
-        start: int = 0,
-    ) -> tuple[dict[NFAStateT, int], dict[NFAStateT, int]]:
-        """Generate state map dicts from given sets.
-
-        Useful when the state set has to
-        be a union of the state sets of component FAs.
-
-        同じ名前の状態が複数ある場合、区別しないといけないので、番号をつけている。
-        fixme: union の intersection は違う状態に同じ番号がついてしまう。避けたい。
-        """
-        state_name_counter = count(start)
-
-        state_map_a = dict(zip(state_set_a, state_name_counter, strict=False))
-        state_map_b = dict(zip(state_set_b, state_name_counter, strict=False))
-
-        return (state_map_a, state_map_b)
 
     def union(self, other: "NFA") -> "NFA":
         """Return an NFA which accepts the union of L1 and L2.
