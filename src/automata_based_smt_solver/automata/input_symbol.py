@@ -81,18 +81,6 @@ class InputSymbol(str):
                 result += v
         return result
 
-    def __reduce__(self) -> tuple:
-        """Define how the object should be serialized and deserialized by pickle."""
-        return (
-            self.__class__,
-            (
-                "" if str(self) == "ε" else str(self),
-                bin(self.mask)[2:].zfill(self.bin_length)
-                if self.mask is not None
-                else "",
-            ),
-        )
-
 
 # create epsilon as a singleton
 EPSILON = InputSymbol(value="", mask="")
