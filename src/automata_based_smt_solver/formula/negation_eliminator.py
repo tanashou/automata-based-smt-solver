@@ -20,11 +20,11 @@ class NegationEliminator(IdentityDagWalker):
     def walk_not(self, formula, args, **kwargs):
         # CNF に変換後に実行されるので、not は単一リテラルにのみ現れる。
         if len(args) != 1:
-            msg = "'not' should have exactly one argument"
+            msg = "NegationEliminator is intended for use after CNF conversion."
             raise ValueError(msg)
 
         subformula = args[0]
-        # pysmtの仕様により、equals, lt, le しか現れない
+        # pysmtの仕様より、equals, lt, le しか現れない
         if subformula.is_equals():
             lhs, rhs = subformula.args()
             return Or(LT(lhs, rhs), GT(lhs, rhs))
