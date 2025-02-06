@@ -167,6 +167,7 @@ cython_debug/
 # Project specific
 *.log
 *.png
+*.pdf
 
 src/playground.py
 image/
