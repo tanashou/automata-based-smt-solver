@@ -54,6 +54,8 @@ class FormulaDataExtractor(DagWalker):
                 elif k in rhs_vars:
                     self._coeffs[k] = -v
 
+    # Walker methods
+
     def walk_not(self, formula, args, **kwargs):
         self._has_not = True
         return formula
