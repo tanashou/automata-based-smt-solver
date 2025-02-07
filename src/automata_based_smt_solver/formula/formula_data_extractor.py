@@ -2,15 +2,15 @@
 from pysmt.exceptions import UnsupportedOperatorError
 from pysmt.walkers import DagWalker
 
+from automata_based_smt_solver.formula.formula_type import FormulaType
+
 
 class FormulaDataExtractor(DagWalker):
     def __init__(self):
         super().__init__()
         self._coeffs = {}
         self._constant = 0
-        self._formula_type = (
-            None  # eq, le, boolean var のどれか。TODO: クラスを使いたい
-        )
+        self._formula_type = FormulaType.BOOL  # eq, le, bool のどれか
         self._has_not = False
 
     @property
@@ -25,15 +25,18 @@ class FormulaDataExtractor(DagWalker):
     def formula_type(self):
         return self._formula_type
 
+    @property
+    def has_not(self):
+        return self._has_not
+
     def extract(self, formula):
         # 数式なら =, <= として各種パラメータを取得する。
         # boolean var なら係数は0 として取得する。
         self.walk(formula)
 
-        args_count = (
-            2  # 左辺と右辺があるので2。not は除去されているため考えなくていい。
-        )
-        if len(formula.args()) != args_count:
+        # 左辺と右辺があるので2。not は除去されているため考えなくていい。
+        if len(formula.args()) != 2:  # noqa: PLR2004
+            # boolean var の場合
             return
         lhs, rhs = formula.args()
         # FNode の Simplify により、定数が現れるなら左辺、右辺のどちらかは定数のみ
@@ -74,6 +77,12 @@ class FormulaDataExtractor(DagWalker):
             raise UnsupportedOperatorError(msg)
         return formula
 
+    def walk_plus(self, formula, **kwargs):
+        pass
+
+    def walk_minus(self, formula, args, **kwargs):
+        pass
+
     def walk_symbol(self, formula, args, **kwargs):
         # For symbols not part of a TIMES node, assign default coefficient.
         if formula not in self._coeffs:
@@ -84,17 +93,17 @@ class FormulaDataExtractor(DagWalker):
         return formula
 
     def walk_equals(self, formula, args, **kwargs):
-        self._formula_type = "=="
+        self._formula_type = FormulaType.EQ
         return formula
 
     def walk_le(self, formula, args, **kwargs):
-        self._formula_type = "<="
+        self._formula_type = FormulaType.LE
         return formula
 
     def walk_lt(self, formula, args, **kwargs):
         # Transpose the formula to a <= relation.
         self._constant = -1
-        self._formula_type = "<="
+        self._formula_type = FormulaType.LE
         return formula
 
     def walk_int_constant(self, formula, args, **kwargs):
