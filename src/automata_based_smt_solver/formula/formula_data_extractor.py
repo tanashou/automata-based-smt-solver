@@ -1,35 +1,46 @@
 # ruff: noqa: ANN201, ANN204, ANN001, ANN003, ARG002, D101, D107, D102
+from dataclasses import dataclass
+
 from pysmt.exceptions import UnsupportedOperatorError
+from pysmt.fnode import FNode
 from pysmt.walkers import DagWalker
 
 from automata_based_smt_solver.formula.formula_type import FormulaType
 
 
+@dataclass
+class FormulaData:
+    coeffs: dict[FNode, int]
+    const: int
+    formula_type: FormulaType
+    has_not: bool
+
+
 class FormulaDataExtractor(DagWalker):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self._coeffs = {}
-        self._constant = 0
-        self._formula_type = FormulaType.BOOL  # eq, le, bool のどれか
-        self._has_not = False
+        self._coeffs: dict[FNode, int] = {}
+        self._const: int = 0
+        self._formula_type: FormulaType = FormulaType.BOOL  # eq, le, bool のどれか
+        self._has_not: bool = False
 
     @property
-    def coeffs(self):
+    def coeffs(self) -> dict[FNode, int]:
         return self._coeffs
 
     @property
-    def constant(self):
-        return self._constant
+    def constant(self) -> int:
+        return self._const
 
     @property
-    def formula_type(self):
+    def formula_type(self) -> FormulaType:
         return self._formula_type
 
     @property
-    def has_not(self):
+    def has_not(self) -> bool:
         return self._has_not
 
-    def extract(self, formula):
+    def extract(self, formula) -> FormulaData:
         # 数式なら =, <= として各種パラメータを取得する。
         # boolean var なら係数は0 として取得する。
         self.walk(formula)
@@ -37,17 +48,19 @@ class FormulaDataExtractor(DagWalker):
         # 左辺と右辺があるので2。not は除去されているため考えなくていい。
         if len(formula.args()) != 2:  # noqa: PLR2004
             # boolean var の場合
-            return
+            return FormulaData(
+                self._coeffs, self._const, self._formula_type, self._has_not
+            )
         lhs, rhs = formula.args()
         # FNode の Simplify により、定数が現れるなら左辺、右辺のどちらかは定数のみ
         if lhs.is_int_constant():
             # 定数が左辺にあるので、右辺に移動させる
-            self._constant += -lhs.constant_value()
+            self._const += -lhs.constant_value()
             # 変数が右辺あるので、左辺に移動させる
             for k, v in self._coeffs.items():
                 self._coeffs[k] = -v
         elif rhs.is_int_constant():
-            self._constant += rhs.constant_value()
+            self._const += rhs.constant_value()
         else:
             lhs_vars = lhs.get_free_variables()
             rhs_vars = rhs.get_free_variables()
@@ -56,6 +69,8 @@ class FormulaDataExtractor(DagWalker):
                     self._coeffs[k] = v
                 elif k in rhs_vars:
                     self._coeffs[k] = -v
+
+        return FormulaData(self._coeffs, self._const, self._formula_type, self._has_not)
 
     # Walker methods
 
@@ -102,7 +117,7 @@ class FormulaDataExtractor(DagWalker):
 
     def walk_lt(self, formula, args, **kwargs):
         # Transpose the formula to a <= relation.
-        self._constant = -1
+        self._const = -1
         self._formula_type = FormulaType.LE
         return formula
 
