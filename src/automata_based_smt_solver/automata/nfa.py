@@ -2,7 +2,7 @@
 import os
 from collections import defaultdict, deque
 from itertools import chain, product, repeat
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, cast
 
 import pygraphviz as pgv
 from automata.fa.nfa import NFA as BaseNFA  # noqa: N811
@@ -19,19 +19,22 @@ class NFA:
 
     def __init__(
         self,
-        *,
-        states: set[NFAStateT],
-        input_symbols: set[InputSymbol],
-        transitions: NFATransitionsT,
-        initial_state: NFAStateT,
-        final_states: set[NFAStateT],
+        states: set[NFAStateT] | None = None,
+        input_symbols: set[InputSymbol] | None = None,
+        transitions: NFATransitionsT | None = None,
+        initial_state: NFAStateT = INITIAL_STATE,
+        final_states: set[NFAStateT] | None = None,
     ) -> None:
         self._id = NFA.id_counter
-        self._states = states
-        self._input_symbols = input_symbols
-        self._transitions = transitions
+        self._states = states if states is not None else set()
+        self._input_symbols = input_symbols if input_symbols is not None else set()
+        self._transitions: NFATransitionsT = (
+            transitions
+            if transitions is not None
+            else cast(NFATransitionsT, defaultdict(lambda: defaultdict(set)))
+        )
         self._initial_state = initial_state
-        self._final_states = final_states
+        self._final_states = final_states if final_states is not None else set()
 
         NFA.id_counter += 1
 
@@ -71,25 +74,37 @@ class NFA:
     def id(self) -> int:
         return self._id
 
-    def add_state(self, new_state: NFAStateT) -> None:
+    # id のことを気にせずに使えるようにしたい
+    def add_state(self, new_state_value: NFAStateT) -> None:
+        if isinstance(new_state_value, State):
+            msg = "state_value cannot be an instance of State"
+            raise TypeError(msg)
+        new_state = State(new_state_value, self.id)
         self._states.add(new_state)
 
     def add_input_symbol(self, new_input_symbol: InputSymbol) -> None:
         self._input_symbols.add(new_input_symbol)
 
     def add_transition(
-        self, start_state: NFAStateT, symbol: InputSymbol, end_state: NFAStateT
+        self,
+        start_state_value: NFAStateT,
+        symbol: InputSymbol,
+        end_stat_value: NFAStateT,
     ) -> None:
+        if isinstance(start_state_value, State):
+            msg = "state_value cannot be an instance of State"
+            raise TypeError(msg)
+        start_state = State(start_state_value, self.id)
+        end_state = State(end_stat_value, self.id)
         self._transitions[start_state][symbol].add(end_state)
 
-    def add_initial_state(self, new_initial_state: NFAStateT) -> None:
-        self._initial_state = new_initial_state
-
-    def add_final_state(self, new_final_state: NFAStateT) -> None:
+    def add_final_state(self, new_final_state_value: NFAStateT) -> None:
+        new_final_state = State(new_final_state_value, self.id)
         self._final_states.add(new_final_state)
 
+    # ここは State を受け取りたい
     def get_next_states(
-        self, current_state: NFAStateT, symbol: InputSymbol
+        self, current_state: State, symbol: InputSymbol
     ) -> set[NFAStateT]:
         return self._transitions[current_state][symbol]
 
