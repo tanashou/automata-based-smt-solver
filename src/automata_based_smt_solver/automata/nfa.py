@@ -1,7 +1,7 @@
 # automata-lib v8.4.0 | MIT License | github.com/caleb531/automata
 import os
 from collections import defaultdict, deque
-from itertools import chain, product, repeat
+from itertools import chain, count, product, repeat
 from typing import Any, TypeAlias, cast
 
 import pygraphviz as pgv
@@ -15,7 +15,7 @@ NFATransitionsT: TypeAlias = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
 
 
 class NFA:
-    id_counter: int = 0
+    _id_counter = count(0)
 
     def __init__(
         self,
@@ -25,7 +25,7 @@ class NFA:
         initial_state: NFAStateT = INITIAL_STATE,
         final_states: set[NFAStateT] | None = None,
     ) -> None:
-        self._id = NFA.id_counter
+        self._id = next(NFA._id_counter)
         self._states = states if states is not None else set()
         self._input_symbols = input_symbols if input_symbols is not None else set()
         self._transitions: NFATransitionsT = (
@@ -35,8 +35,6 @@ class NFA:
         )
         self._initial_state = initial_state
         self._final_states = final_states if final_states is not None else set()
-
-        NFA.id_counter += 1
 
     def __str__(self) -> str:
         return (
