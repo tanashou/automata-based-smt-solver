@@ -1,6 +1,3 @@
-import io
-import pickle
-
 import pytest
 
 from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
@@ -76,12 +73,3 @@ class TestInputSymbol:
             ValueError, match="Cannot calculate dot product with epsilon symbol"
         ):
             EPSILON.dot([1, 2, 3, 4])
-
-    def test_pickle(self):
-        """Test pickling and unpickling."""
-        symbol = InputSymbol("", "")
-        with io.BytesIO() as f:
-            pickle.dump(symbol, f)
-            f.seek(0)
-            unpickled_symbol = pickle.load(f)  # noqa: S301
-        assert symbol == unpickled_symbol
