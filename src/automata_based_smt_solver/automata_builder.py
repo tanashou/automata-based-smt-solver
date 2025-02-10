@@ -33,6 +33,7 @@ class AutomataBuilder:
         self.nfa.set_input_symbols(
             self._generate_input_symbols(all_vars_index_map, extracted.vars)
         )
+        self.nfa.set_initial_state(INITIAL_STATE)
         self.nfa.add_final_state(self.const)
 
         self.dots: dict[InputSymbol, int] = self._calc_dots(all_vars_index_map)
@@ -78,20 +79,19 @@ class AutomataBuilder:
         partial_sat = False
 
         while self.work_list:
-            current_state = self.work_list.pop()
+            current_state_val = self.work_list.pop()
             for symbol in self.nfa.input_symbols:
                 dot = self.dots[symbol]
-                if (current_state - dot) & 1 == 0:
-                    previous_state = (current_state - dot) // 2
-                    previous_state = int(previous_state)
-                    if str(previous_state) not in self.nfa.states:
-                        self.nfa.add_state(str(previous_state))
-                        self.work_list.append(previous_state)
+                if (current_state_val - dot) & 1 == 0:
+                    previous_state_val = (current_state_val - dot) // 2
+                    if not self.nfa.contains_state(previous_state_val):
+                        self.nfa.add_state(previous_state_val)
+                        self.work_list.append(previous_state_val)
                     self.nfa.add_transition(
-                        str(previous_state), symbol, str(current_state)
+                        previous_state_val, symbol, current_state_val
                     )
-                if current_state == -dot:
-                    self.nfa.add_transition(INITIAL_STATE, symbol, str(current_state))
+                if current_state_val == -dot:
+                    self.nfa.add_transition(INITIAL_STATE, symbol, current_state_val)
                     partial_sat = True
             # return after the for loop is finished.
             if partial_sat and not self.create_all:
@@ -104,17 +104,17 @@ class AutomataBuilder:
         partial_sat = False
 
         while self.work_list:
-            current_state = self.work_list.pop()
+            current_state_val = self.work_list.pop()
             for symbol in self.nfa.input_symbols:
                 dot = self.dots[symbol]
-                previous_state = (current_state - dot) // 2
-                if str(previous_state) not in self.nfa.states:
-                    self.nfa.add_state(str(previous_state))
-                    self.work_list.append(previous_state)
-                self.nfa.add_transition(str(previous_state), symbol, str(current_state))
+                previous_state_val = (current_state_val - dot) // 2
+                if not self.nfa.contains_state(previous_state_val):
+                    self.nfa.add_state(previous_state_val)
+                    self.work_list.append(previous_state_val)
+                self.nfa.add_transition(previous_state_val, symbol, current_state_val)
 
-                if current_state + dot >= 0:
-                    self.nfa.add_transition(INITIAL_STATE, symbol, str(current_state))
+                if current_state_val + dot >= 0:
+                    self.nfa.add_transition(INITIAL_STATE, symbol, current_state_val)
                     partial_sat = True
             # return after the for loop is finished.
             if partial_sat and not self.create_all:
