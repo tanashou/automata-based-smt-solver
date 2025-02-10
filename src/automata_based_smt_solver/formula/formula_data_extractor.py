@@ -11,7 +11,7 @@ from automata_based_smt_solver.formula.formula_type import FormulaType
 @dataclass
 class FormulaData:
     coeffs: dict[FNode, int]
-    vars_sorted: list[str]
+    vars: set[str]
     const: int
     formula_type: FormulaType
     has_not: bool
@@ -30,7 +30,7 @@ class FormulaDataExtractor(DagWalker):
         # boolean var なら係数は0 として取得する。
         self.walk(formula)
 
-        declared_vars = sorted(str(v) for v in formula.get_free_variables())
+        declared_vars = {str(v) for v in formula.get_free_variables()}
 
         # 左辺と右辺があるので2。not は除去されているため考えなくていい。
         if len(formula.args()) != 2:  # noqa: PLR2004
