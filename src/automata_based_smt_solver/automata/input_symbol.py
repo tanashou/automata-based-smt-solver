@@ -66,19 +66,17 @@ class InputSymbol(str):
             return None
         return self.value & self.mask  # type: ignore[union-attr]
 
-    def dot(self, vector: list[int]) -> int:
+    def dot(self, var_coef_index_pairs: list[tuple[int, int]]) -> int:
         if self.masked_value is None:
             msg = "Cannot calculate dot product with epsilon symbol"
             raise ValueError(msg)
 
-        if self.bin_length > len(vector):
-            msg = "Vector length is smaller than the number of bits in value"
-            raise ValueError(msg)
-
         result = 0
-        for i, v in enumerate(reversed(vector)):
-            if self.masked_value & (1 << i):
-                result += v
+        for coeff, index in var_coef_index_pairs:
+            # Adjust the index: leftmost bit is index 0.
+            if (self.masked_value >> (self.bin_length - index - 1)) & 1:
+                result += coeff
+
         return result
 
 
