@@ -5,22 +5,22 @@ class InputSymbol(str):
     value and mask are binary strings like "1010" or empty string for epsilon.
     """
 
-    def __new__(cls, value: str, mask: str) -> "InputSymbol":
-        if value and not mask:
+    def __new__(cls, bin_value: str, bin_mask: str) -> "InputSymbol":
+        if bin_value and not bin_mask:
             msg = "Non-epsilon symbol must have a mask"
             raise ValueError(msg)
-        if not value and mask:
+        if not bin_value and bin_mask:
             msg = "Epsilon symbol cannot have a mask"
             raise ValueError(msg)
-        if len(value) != len(mask):
+        if len(bin_value) != len(bin_mask):
             msg = "Value and mask must have the same length"
             raise ValueError(msg)
 
-        obj = str.__new__(cls, value)
-        obj.value = int(value, 2) if value else None
-        obj.mask = int(mask, 2) if mask else None
+        obj = str.__new__(cls, bin_value)
+        obj.value = int(bin_value, 2) if bin_value else None
+        obj.mask = int(bin_mask, 2) if bin_mask else None
         obj.masked_value = obj.apply_mask()
-        obj.bin_length = len(value)
+        obj.bin_length = len(bin_value)
         return obj
 
     def __hash__(self) -> int:
@@ -83,4 +83,4 @@ class InputSymbol(str):
 
 
 # create epsilon as a singleton
-EPSILON = InputSymbol(value="", mask="")
+EPSILON = InputSymbol(bin_value="", bin_mask="")
