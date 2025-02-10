@@ -11,6 +11,7 @@ from automata_based_smt_solver.formula.formula_type import FormulaType
 @dataclass
 class FormulaData:
     coeffs: dict[FNode, int]
+    vars_sorted: list[str]
     const: int
     formula_type: FormulaType
     has_not: bool
@@ -24,32 +25,22 @@ class FormulaDataExtractor(DagWalker):
         self._formula_type: FormulaType = FormulaType.BOOL  # eq, le, bool のどれか
         self._has_not: bool = False
 
-    @property
-    def coeffs(self) -> dict[FNode, int]:
-        return self._coeffs
-
-    @property
-    def constant(self) -> int:
-        return self._const
-
-    @property
-    def formula_type(self) -> FormulaType:
-        return self._formula_type
-
-    @property
-    def has_not(self) -> bool:
-        return self._has_not
-
     def extract(self, formula) -> FormulaData:
         # 数式なら =, <= として各種パラメータを取得する。
         # boolean var なら係数は0 として取得する。
         self.walk(formula)
 
+        declared_vars = sorted(str(v) for v in formula.get_free_variables())
+
         # 左辺と右辺があるので2。not は除去されているため考えなくていい。
         if len(formula.args()) != 2:  # noqa: PLR2004
             # boolean var の場合
             return FormulaData(
-                self._coeffs, self._const, self._formula_type, self._has_not
+                self._coeffs,
+                declared_vars,
+                self._const,
+                self._formula_type,
+                self._has_not,
             )
         lhs, rhs = formula.args()
         # FNode の Simplify により、定数が現れるなら左辺、右辺のどちらかは定数のみ
@@ -70,7 +61,9 @@ class FormulaDataExtractor(DagWalker):
                 elif k in rhs_vars:
                     self._coeffs[k] = -v
 
-        return FormulaData(self._coeffs, self._const, self._formula_type, self._has_not)
+        return FormulaData(
+            self._coeffs, declared_vars, self._const, self._formula_type, self._has_not
+        )
 
     # Walker methods
 
