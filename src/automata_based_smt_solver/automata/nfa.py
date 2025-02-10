@@ -22,7 +22,7 @@ class NFA:
         states: set[NFAStateT] | None = None,
         input_symbols: set[InputSymbol] | None = None,
         transitions: NFATransitionsT | None = None,
-        initial_state: NFAStateT = INITIAL_STATE,
+        initial_state: NFAStateT | None = None,
         final_states: set[NFAStateT] | None = None,
     ) -> None:
         self._id = next(NFA._id_counter)
@@ -86,16 +86,30 @@ class NFA:
     def set_input_symbols(self, input_symbols: set[InputSymbol]) -> None:
         self._input_symbols = input_symbols
 
+    def set_initial_state(self, new_initial_state_value: NFAStateT) -> None:
+        if new_initial_state_value == INITIAL_STATE:
+            self._initial_state = INITIAL_STATE
+            self._states.add(INITIAL_STATE)
+        else:
+            if isinstance(new_initial_state_value, State):
+                msg = "state_value cannot be an instance of State"
+                raise TypeError(msg)
+            self._initial_state = State(new_initial_state_value, self.id)
+            self._states.add(self._initial_state)
+
     def add_transition(
         self,
         start_state_value: NFAStateT,
         symbol: InputSymbol,
         end_stat_value: NFAStateT,
     ) -> None:
-        if isinstance(start_state_value, State):
-            msg = "state_value cannot be an instance of State"
-            raise TypeError(msg)
-        start_state = State(start_state_value, self.id)
+        if start_state_value == INITIAL_STATE:
+            start_state = INITIAL_STATE
+        else:
+            if isinstance(start_state_value, State):
+                msg = "state_value cannot be an instance of State"
+                raise TypeError(msg)
+            start_state = State(start_state_value, self.id)
         end_state = State(end_stat_value, self.id)
         self._transitions[start_state][symbol].add(end_state)
 
@@ -108,6 +122,10 @@ class NFA:
         self, current_state: State, symbol: InputSymbol
     ) -> set[NFAStateT]:
         return self._transitions[current_state][symbol]
+
+    def contains_state(self, state_value: NFAStateT) -> bool:
+        state = State(state_value, self.id)
+        return state in self.states
 
     def show_diagram(
         self,
