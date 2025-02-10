@@ -68,9 +68,9 @@ class AutomataBuilder:
         # yeild を使って 各種nfa変換関数を呼び出す
         match self.formula_type:
             case FormulaType.EQ:
-                pass
+                self.eq_to_nfa()
             case FormulaType.LE:
-                pass
+                self.le_to_nfa()
             case FormulaType.BOOL:
                 pass
 
@@ -100,7 +100,7 @@ class AutomataBuilder:
         # when the work_list is empty, building nfa is completed.
         self.__build_completed = True
 
-    def leq_to_nfa(self) -> None:
+    def le_to_nfa(self) -> None:
         partial_sat = False
 
         while self.work_list:
