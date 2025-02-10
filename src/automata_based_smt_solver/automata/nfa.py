@@ -205,7 +205,8 @@ class NFA:
 
         # Generate all combinations as strings
         return {
-            InputSymbol(value="".join(combo), mask=mask) for combo in product(*options)
+            InputSymbol(bin_value="".join(combo), bin_mask=mask)
+            for combo in product(*options)
         }
 
     def intersection(self, other: "NFA") -> "NFA":
