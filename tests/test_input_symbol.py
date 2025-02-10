@@ -56,20 +56,20 @@ class TestInputSymbol:
         assert hash(epsilon1) == hash(epsilon2)
 
     @pytest.mark.parametrize(
-        ("value", "mask", "vector", "expected"),
+        ("value", "mask", "coef_index_pairs", "expected"),
         [
-            ("1010", "1111", [1, 2, 3, 4], 4),
-            ("1100", "1111", [1, 1, 1, 1], 2),
+            ("1010", "1111", [(1, 0), (2, 1), (3, 2), (4, 3)], 4),
+            ("1100", "1111", [(1, 0), (1, 1), (1, 2), (1, 3)], 2),
         ],
     )
-    def test_dot_product(self, value, mask, vector, expected):
+    def test_dot_product(self, value, mask, coef_index_pairs, expected):
         """Test dot product calculation."""
         symbol = InputSymbol(value, mask)
-        assert symbol.dot(vector) == expected
+        assert symbol.dot(coef_index_pairs) == expected
 
     def test_dot_product_epsilon_error(self):
         """Test dot product with epsilon raises error."""
         with pytest.raises(
             ValueError, match="Cannot calculate dot product with epsilon symbol"
         ):
-            EPSILON.dot([1, 2, 3, 4])
+            EPSILON.dot([(1, 0), (2, 1), (3, 2), (4, 3)])
