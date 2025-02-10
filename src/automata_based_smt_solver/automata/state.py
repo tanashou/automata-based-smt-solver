@@ -23,9 +23,6 @@ class State:
         return False
 
     def __str__(self) -> str:
-        # show_diagram では状態はここで区別される。初期状態は空白で表示する。
-        if self.state_value == "":
-            return " "
         # intersection を取る際、id が不要。新しく作る状態に id を指定しない。
         if self.id == -1:
             return str(self.state_value)
@@ -33,3 +30,6 @@ class State:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+
+INITIAL_STATE = State("q0")
