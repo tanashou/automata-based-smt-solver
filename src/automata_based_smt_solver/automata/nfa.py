@@ -83,6 +83,9 @@ class NFA:
     def add_input_symbol(self, new_input_symbol: InputSymbol) -> None:
         self._input_symbols.add(new_input_symbol)
 
+    def set_input_symbols(self, input_symbols: set[InputSymbol]) -> None:
+        self._input_symbols = input_symbols
+
     def add_transition(
         self,
         start_state_value: NFAStateT,
