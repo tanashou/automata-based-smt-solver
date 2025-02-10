@@ -2,38 +2,39 @@
 import os
 from collections import defaultdict, deque
 from itertools import chain, count, product, repeat
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, cast
 
 import pygraphviz as pgv
 from automata.fa.nfa import NFA as BaseNFA  # noqa: N811
 
 from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
-from automata_based_smt_solver.automata.state import State
+from automata_based_smt_solver.automata.state import INITIAL_STATE, State
 
 NFAStateT: TypeAlias = Any  # Stateにしたい。
 NFATransitionsT: TypeAlias = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
 
 
 class NFA:
-    id_counter: int = 0
+    _id_counter = count(0)
 
     def __init__(
         self,
-        *,
-        states: set[NFAStateT],
-        input_symbols: set[InputSymbol],
-        transitions: NFATransitionsT,
-        initial_state: NFAStateT,
-        final_states: set[NFAStateT],
+        states: set[NFAStateT] | None = None,
+        input_symbols: set[InputSymbol] | None = None,
+        transitions: NFATransitionsT | None = None,
+        initial_state: NFAStateT | None = None,
+        final_states: set[NFAStateT] | None = None,
     ) -> None:
-        self._id = NFA.id_counter
-        self._states = states
-        self._input_symbols = input_symbols
-        self._transitions = transitions
+        self._id = next(NFA._id_counter)
+        self._states = states if states is not None else set()
+        self._input_symbols = input_symbols if input_symbols is not None else set()
+        self._transitions: NFATransitionsT = (
+            transitions
+            if transitions is not None
+            else cast(NFATransitionsT, defaultdict(lambda: defaultdict(set)))
+        )
         self._initial_state = initial_state
-        self._final_states = final_states
-
-        NFA.id_counter += 1
+        self._final_states = final_states if final_states is not None else set()
 
     def __str__(self) -> str:
         return (
@@ -71,27 +72,60 @@ class NFA:
     def id(self) -> int:
         return self._id
 
-    def add_state(self, new_state: NFAStateT) -> None:
+    # id のことを気にせずに使えるようにしたい
+    def add_state(self, new_state_value: NFAStateT) -> None:
+        if isinstance(new_state_value, State):
+            msg = "state_value cannot be an instance of State"
+            raise TypeError(msg)
+        new_state = State(new_state_value, self.id)
         self._states.add(new_state)
 
     def add_input_symbol(self, new_input_symbol: InputSymbol) -> None:
         self._input_symbols.add(new_input_symbol)
 
+    def set_input_symbols(self, input_symbols: set[InputSymbol]) -> None:
+        self._input_symbols = input_symbols
+
+    def set_initial_state(self, new_initial_state_value: NFAStateT) -> None:
+        if new_initial_state_value == INITIAL_STATE:
+            self._initial_state = INITIAL_STATE
+            self._states.add(INITIAL_STATE)
+        else:
+            if isinstance(new_initial_state_value, State):
+                msg = "state_value cannot be an instance of State"
+                raise TypeError(msg)
+            self._initial_state = State(new_initial_state_value, self.id)
+            self._states.add(self._initial_state)
+
     def add_transition(
-        self, start_state: NFAStateT, symbol: InputSymbol, end_state: NFAStateT
+        self,
+        start_state_value: NFAStateT,
+        symbol: InputSymbol,
+        end_stat_value: NFAStateT,
     ) -> None:
+        if start_state_value == INITIAL_STATE:
+            start_state = INITIAL_STATE
+        else:
+            if isinstance(start_state_value, State):
+                msg = "state_value cannot be an instance of State"
+                raise TypeError(msg)
+            start_state = State(start_state_value, self.id)
+        end_state = State(end_stat_value, self.id)
         self._transitions[start_state][symbol].add(end_state)
 
-    def add_initial_state(self, new_initial_state: NFAStateT) -> None:
-        self._initial_state = new_initial_state
-
-    def add_final_state(self, new_final_state: NFAStateT) -> None:
+    def add_final_state(self, new_final_state_value: NFAStateT) -> None:
+        new_final_state = State(new_final_state_value, self.id)
         self._final_states.add(new_final_state)
 
+    # ここは State を受け取りたい
     def get_next_states(
-        self, current_state: NFAStateT, symbol: InputSymbol
+        self, current_state: State, symbol: InputSymbol
     ) -> set[NFAStateT]:
         return self._transitions[current_state][symbol]
+
+    def contains_state(self, state_value: NFAStateT) -> bool:
+        state = State(state_value, self.id)
+        return state in self.states
 
     def show_diagram(
         self,
@@ -192,7 +226,8 @@ class NFA:
 
         # Generate all combinations as strings
         return {
-            InputSymbol(value="".join(combo), mask=mask) for combo in product(*options)
+            InputSymbol(bin_value="".join(combo), bin_mask=mask)
+            for combo in product(*options)
         }
 
     def intersection(self, other: "NFA") -> "NFA":
@@ -275,39 +310,6 @@ class NFA:
             final_states=new_final_states,
         )
 
-    @staticmethod
-    def _load_new_transition_dict(
-        old_transition_dict: NFATransitionsT,
-        new_transition_dict: NFATransitionsT,
-    ) -> None:
-        for state_a, transitions in old_transition_dict.items():
-            if state_a not in new_transition_dict:
-                new_transition_dict[state_a] = defaultdict(set)
-            for symbol, states in transitions.items():
-                new_transition_dict[state_a][symbol].update(states)
-
-    @staticmethod
-    def _get_state_maps(
-        state_set_a: set[NFAStateT],
-        state_set_b: set[NFAStateT],
-        *,
-        start: int = 0,
-    ) -> tuple[dict[NFAStateT, int], dict[NFAStateT, int]]:
-        """Generate state map dicts from given sets.
-
-        Useful when the state set has to
-        be a union of the state sets of component FAs.
-
-        同じ名前の状態が複数ある場合、区別しないといけないので、番号をつけている。
-        fixme: union の intersection は違う状態に同じ番号がついてしまう。避けたい。
-        """
-        state_name_counter = count(start)
-
-        state_map_a = dict(zip(state_set_a, state_name_counter, strict=False))
-        state_map_b = dict(zip(state_set_b, state_name_counter, strict=False))
-
-        return (state_map_a, state_map_b)
-
     def union(self, other: "NFA") -> "NFA":
         """Return an NFA which accepts the union of L1 and L2.
 
@@ -315,15 +317,14 @@ class NFA:
         L1 and L2 respectively, returns an NFA which accepts
         the union of L1 and L2.
         """
-        initial_state = State("")  # 特別な初期状態。
         new_states = {State(state.state_value, self.id) for state in self.states} | {
             State(state.state_value, other.id) for state in other.states
         }
-        new_states.add(initial_state)
+        new_states.add(INITIAL_STATE)
         new_transitions: NFATransitionsT = {}
 
         # Connect new initial state to both branch
-        new_transitions[initial_state] = {
+        new_transitions[INITIAL_STATE] = {
             EPSILON: {self.initial_state, other.initial_state}
         }
         new_transitions.update(self.transitions)
@@ -336,7 +337,7 @@ class NFA:
             states=new_states,
             input_symbols=new_input_symbols,
             transitions=new_transitions,
-            initial_state=initial_state,
+            initial_state=INITIAL_STATE,
             final_states=new_final_states,
         )
 

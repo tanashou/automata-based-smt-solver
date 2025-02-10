@@ -166,8 +166,7 @@ cython_debug/
 
 # Project specific
 *.log
-*.png
 
 src/playground.py
-image/
+images/*
 benchmarks/

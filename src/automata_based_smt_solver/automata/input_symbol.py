@@ -5,22 +5,22 @@ class InputSymbol(str):
     value and mask are binary strings like "1010" or empty string for epsilon.
     """
 
-    def __new__(cls, value: str, mask: str) -> "InputSymbol":
-        if value and not mask:
+    def __new__(cls, bin_value: str, bin_mask: str) -> "InputSymbol":
+        if bin_value and not bin_mask:
             msg = "Non-epsilon symbol must have a mask"
             raise ValueError(msg)
-        if not value and mask:
+        if not bin_value and bin_mask:
             msg = "Epsilon symbol cannot have a mask"
             raise ValueError(msg)
-        if len(value) != len(mask):
+        if len(bin_value) != len(bin_mask):
             msg = "Value and mask must have the same length"
             raise ValueError(msg)
 
-        obj = str.__new__(cls, value)
-        obj.value = int(value, 2) if value else None
-        obj.mask = int(mask, 2) if mask else None
+        obj = str.__new__(cls, bin_value)
+        obj.value = int(bin_value, 2) if bin_value else None
+        obj.mask = int(bin_mask, 2) if bin_mask else None
         obj.masked_value = obj.apply_mask()
-        obj.bin_length = len(value)
+        obj.bin_length = len(bin_value)
         return obj
 
     def __hash__(self) -> int:
@@ -66,33 +66,19 @@ class InputSymbol(str):
             return None
         return self.value & self.mask  # type: ignore[union-attr]
 
-    def dot(self, vector: list[int]) -> int:
+    def dot(self, var_coef_index_pairs: list[tuple[int, int]]) -> int:
         if self.masked_value is None:
             msg = "Cannot calculate dot product with epsilon symbol"
             raise ValueError(msg)
 
-        if self.bin_length > len(vector):
-            msg = "Vector length is smaller than the number of bits in value"
-            raise ValueError(msg)
-
         result = 0
-        for i, v in enumerate(reversed(vector)):
-            if self.masked_value & (1 << i):
-                result += v
-        return result
+        for coeff, index in var_coef_index_pairs:
+            # Adjust the index: leftmost bit is index 0.
+            if (self.masked_value >> (self.bin_length - index - 1)) & 1:
+                result += coeff
 
-    def __reduce__(self) -> tuple:
-        """Define how the object should be serialized and deserialized by pickle."""
-        return (
-            self.__class__,
-            (
-                "" if str(self) == "ε" else str(self),
-                bin(self.mask)[2:].zfill(self.bin_length)
-                if self.mask is not None
-                else "",
-            ),
-        )
+        return result
 
 
 # create epsilon as a singleton
-EPSILON = InputSymbol(value="", mask="")
+EPSILON = InputSymbol(bin_value="", bin_mask="")
