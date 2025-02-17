@@ -29,9 +29,18 @@ class InputSymbol(str):
         return hash((self.value, self.mask))
 
     def __eq__(self, other: object) -> bool:
-        if isinstance(other, InputSymbol):
-            return self.masked_value == other.masked_value
-        return False
+        if not isinstance(other, InputSymbol):
+            return False
+
+        # Handle epsilon symbols
+        if self.is_epsilon() or other.is_epsilon():
+            return self.is_epsilon() and other.is_epsilon()
+
+        if self.bin_length != other.bin_length:
+            return False
+
+        combined_mask = self.mask & other.mask
+        return (self.value & combined_mask) == (other.value & combined_mask)
 
     def __str__(self) -> str:
         """Convert to string representation using mask.
