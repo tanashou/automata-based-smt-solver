@@ -1,12 +1,13 @@
 {
     "name": "${localWorkspaceFolderBasename}",
     "build": {
-        "dockerfile": "../Dockerfile"
+        "context": "..",
+        "dockerfile": "Dockerfile",
+        "args": {
+            "UV_VERSION": "latest",
+            "DEBIAN_VERSION": "bookworm"
+        }
     },
-    // since the benchmarks directory is large, we mount it as a volume
-    // "mounts": [
-    //     "source=${localWorkspaceFolder}/benchmarks,target=/workspace/benchmarks,type=bind,consistency=cached"
-    // ],
     "features": {
         "ghcr.io/dhoeric/features/hadolint:1": {}
     },
@@ -14,33 +15,27 @@
         "vscode": {
             "extensions": [
                 "charliermarsh.ruff",
-                "codezombiech.gitignore",
-                "eamodio.gitlens",
                 "exiasr.hadolint",
                 "kevinrose.vsc-python-indent",
                 "mosapride.zenkaku",
                 "ms-azuretools.vscode-docker",
                 "ms-python.python",
+                "ms-python.vscode-pylance",
                 "njpwerner.autodocstring",
-                "oderwat.indent-rainbow",
-                "pkief.material-icon-theme",
                 "redhat.vscode-yaml",
                 "shardulm94.trailing-spaces",
                 "tamasfe.even-better-toml",
-                "usernamehw.errorlens",
                 "yzhang.markdown-all-in-one"
-            ],
-            "settings": {
-                "terminal.integrated.defaultProfile.linux": "bash",
-                "terminal.integrated.profiles.linux": {
-                    "bash": {
-                        "path": "/bin/bash"
-                    }
-                }
-            }
+            ]
         }
     },
-    "postCreateCommand": "uv python pin $(cat .python-version) && uv sync --dev && git config --global --add safe.directory ${containerWorkspaceFolder} && uv run pre-commit install",
-    "postStartCommand": ""
-
+    "containerEnv": {
+        "DISPLAY": "dummy",
+        "PYTHONUNBUFFERED": "True",
+        "UV_LINK_MODE": "copy",
+        "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv"
+    },
+    "postCreateCommand": "uv sync --frozen",
+    "postStartCommand": "uv run pre-commit install",
+    "remoteUser": "vscode"
 }
