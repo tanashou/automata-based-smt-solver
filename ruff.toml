@@ -41,16 +41,7 @@ select = ["ALL"]
 ignore = [
     "COM812",
     "COM819",
-    "ANN001",
-    "ANN003",
-    "ANN101",
-    "ANN102",
     "D100",
-    "D101",
-    "D102",
-    "D104",
-    "D105",
-    "D107",
     "D203",
     "D213",
     "D300",
@@ -59,7 +50,6 @@ ignore = [
     "E117",
     "ISC001",
     "ISC002",
-    "UP040",
     "Q000",
     "Q001",
     "Q002",
@@ -76,9 +66,6 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 pylint.max-args = 6
 
-[lint.per-file-ignores]
-"tests/*" = ["ANN201", "S101", "D103", "SLF001"]
-
 [format]
 # Like Black, use double quotes for strings.
 quote-style = "double"
@@ -91,3 +78,7 @@ skip-magic-trailing-comma = false
 
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
+
+[lint.per-file-ignores]
+# Ignore all directories named `tests`.
+"tests/**" = ["INP001", "S101"]
