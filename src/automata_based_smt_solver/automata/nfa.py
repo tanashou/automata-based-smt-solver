@@ -1,4 +1,6 @@
-# automata-lib v8.4.0 | MIT License | github.com/caleb531/automata
+# Copyright (c) 2016-2025 Caleb Evans
+# This file is part of automata, licensed under the MIT License.
+# See licenses/automata/LICENSE for full license information.
 import os
 from collections import defaultdict, deque
 from itertools import chain, count, product, repeat
