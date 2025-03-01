@@ -1,14 +1,12 @@
 [project]
-name = "automata_based_smt_solver"
+name = "smt-solver"
 version = "0.1.0"
-description = "This repository contains configurations to set up a Python development environment using VSCode's Dev Container feature. The environment includes uv and Ruff."
-
+description = "Add your description here"
+readme = "README.md"
 authors = [{ name = "tanashou", email = "tanashou0210@gmail.com" }]
+license = { file = "licenses/smt_solver/LICENSE" }
 
 requires-python = ">=3.10"
-readme = "README.md"
-license = { file = "licenses/automata_based_smt_solver/LICENSE" }
-
 dependencies = ["automata-lib[visual]>=8.4.0", "pysmt==0.9.6"]
 
 [tool.uv]
@@ -21,7 +19,7 @@ dev-dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/automata_based_smt_solver"]
+packages = ["src/smt_solver"]
 
 [build-system]
 requires = ["hatchling"]
