@@ -3,7 +3,6 @@ from io import StringIO
 from pysmt.fnode import FNode
 from pysmt.smtlib.parser import SmtLibParser
 from pysmt.smtlib.script import SmtLibScript
-
 from smt_solver.sat_status import SatStatus
 
 

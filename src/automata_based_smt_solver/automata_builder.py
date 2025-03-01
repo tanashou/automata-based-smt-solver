@@ -1,7 +1,6 @@
 from itertools import product
 
 from pysmt.fnode import FNode
-
 from smt_solver.automata.input_symbol import InputSymbol
 from smt_solver.automata.nfa import NFA
 from smt_solver.automata.state import INITIAL_STATE

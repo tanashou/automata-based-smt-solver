@@ -8,7 +8,6 @@ from typing import Any, TypeAlias, cast
 
 import pygraphviz as pgv
 from automata.fa.nfa import NFA as BaseNFA  # noqa: N811
-
 from smt_solver.automata.input_symbol import EPSILON, InputSymbol
 from smt_solver.automata.state import INITIAL_STATE, State
 

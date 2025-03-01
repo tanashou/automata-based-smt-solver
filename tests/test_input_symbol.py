@@ -1,5 +1,4 @@
 import pytest
-
 from smt_solver.automata.input_symbol import EPSILON, InputSymbol
 
 

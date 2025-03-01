@@ -1,6 +1,5 @@
 from pysmt.fnode import FNode
 from pysmt.rewritings import CNFizer
-
 from smt_solver.formula.minus_eliminator import MinusEliminator
 from smt_solver.formula.negation_eliminator import NegationEliminator
 

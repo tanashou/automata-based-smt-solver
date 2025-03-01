@@ -1,5 +1,4 @@
 import pytest
-
 from smt_solver.automata.input_symbol import InputSymbol
 from smt_solver.automata.nfa import NFA
 from smt_solver.automata.state import State
