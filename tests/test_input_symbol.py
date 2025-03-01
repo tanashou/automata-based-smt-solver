@@ -70,7 +70,5 @@ class TestInputSymbol:
 
     def test_dot_product_epsilon_error(self):
         """Test dot product with epsilon raises error."""
-        with pytest.raises(
-            ValueError, match="Cannot calculate dot product with epsilon symbol"
-        ):
+        with pytest.raises(ValueError, match="Cannot apply mask to epsilon symbo"):
             EPSILON.dot([(1, 0), (2, 1), (3, 2), (4, 3)])
