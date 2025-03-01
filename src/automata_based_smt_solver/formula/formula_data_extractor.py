@@ -5,7 +5,7 @@ from pysmt.exceptions import UnsupportedOperatorError
 from pysmt.fnode import FNode
 from pysmt.walkers import DagWalker
 
-from automata_based_smt_solver.formula.formula_type import FormulaType
+from smt_solver.formula.formula_type import FormulaType
 
 
 @dataclass

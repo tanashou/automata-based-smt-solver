@@ -1,6 +1,6 @@
 import pytest
 
-from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
+from smt_solver.automata.input_symbol import EPSILON, InputSymbol
 
 
 class TestInputSymbol:

@@ -1,8 +1,8 @@
 from pysmt.fnode import FNode
 from pysmt.rewritings import CNFizer
 
-from automata_based_smt_solver.formula.minus_eliminator import MinusEliminator
-from automata_based_smt_solver.formula.negation_eliminator import NegationEliminator
+from smt_solver.formula.minus_eliminator import MinusEliminator
+from smt_solver.formula.negation_eliminator import NegationEliminator
 
 
 class Rewriter:
