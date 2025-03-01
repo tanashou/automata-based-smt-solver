@@ -1,7 +1,8 @@
 class InputSymbol(str):
     """InputSymbol represents an input symbol with an optional mask.
 
-    More details about the class.
+    TODO: More details about the class.
+    needed to inherit str class to make image of automata using automata-lib
 
     Attributes:
         value (int | None): Integer conversion of bin_value (none for epsilon).
