@@ -46,6 +46,7 @@ class InputSymbol(str):
         return obj
 
     def __hash__(self) -> int:
+        """Calculate the hash of this InputSymbol."""
         if self.is_epsilon():
             return hash(None)
         return hash((self.value, self.mask))
@@ -96,9 +97,11 @@ class InputSymbol(str):
         )
 
     def __repr__(self) -> str:
+        """Return a string representation of the InputSymbol."""
         return self.__str__()
 
     def is_epsilon(self) -> bool:
+        """Check if this symbol is an epsilon symbol."""
         return self.value is None
 
     def apply_mask(self) -> int:
