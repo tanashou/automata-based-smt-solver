@@ -19,6 +19,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update && \
+          sudo apt-get install -y --no-install-recommends \
+              build-essential \
+              graphviz \
+              graphviz-dev \
+              gcc && \
+          sudo apt-get clean && \
+          sudo rm -rf /var/lib/apt/lists/*
+
       - name: Setup Python ${{ matrix.python-version }} with uv
         uses: ./.github/actions/setup-python-with-uv
         with:
@@ -37,6 +48,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update && \
+          sudo apt-get install -y --no-install-recommends \
+              build-essential \
+              graphviz \
+              graphviz-dev \
+              gcc && \
+          sudo apt-get clean && \
+          sudo rm -rf /var/lib/apt/lists/*
 
       - name: Setup Python ${{ matrix.python-version }} with uv
         uses: ./.github/actions/setup-python-with-uv
