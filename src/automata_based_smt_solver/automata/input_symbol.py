@@ -1,11 +1,34 @@
 class InputSymbol(str):
-    __slots__ = ("bin_length", "mask", "masked_value", "value")
-    """Represents an input symbol with optional mask.
+    """InputSymbol represents an input symbol with an optional mask.
 
-    value and mask are binary strings like "1010" or empty string for epsilon.
+    TODO: More details about the class.
+    needed to inherit str class to make image of automata using automata-lib
+
+    Attributes:
+        value (int | None): Integer conversion of bin_value (none for epsilon).
+        mask (int | None): Integer conversion of bin_mask (none for epsilon).
+        bin_length (int): Length of the binary strings.
+
     """
 
+    __slots__ = ("bin_length", "mask", "value")
+
     def __new__(cls, bin_value: str, bin_mask: str) -> "InputSymbol":
+        """Create a new InputSymbol instance.
+
+        Args:
+            bin_value (str): Binary value string (empty for epsilon).
+            bin_mask (str): Mask string (must match bin_value's length).
+
+        Raises:
+            ValueError: If a non-epsilon symbol is missing a mask.
+            ValueError: If an epsilon symbol is provided with a mask.
+            ValueError: If bin_value and bin_mask have different lengths.
+
+        Returns:
+            InputSymbol: A new InputSymbol instance.
+
+        """
         if bin_value and not bin_mask:
             msg = "Non-epsilon symbol must have a mask"
             raise ValueError(msg)
@@ -19,16 +42,25 @@ class InputSymbol(str):
         obj = str.__new__(cls, bin_value)
         obj.value = int(bin_value, 2) if bin_value else None
         obj.mask = int(bin_mask, 2) if bin_mask else None
-        obj.masked_value = obj.apply_mask()
         obj.bin_length = len(bin_value)
         return obj
 
     def __hash__(self) -> int:
+        """Calculate the hash of this InputSymbol."""
         if self.is_epsilon():
             return hash(None)
         return hash((self.value, self.mask))
 
     def __eq__(self, other: object) -> bool:
+        """Compare this InputSymbol with another for equality.
+
+        Args:
+            other (object): Another object to compare against.
+
+        Returns:
+            bool: True if both symbols are equal (including masks), False otherwise.
+
+        """
         if not isinstance(other, InputSymbol):
             return False
 
@@ -43,11 +75,11 @@ class InputSymbol(str):
         return (self.value & combined_mask) == (other.value & combined_mask)
 
     def __str__(self) -> str:
-        """Convert to string representation using mask.
+        """Convert to string representation using the mask.
 
         Examples:
             value=0b0101, mask=0b1101 -> "01*1"
-            value=None -> "ε"
+            epsilon -> "ε"
 
         """
         if self.is_epsilon():
@@ -65,25 +97,36 @@ class InputSymbol(str):
         )
 
     def __repr__(self) -> str:
+        """Return a string representation of the InputSymbol."""
         return self.__str__()
 
     def is_epsilon(self) -> bool:
+        """Check if this symbol is an epsilon symbol."""
         return self.value is None
 
-    def apply_mask(self) -> int | None:
+    def apply_mask(self) -> int:
+        """Apply the mask to the symbol's value."""
         if self.is_epsilon():
-            return None
-        return self.value & self.mask  # type: ignore[union-attr]
+            msg = "Cannot apply mask to epsilon symbol"
+            raise ValueError(msg)
+        return self.value & self.mask
 
     def dot(self, var_coef_index_pairs: list[tuple[int, int]]) -> int:
-        if self.masked_value is None:
-            msg = "Cannot calculate dot product with epsilon symbol"
-            raise ValueError(msg)
+        """Calculate the dot product using the masked value.
 
+        Args:
+            var_coef_index_pairs (list[tuple[int, int]]):
+                A list of (coefficient, index) pairs.
+
+        Returns:
+            int: The dot product result computed from the masked binary value.
+
+        """
         result = 0
+        masked_value = self.apply_mask()
         for coeff, index in var_coef_index_pairs:
             # Adjust the index: leftmost bit is index 0.
-            if (self.masked_value >> (self.bin_length - index - 1)) & 1:
+            if (masked_value >> (self.bin_length - index - 1)) & 1:
                 result += coeff
 
         return result
