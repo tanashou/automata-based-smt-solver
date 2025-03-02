@@ -42,14 +42,26 @@ ignore = [
     "COM812",
     "COM819",
     "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
     "D203",
     "D213",
     "D300",
     "E111",
     "E114",
     "E117",
+    "FIX002",
     "ISC001",
     "ISC002",
+    "TD001",
+    "TD002",
+    "TD003",
+    "UP040",
     "Q000",
     "Q001",
     "Q002",
@@ -81,4 +93,4 @@ line-ending = "auto"
 
 [lint.per-file-ignores]
 # Ignore all directories named `tests`.
-"tests/**" = ["INP001", "S101"]
+"tests/**" = ["ANN001", "ANN201", "INP001", "S101"]

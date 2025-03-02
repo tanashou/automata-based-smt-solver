@@ -12,11 +12,25 @@ from automata.fa.nfa import NFA as BaseNFA  # noqa: N811
 from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
 from automata_based_smt_solver.automata.state import INITIAL_STATE, State
 
-NFAStateT: TypeAlias = Any  # Stateにしたい。
+NFAStateT: TypeAlias = Any  # TODO: Stateにしたい。
 NFATransitionsT: TypeAlias = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
 
 
 class NFA:
+    """NFA represents a custom NFA for use in the automata-based SMT solver.
+
+    TODO: More detailed description.
+
+    Attributes:
+        _id (int): Unique identifier for the NFA.
+        _states (set[NFAStateT]): Set of all states.
+        _input_symbols (set[InputSymbol]): Set of input symbols.
+        _transitions (NFATransitionsT): Transition mapping.
+        _initial_state (NFAStateT): Starting state.
+        _final_states (set[NFAStateT]): Set of accepting states.
+
+    """
+
     _id_counter = count(0)
 
     def __init__(
@@ -27,6 +41,7 @@ class NFA:
         initial_state: NFAStateT | None = None,
         final_states: set[NFAStateT] | None = None,
     ) -> None:
+        """Initialize a NFA."""
         self._id = next(NFA._id_counter)
         self._states = states if states is not None else set()
         self._input_symbols = input_symbols if input_symbols is not None else set()
@@ -39,6 +54,7 @@ class NFA:
         self._final_states = final_states if final_states is not None else set()
 
     def __str__(self) -> str:
+        """Return a string representation of the NFA."""
         return (
             f"states={self.states},\n"
             f"input_symbols={self.input_symbols},\n"
@@ -48,6 +64,7 @@ class NFA:
         )
 
     def __repr__(self) -> str:
+        """Return a string representation of the NFA."""
         return f"NFA({self})"
 
     @property
