@@ -14,7 +14,7 @@ class FormulaData:
     vars: set[str]
     const: int
     formula_type: FormulaType
-    has_not: bool
+    has_bool_negation: bool
 
 
 class FormulaDataExtractor(DagWalker):
@@ -23,7 +23,7 @@ class FormulaDataExtractor(DagWalker):
         self._coeffs: dict[FNode, int] = {}
         self._const: int = 0
         self._formula_type: FormulaType = FormulaType.BOOL  # eq, le, bool のどれか
-        self._has_not: bool = False
+        self._has_bool_negation: bool = False
 
     def extract(self, formula) -> FormulaData:
         # 数式なら =, <= として各種パラメータを取得する。
@@ -40,7 +40,7 @@ class FormulaDataExtractor(DagWalker):
                 declared_vars,
                 self._const,
                 self._formula_type,
-                self._has_not,
+                self._has_bool_negation,
             )
         lhs, rhs = formula.args()
         # FNode の Simplify により、定数が現れるなら左辺、右辺のどちらかは定数のみ
@@ -62,13 +62,17 @@ class FormulaDataExtractor(DagWalker):
                     self._coeffs[k] = -v
 
         return FormulaData(
-            self._coeffs, declared_vars, self._const, self._formula_type, self._has_not
+            self._coeffs,
+            declared_vars,
+            self._const,
+            self._formula_type,
+            self._has_bool_negation,
         )
 
     # Walker methods
 
     def walk_not(self, formula, args, **kwargs):
-        self._has_not = True
+        self._has_bool_negation = True
         return formula
 
     def walk_times(self, formula, args, **kwargs):
@@ -94,10 +98,7 @@ class FormulaDataExtractor(DagWalker):
     def walk_symbol(self, formula, args, **kwargs):
         # For symbols not part of a TIMES node, assign default coefficient.
         if formula not in self._coeffs:
-            if formula.get_type().is_bool_type():
-                self._coeffs[formula] = 0
-            else:
-                self._coeffs[formula] = 1
+            self._coeffs[formula] = 1
         return formula
 
     def walk_equals(self, formula, args, **kwargs):
