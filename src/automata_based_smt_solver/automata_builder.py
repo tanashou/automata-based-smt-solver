@@ -25,7 +25,7 @@ class AutomataBuilder:
         self.coeffs: dict[FNode, int] = extracted.coeffs
         self.const: int = extracted.const
         self.formula_type: FormulaType = extracted.formula_type
-        self.has_not: bool = extracted.has_not
+        self.has_bool_negation: bool = extracted.has_bool_negation
         self.create_all: bool = create_all  # for debug
 
         self.nfa = NFA()
@@ -73,7 +73,10 @@ class AutomataBuilder:
             case FormulaType.LE:
                 self.le_to_nfa()
             case FormulaType.BOOL:
-                pass
+                if self.has_bool_negation:
+                    self.false_to_nfa()
+                else:
+                    self.true_to_nfa()
 
     def eq_to_nfa(self) -> None:
         partial_sat = False
@@ -121,4 +124,26 @@ class AutomataBuilder:
                 return
 
         # when the work_list is empty, building nfa is completed.
+        self.__build_completed = True
+
+    def false_to_nfa(self) -> None:
+        # 1 を含むsymbolでfinal stateに遷移するnfaを作成する。
+        final_state = self.const
+        for symbol in self.nfa.input_symbols:
+            dot_value = self.dots[symbol]
+            if dot_value == 1:  # if the input_symbol includes 1
+                self.nfa.add_transition(INITIAL_STATE, symbol, final_state)
+                break
+
+        self.__build_completed = True
+
+    def true_to_nfa(self) -> None:
+        # 0 を含むsymbolでfinal stateに遷移するnfaを作成する。
+        final_state = self.const
+        for symbol in self.nfa.input_symbols:
+            dot_value = self.dots[symbol]
+            if dot_value == 0:
+                self.nfa.add_transition(INITIAL_STATE, symbol, final_state)
+                break
+
         self.__build_completed = True
