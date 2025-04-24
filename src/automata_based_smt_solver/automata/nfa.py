@@ -160,82 +160,6 @@ class NFA:
         )
         return base_nfa.show_diagram(input_str=input_str, path=path)
 
-    def dfs_with_path(self) -> list[InputSymbol]:
-        # Define get_neighbors within dfs to include the symbol for the transition.
-        def get_neighbors(state: NFAStateT) -> set[tuple[NFAStateT, InputSymbol]]:
-            neighbors = set()
-            for symbol in self.input_symbols:
-                next_states = self.get_next_states(state, symbol)
-                for next_state in next_states:
-                    neighbors.add(
-                        (next_state, symbol)
-                    )  # Include the symbol in the neighbor information
-            return neighbors
-
-        # Initialize the stack with the initial state.
-        stack: deque[tuple[NFAStateT, list[InputSymbol]]] = deque(
-            [(self.initial_state, [])]
-        )
-        visited: set[NFAStateT] = {self.initial_state}
-
-        while stack:
-            current_state, path_of_symbols = stack.pop()
-
-            if current_state in self.final_states:
-                return path_of_symbols
-
-            # Get neighbors only when necessary, i.e., when visiting the node.
-            current_neighbors = get_neighbors(current_state)
-
-            for neighbor_state, symbol in current_neighbors:
-                if neighbor_state not in visited:
-                    visited.add(
-                        neighbor_state
-                    )  # Move add operation here to avoid duplicate work
-                    # Update new_symbols to include the symbol
-                    new_symbols = [*path_of_symbols, symbol]
-                    stack.append((neighbor_state, new_symbols))
-
-        return []
-
-    def bfs_with_path(self) -> list[InputSymbol]:
-        # Define get_neighbors within dfs to include the symbol for the transition.
-        def get_neighbors(state: NFAStateT) -> set[tuple[NFAStateT, InputSymbol]]:
-            neighbors = set()
-            for symbol in self.input_symbols:
-                next_states = self.get_next_states(state, symbol)
-                for next_state in next_states:
-                    neighbors.add(
-                        (next_state, symbol)
-                    )  # Include the symbol in the neighbor information
-            return neighbors
-
-        # Initialize the stack with the initial state.
-        stack: deque[tuple[NFAStateT, list[InputSymbol]]] = deque(
-            [(self.initial_state, [])]
-        )
-        visited: set[NFAStateT] = {self.initial_state}
-
-        while stack:
-            current_state, path_of_symbols = stack.popleft()
-
-            if current_state in self.final_states:
-                return path_of_symbols
-
-            # Get neighbors only when necessary, i.e., when visiting the node.
-            current_neighbors = get_neighbors(current_state)
-
-            for neighbor_state, symbol in current_neighbors:
-                if neighbor_state not in visited:
-                    visited.add(
-                        neighbor_state
-                    )  # Move add operation here to avoid duplicate work
-                    # Update new_symbols to include the symbol
-                    new_symbols = [*path_of_symbols, symbol]
-                    stack.append((neighbor_state, new_symbols))
-
-        return []
-
     @staticmethod
     def create_input_symbols_from_mask(mask: str) -> set[InputSymbol]:
         if not mask:
@@ -340,11 +264,12 @@ class NFA:
             State(state.state_value, other.id) for state in other.states
         }
         new_states.add(INITIAL_STATE)
-        new_transitions: NFATransitionsT = {}
+        new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
 
-        # Connect new initial state to both branch
-        new_transitions[INITIAL_STATE] = {
-            EPSILON: {self.initial_state, other.initial_state}
+        # Add epsilon transitions from initial state
+        new_transitions[INITIAL_STATE][EPSILON] = {
+            self.initial_state,
+            other.initial_state,
         }
         new_transitions.update(self.transitions)
         new_transitions.update(other.transitions)
