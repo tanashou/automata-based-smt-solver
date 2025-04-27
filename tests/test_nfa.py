@@ -1,26 +1,30 @@
 import pytest
 
-from automata_based_smt_solver.automata.input_symbol import InputSymbol
+from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
 from automata_based_smt_solver.automata.nfa import NFA
 from automata_based_smt_solver.automata.state import State
 
 
 @pytest.fixture
-def simple_nfa():
-    """Create a simple NFA that accepts strings ending with '01'."""
+def sample_nfa():
     mask = "1"
     nfa = NFA()
-    nfa.add_state("q0")
-    nfa.add_state("q1")
-    nfa.add_state("q2")
 
+    # Add states
+    for state in ["q0", "q1", "q2"]:
+        nfa.add_state(state)
+
+    # Set initial and final states
     nfa.set_initial_state("q0")
-    nfa.add_transition("q0", InputSymbol("0", mask), "q0")
-    nfa.add_transition("q0", InputSymbol("1", mask), "q0")
-    nfa.add_transition("q0", InputSymbol("0", mask), "q1")
-    nfa.add_transition("q1", InputSymbol("1", mask), "q2")
-
     nfa.add_final_state("q2")
+
+    nfa.add_transition("q0", InputSymbol("0", mask), "q0")
+    nfa.add_transition("q0", InputSymbol("0", mask), "q1")
+
+    nfa.add_transition("q1", InputSymbol("1", mask), "q1")
+    nfa.add_transition("q1", EPSILON, "q2")
+
+    nfa.add_transition("q2", InputSymbol("1", mask), "q2")
 
     return nfa
 
@@ -105,6 +109,10 @@ def test_add_transition():
     q0 = State("q0", nfa.id)
     q1 = State("q1", nfa.id)
     assert nfa.get_next_states(q0, symbol) == {q1}
+
+
+def test_accepts(simple_nfa):
+    pass
 
 
 def test_union_operation(pattern_0_nfa, pattern_1_nfa):
