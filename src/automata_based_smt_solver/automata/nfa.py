@@ -1,6 +1,7 @@
 # Copyright (c) 2016-2025 Caleb Evans
 # This file is part of automata, licensed under the MIT License.
 # See licenses/automata/LICENSE for full license information.
+import contextlib
 import os
 from collections import defaultdict, deque
 from itertools import chain, count, product, repeat
@@ -145,6 +146,56 @@ class NFA:
     def contains_state(self, state_value: NFAStateT) -> bool:
         state = State(state_value, self.id)
         return state in self.states
+
+    def accepts_input(self, input_str: list[InputSymbol]) -> bool:
+        """Check if the NFA accepts the given input sequence.
+
+        Args:
+            input_str: A list of InputSymbol objects to process.
+
+        Returns:
+            bool: True if the NFA accepts the sequence, False otherwise.
+
+        """
+        # Start with initial state and follow epsilon transitions
+        current_states = self._follow_epsilon_transitions({self.initial_state})
+
+        # Process each input symbol
+        for symbol in input_str:
+            next_states = set()
+            for state in current_states:
+                with contextlib.suppress(KeyError):
+                    next_states.update(self.get_next_states(state, symbol))
+
+            # Follow epsilon transitions from new states
+            current_states = self._follow_epsilon_transitions(next_states)
+
+            # Early rejection if dead end
+            if not current_states:
+                return False
+
+        # Accept if any current state is final
+        return bool(current_states & self.final_states)
+
+    def _follow_epsilon_transitions(self, states: set[NFAStateT]) -> set[NFAStateT]:
+        """Follow all epsilon transitions from given states."""
+        result = set(states)
+        stack = list(states)
+        visited = set(stack)
+
+        while stack:
+            state = stack.pop()
+            try:
+                epsilon_states = self.get_next_states(state, EPSILON)
+                for eps_state in epsilon_states:
+                    if eps_state not in visited:
+                        visited.add(eps_state)
+                        stack.append(eps_state)
+                        result.add(eps_state)
+            except KeyError:
+                continue
+
+        return result
 
     def show_diagram(
         self,
