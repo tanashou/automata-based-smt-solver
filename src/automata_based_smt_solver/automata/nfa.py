@@ -137,11 +137,32 @@ class NFA:
         new_final_state = State(new_final_state_value, self.id)
         self._final_states.add(new_final_state)
 
-    # ここは State を受け取りたい
     def get_next_states(
-        self, current_state: State, symbol: InputSymbol
+        self, current_state: State, input_symbol: InputSymbol
     ) -> set[NFAStateT]:
-        return self._transitions[current_state][symbol]
+        """Get states reachable from current_state via input_symbol with wildcards.
+
+        Args:
+            current_state: Current state in the NFA.
+            input_symbol: Input symbol to process (may contain wildcards).
+
+        Returns:
+            set[NFAStateT]: Set of states reachable via the input symbol.
+
+        """
+        # Get all transitions from the current state
+        state_transitions = self._transitions.get(current_state, {})
+        if not state_transitions:
+            return set()
+
+        # Find all matching transitions
+        result = set()
+        for symbol, next_states in state_transitions.items():
+            # Use InputSymbol's __eq__ method which already handles wildcards
+            if input_symbol == symbol:
+                result.update(next_states)
+
+        return result
 
     def contains_state(self, state_value: NFAStateT) -> bool:
         state = State(state_value, self.id)
