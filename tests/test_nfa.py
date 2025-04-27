@@ -392,3 +392,51 @@ def test_union_operation(sample_nfa, sample_nfa2):
         assert not union_nfa.accepts_input(input_str), (
             f"NFA should reject {rejected_strings[i]}"
         )
+
+
+def test_intersection_operation(sample_nfa, sample_nfa2):
+    """Test the intersection operation between two NFAs."""
+    intersection_nfa = sample_nfa.intersection(sample_nfa2)
+
+    mask = "1"
+
+    # Keep these as lists to maintain index order for assertions
+    accepted_strings_sample1 = [
+        "01",
+        "001",
+        "101",
+    ]
+    accepted_strings_sample2 = [
+        "",
+        "0",
+        "1",
+        "00",
+        "01",
+        "11",
+        "000",
+        "001",
+        "011",
+        "111",
+    ]
+    accepted_strings = list(
+        set(accepted_strings_sample1) & set(accepted_strings_sample2)
+    )
+    accepted_inputs = [
+        [InputSymbol(bit, mask) for bit in string] for string in accepted_strings
+    ]
+
+    result = list(chain(*(product("01", repeat=n) for n in range(4))))
+    all_combs_upto_3_digit = {"".join(bits) for bits in result}
+    rejected_strings = list(set(all_combs_upto_3_digit) - set(accepted_strings))
+    rejected_inputs = [
+        [InputSymbol(bit, mask) for bit in string] for string in rejected_strings
+    ]
+
+    for i, input_str in enumerate(accepted_inputs):
+        assert intersection_nfa.accepts_input(input_str), (
+            f"NFA should accept {accepted_strings[i]}"
+        )
+    for i, input_str in enumerate(rejected_inputs):
+        assert not intersection_nfa.accepts_input(input_str), (
+            f"NFA should reject {rejected_strings[i]}"
+        )
