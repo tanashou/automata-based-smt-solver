@@ -191,6 +191,34 @@ def test_accepts(sample_nfa, sample_nfa_with_epsilon):
         )
 
 
+def test_wildcard_acceptance(sample_nfa):
+    """Test if the NFA accepts strings with wildcard characters."""
+    # '01' を受理するので、'**'も受理する。2文字以下は受理しない。
+    mask = "0"
+    accepted_strings = ["10", "11", "100", "110", "111"]
+    rejected_strings = ["", "0", "1"]
+
+    # Convert strings to proper InputSymbol format
+    accepted_inputs = [
+        [InputSymbol(bit, mask) for bit in string] for string in accepted_strings
+    ]
+    rejected_inputs = [
+        [InputSymbol(bit, mask) for bit in string] for string in rejected_strings
+    ]
+
+    # Test sample_nfa
+    # Test accepted strings
+    for i, input_str in enumerate(accepted_inputs):
+        assert sample_nfa.accepts_input(input_str), (
+            f"NFA should accept {accepted_strings[i]}"
+        )
+    # Test rejected strings
+    for i, input_str in enumerate(rejected_inputs):
+        assert not sample_nfa.accepts_input(input_str), (
+            f"NFA should reject {rejected_strings[i]}"
+        )
+
+
 def test_union_operation(pattern_0_nfa, pattern_1_nfa):
     """Test the union operation between two NFAs."""
     # Union should accept either '0' or '1'
