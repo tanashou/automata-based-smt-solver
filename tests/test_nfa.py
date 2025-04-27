@@ -81,21 +81,21 @@ def pattern_1_nfa():
     return nfa
 
 
-def test_transitions(simple_nfa):
+def test_transitions(sample_nfa):
     """Test that transitions work as expected."""
     # Get states
-    q0 = State("q0", simple_nfa.id)
-    q1 = State("q1", simple_nfa.id)
-    q2 = State("q2", simple_nfa.id)
+    q0 = State("q0", sample_nfa.id)
+    q1 = State("q1", sample_nfa.id)
+    q2 = State("q2", sample_nfa.id)
 
     # Test transitions
-    assert simple_nfa.get_next_states(q0, InputSymbol("0", "1")) == {q0, q1}
-    assert simple_nfa.get_next_states(q0, InputSymbol("1", "1")) == {q0}
-    assert simple_nfa.get_next_states(q1, InputSymbol("1", "1")) == {q2}
+    assert sample_nfa.get_next_states(q0, InputSymbol("0", "1")) == {q0, q1}
+    assert sample_nfa.get_next_states(q0, InputSymbol("1", "1")) == {q0}
+    assert sample_nfa.get_next_states(q1, InputSymbol("1", "1")) == {q2}
 
     # Test non-existent transitions return empty set
-    assert simple_nfa.get_next_states(q1, InputSymbol("0", "1")) == set()
-    assert simple_nfa.get_next_states(q2, InputSymbol("0", "1")) == set()
+    assert sample_nfa.get_next_states(q1, InputSymbol("0", "1")) == set()
+    assert sample_nfa.get_next_states(q2, InputSymbol("0", "1")) == set()
 
 
 def test_add_state():
@@ -195,8 +195,8 @@ def test_wildcard_acceptance(sample_nfa):
     """Test if the NFA accepts strings with wildcard characters."""
     # '01' を受理するので、'**'も受理する。2文字以下は受理しない。
     mask = "0"
-    accepted_strings = ["10", "11", "100", "110", "111"]
-    rejected_strings = ["", "0", "1"]
+    accepted_strings = ["10", "11", "100", "110", "111"]  # '**' or '***'
+    rejected_strings = ["", "0", "1"]  # '' or '*'
 
     # Convert strings to proper InputSymbol format
     accepted_inputs = [
