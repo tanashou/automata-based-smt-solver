@@ -7,6 +7,7 @@ from automata_based_smt_solver.automata.state import State
 
 @pytest.fixture
 def sample_nfa():
+    """Create a sample NFA that accepts the regular expression (0|1)*01."""
     mask = "1"
     nfa = NFA()
 
@@ -20,11 +21,36 @@ def sample_nfa():
 
     nfa.add_transition("q0", InputSymbol("0", mask), "q0")
     nfa.add_transition("q0", InputSymbol("0", mask), "q1")
+    nfa.add_transition("q0", InputSymbol("1", mask), "q0")
 
+    nfa.add_transition("q1", InputSymbol("1", mask), "q2")
+
+    return nfa
+
+
+@pytest.fixture
+def sample_nfa_with_epsilon():
+    """Create a sample NFA that accepts the regular expression (0|1)*01 with epsilon."""
+    mask = "1"
+    nfa = NFA()
+
+    # Add states
+    for state in ["q0", "q1", "q2", "q3", "q4", "q5"]:
+        nfa.add_state(state)
+
+    # Set initial and final states
+    nfa.set_initial_state("q0")
+    nfa.add_final_state("q5")
+
+    nfa.add_transition("q0", EPSILON, "q1")
+
+    nfa.add_transition("q1", InputSymbol("0", mask), "q1")
     nfa.add_transition("q1", InputSymbol("1", mask), "q1")
     nfa.add_transition("q1", EPSILON, "q2")
 
-    nfa.add_transition("q2", InputSymbol("1", mask), "q2")
+    nfa.add_transition("q2", InputSymbol("0", mask), "q3")
+    nfa.add_transition("q3", InputSymbol("1", mask), "q4")
+    nfa.add_transition("q4", EPSILON, "q5")
 
     return nfa
 
@@ -111,8 +137,58 @@ def test_add_transition():
     assert nfa.get_next_states(q0, symbol) == {q1}
 
 
-def test_accepts(simple_nfa):
-    pass
+def test_accepts(sample_nfa, sample_nfa_with_epsilon):
+    """Test if the NFA accepts a string."""
+    # Test strings that should be accepted (all end with '01')
+    accepted_strings = [
+        "01",
+        "001",
+        "101",
+        "1101",
+        "0101",
+    ]
+
+    # Test strings that should be rejected
+    rejected_strings = [
+        "",
+        "0",
+        "1",
+        "10",
+        "00",
+        "011",
+        "100",
+    ]
+
+    # Convert strings to proper InputSymbol format
+    mask = "1"
+    accepted_inputs = [
+        [InputSymbol(bit, mask) for bit in string] for string in accepted_strings
+    ]
+    rejected_inputs = [
+        [InputSymbol(bit, mask) for bit in string] for string in rejected_strings
+    ]
+
+    # Test sample_nfa
+    for i, input_str in enumerate(accepted_inputs):
+        assert sample_nfa.accepts_input(input_str), (
+            f"NFA should accept {accepted_strings[i]}"
+        )
+
+    for i, input_str in enumerate(rejected_inputs):
+        assert not sample_nfa.accepts_input(input_str), (
+            f"NFA should reject {rejected_strings[i]}"
+        )
+
+    # Test sample_nfa_with_epsilon
+    for i, input_str in enumerate(accepted_inputs):
+        assert sample_nfa_with_epsilon.accepts_input(input_str), (
+            f"NFA with epsilon should accept {accepted_strings[i]}"
+        )
+
+    for i, input_str in enumerate(rejected_inputs):
+        assert not sample_nfa_with_epsilon.accepts_input(input_str), (
+            f"NFA with epsilon should reject {rejected_strings[i]}"
+        )
 
 
 def test_union_operation(pattern_0_nfa, pattern_1_nfa):
