@@ -7,6 +7,42 @@ from automata_based_smt_solver.automata.nfa import NFA
 from automata_based_smt_solver.automata.state import State
 
 
+# Helper functions to reduce code duplication
+def create_symbols(*bits: str, mask: str) -> set[InputSymbol]:
+    return {InputSymbol(bit, mask) for bit in bits}
+
+
+def convert_strings_to_inputs(strings, mask):
+    """Convert string lists to InputSymbol format."""
+    return [[InputSymbol(bit, mask) for bit in string] for string in strings]
+
+
+def assert_nfa_accepts_rejects(
+    nfa, accepted_strings, rejected_strings, mask, nfa_name="NFA"
+):
+    """Test that NFA accepts and rejects the appropriate strings."""
+    accepted_inputs = convert_strings_to_inputs(accepted_strings, mask)
+    rejected_inputs = convert_strings_to_inputs(rejected_strings, mask)
+
+    for i, input_str in enumerate(accepted_inputs):
+        assert nfa.accepts_input(input_str), (
+            f"{nfa_name} should accept {accepted_strings[i]}"
+        )
+
+    for i, input_str in enumerate(rejected_inputs):
+        assert not nfa.accepts_input(input_str), (
+            f"{nfa_name} should reject {rejected_strings[i]}"
+        )
+
+
+def get_all_strings_up_to_length(alphabet, max_length):
+    """Generate all strings up to max_length from the given alphabet."""
+    combinations = chain.from_iterable(
+        product(alphabet, repeat=length) for length in range(max_length + 1)
+    )
+    return ["".join(combo) for combo in combinations]
+
+
 @pytest.fixture
 def sample_nfa():
     """Create a sample NFA that accepts the regular expression (0|1)*01."""
@@ -24,7 +60,6 @@ def sample_nfa():
     nfa.add_transition("q0", InputSymbol("0", mask), "q0")
     nfa.add_transition("q0", InputSymbol("0", mask), "q1")
     nfa.add_transition("q0", InputSymbol("1", mask), "q0")
-
     nfa.add_transition("q1", InputSymbol("1", mask), "q2")
 
     return nfa
@@ -45,11 +80,9 @@ def sample_nfa_with_epsilon():
     nfa.add_final_state("q5")
 
     nfa.add_transition("q0", EPSILON, "q1")
-
     nfa.add_transition("q1", InputSymbol("0", mask), "q1")
     nfa.add_transition("q1", InputSymbol("1", mask), "q1")
     nfa.add_transition("q1", EPSILON, "q2")
-
     nfa.add_transition("q2", InputSymbol("0", mask), "q3")
     nfa.add_transition("q3", InputSymbol("1", mask), "q4")
     nfa.add_transition("q4", EPSILON, "q5")
@@ -114,10 +147,7 @@ def test_add_duplicate_state():
     nfa = NFA()
     nfa.add_state("q0")
     initial_state_count = len(nfa.states)
-
-    # Add the same state again
-    nfa.add_state("q0")
-
+    nfa.add_state("q0")  # Add the same state again
     assert len(nfa.states) == initial_state_count
 
 
@@ -137,14 +167,8 @@ def test_add_transition():
 
 def test_accepts_sample_nfa(sample_nfa):
     """Test if the NFA accepts a string."""
-    # Test strings that should be accepted (all end with '01')
-    accepted_strings = [
-        "01",
-        "001",
-        "101",
-    ]
-
-    # Test strings that should be rejected
+    mask = "1"
+    accepted_strings = ["01", "001", "101"]
     rejected_strings = [
         "",
         "0",
@@ -160,35 +184,13 @@ def test_accepts_sample_nfa(sample_nfa):
         "111",
     ]
 
-    # Convert strings to proper InputSymbol format
-    mask = "1"
-    accepted_inputs = [
-        [InputSymbol(bit, mask) for bit in string] for string in accepted_strings
-    ]
-    rejected_inputs = [
-        [InputSymbol(bit, mask) for bit in string] for string in rejected_strings
-    ]
-
-    # Test sample_nfa
-    for i, input_str in enumerate(accepted_inputs):
-        assert sample_nfa.accepts_input(input_str), (
-            f"NFA should accept {accepted_strings[i]}"
-        )
-
-    for i, input_str in enumerate(rejected_inputs):
-        assert not sample_nfa.accepts_input(input_str), (
-            f"NFA should reject {rejected_strings[i]}"
-        )
+    assert_nfa_accepts_rejects(sample_nfa, accepted_strings, rejected_strings, mask)
 
 
 def test_accepts_sample_nfa_with_epsilon(sample_nfa_with_epsilon):
-    accepted_strings = [
-        "01",
-        "001",
-        "101",
-    ]
-
-    # Test strings that should be rejected
+    """Test if the NFA with epsilon accepts a string."""
+    mask = "1"
+    accepted_strings = ["01", "001", "101"]
     rejected_strings = [
         "",
         "0",
@@ -204,30 +206,17 @@ def test_accepts_sample_nfa_with_epsilon(sample_nfa_with_epsilon):
         "111",
     ]
 
-    # Convert strings to proper InputSymbol format
-    mask = "1"
-    accepted_inputs = [
-        [InputSymbol(bit, mask) for bit in string] for string in accepted_strings
-    ]
-    rejected_inputs = [
-        [InputSymbol(bit, mask) for bit in string] for string in rejected_strings
-    ]
-
-    # Test sample_nfa_with_epsilon
-    for i, input_str in enumerate(accepted_inputs):
-        assert sample_nfa_with_epsilon.accepts_input(input_str), (
-            f"NFA with epsilon should accept {accepted_strings[i]}"
-        )
-
-    for i, input_str in enumerate(rejected_inputs):
-        assert not sample_nfa_with_epsilon.accepts_input(input_str), (
-            f"NFA with epsilon should reject {rejected_strings[i]}"
-        )
+    assert_nfa_accepts_rejects(
+        sample_nfa_with_epsilon,
+        accepted_strings,
+        rejected_strings,
+        mask,
+        "NFA with epsilon",
+    )
 
 
 def test_accept_sample_nfa_with_wildcard(sample_nfa):
     """Test if the NFA accepts strings with wildcard characters."""
-    # '01' を受理するので'**'も受理する。2文字以下は受理しない。
     mask = "0"
     accepted_strings = [
         "00",
@@ -242,96 +231,27 @@ def test_accept_sample_nfa_with_wildcard(sample_nfa):
         "101",
         "110",
         "111",
-    ]  # '**' or '***'
-    rejected_strings = [
-        "",
-        "0",
-        "1",
-    ]  # '' or '*'
-
-    # Convert strings to proper InputSymbol format
-    accepted_inputs = [
-        [InputSymbol(bit, mask) for bit in string] for string in accepted_strings
     ]
-    rejected_inputs = [
-        [InputSymbol(bit, mask) for bit in string] for string in rejected_strings
-    ]
+    rejected_strings = ["", "0", "1"]
 
-    # Test sample_nfa
-    # Test accepted strings
-    for i, input_str in enumerate(accepted_inputs):
-        assert sample_nfa.accepts_input(input_str), (
-            f"NFA should accept {accepted_strings[i]}"
-        )
-    # Test rejected strings
-    for i, input_str in enumerate(rejected_inputs):
-        assert not sample_nfa.accepts_input(input_str), (
-            f"NFA should reject {rejected_strings[i]}"
-        )
+    assert_nfa_accepts_rejects(sample_nfa, accepted_strings, rejected_strings, mask)
 
 
 def test_accepts_sample_nfa2(sample_nfa2):
     """Test if the NFA accepts a string. 0*1*."""
-    accepted_strings = [
-        "",
-        "0",
-        "1",
-        "00",
-        "01",
-        "11",
-        "000",
-        "001",
-        "011",
-        "111",
-    ]
-
-    # Test strings that should be rejected
-    rejected_strings = [
-        "10",
-        "010",
-        "100",
-        "101",
-        "110",
-    ]
-
-    # Convert strings to proper InputSymbol format
     mask = "1"
-    accepted_inputs = [
-        [InputSymbol(bit, mask) for bit in string] for string in accepted_strings
-    ]
-    rejected_inputs = [
-        [InputSymbol(bit, mask) for bit in string] for string in rejected_strings
-    ]
+    accepted_strings = ["", "0", "1", "00", "01", "11", "000", "001", "011", "111"]
+    rejected_strings = ["10", "010", "100", "101", "110"]
 
-    # Test sample_nfa2
-    for i, input_str in enumerate(accepted_inputs):
-        assert sample_nfa2.accepts_input(input_str), (
-            f"NFA should accept {accepted_strings[i]}"
-        )
-
-    for i, input_str in enumerate(rejected_inputs):
-        assert not sample_nfa2.accepts_input(input_str), (
-            f"NFA should reject {rejected_strings[i]}"
-        )
-
-
-# Helper function to create InputSymbol sets
-def create_symbols(*bits: str, mask: str) -> set[InputSymbol]:
-    return {InputSymbol(bit, mask) for bit in bits}
+    assert_nfa_accepts_rejects(sample_nfa2, accepted_strings, rejected_strings, mask)
 
 
 @pytest.mark.parametrize(
     ("mask", "expected_symbols"),
     [
         ("110", create_symbols("000", "010", "100", "110", mask="110")),
-        (
-            "",
-            set(),
-        ),
-        (
-            "1",
-            create_symbols("0", "1", mask="1"),
-        ),
+        ("", set()),
+        ("1", create_symbols("0", "1", mask="1")),
         (
             "111",
             create_symbols(
@@ -347,17 +267,11 @@ def test_union_of_input_symbols(mask, expected_symbols):
 
 def test_union_operation(sample_nfa, sample_nfa2):
     """Test the union operation between two NFAs."""
-    # Union should accept either '0' or '1'
     union_nfa = sample_nfa.union(sample_nfa2)
-
     mask = "1"
 
-    # Keep these as lists to maintain index order for assertions
-    accepted_strings_sample1 = [
-        "01",
-        "001",
-        "101",
-    ]
+    # Define accepted strings for each NFA and their union
+    accepted_strings_sample1 = ["01", "001", "101"]
     accepted_strings_sample2 = [
         "",
         "0",
@@ -370,42 +284,26 @@ def test_union_operation(sample_nfa, sample_nfa2):
         "011",
         "111",
     ]
+
+    # Efficiently compute union
     accepted_strings = list(
         set(accepted_strings_sample1) | set(accepted_strings_sample2)
     )
-    accepted_inputs = [
-        [InputSymbol(bit, mask) for bit in string] for string in accepted_strings
-    ]
 
-    result = list(chain(*(product("01", repeat=n) for n in range(4))))
-    all_combs_upto_3_digit = {"".join(bits) for bits in result}
-    rejected_strings = list(set(all_combs_upto_3_digit) - set(accepted_strings))
-    rejected_inputs = [
-        [InputSymbol(bit, mask) for bit in string] for string in rejected_strings
-    ]
+    # Generate all possible strings up to length 3 for comparison
+    all_strings = set(get_all_strings_up_to_length("01", 3))
+    rejected_strings = list(all_strings - set(accepted_strings))
 
-    for i, input_str in enumerate(accepted_inputs):
-        assert union_nfa.accepts_input(input_str), (
-            f"NFA should accept {accepted_strings[i]}"
-        )
-    for i, input_str in enumerate(rejected_inputs):
-        assert not union_nfa.accepts_input(input_str), (
-            f"NFA should reject {rejected_strings[i]}"
-        )
+    assert_nfa_accepts_rejects(union_nfa, accepted_strings, rejected_strings, mask)
 
 
 def test_intersection_operation(sample_nfa, sample_nfa2):
     """Test the intersection operation between two NFAs."""
     intersection_nfa = sample_nfa.intersection(sample_nfa2)
-
     mask = "1"
 
-    # Keep these as lists to maintain index order for assertions
-    accepted_strings_sample1 = [
-        "01",
-        "001",
-        "101",
-    ]
+    # Define accepted strings for each NFA
+    accepted_strings_sample1 = ["01", "001", "101"]
     accepted_strings_sample2 = [
         "",
         "0",
@@ -418,25 +316,16 @@ def test_intersection_operation(sample_nfa, sample_nfa2):
         "011",
         "111",
     ]
+
+    # Efficiently compute intersection
     accepted_strings = list(
         set(accepted_strings_sample1) & set(accepted_strings_sample2)
     )
-    accepted_inputs = [
-        [InputSymbol(bit, mask) for bit in string] for string in accepted_strings
-    ]
 
-    result = list(chain(*(product("01", repeat=n) for n in range(4))))
-    all_combs_upto_3_digit = {"".join(bits) for bits in result}
-    rejected_strings = list(set(all_combs_upto_3_digit) - set(accepted_strings))
-    rejected_inputs = [
-        [InputSymbol(bit, mask) for bit in string] for string in rejected_strings
-    ]
+    # Generate all possible strings up to length 3 for rejected strings
+    all_strings = set(get_all_strings_up_to_length("01", 3))
+    rejected_strings = list(all_strings - set(accepted_strings))
 
-    for i, input_str in enumerate(accepted_inputs):
-        assert intersection_nfa.accepts_input(input_str), (
-            f"NFA should accept {accepted_strings[i]}"
-        )
-    for i, input_str in enumerate(rejected_inputs):
-        assert not intersection_nfa.accepts_input(input_str), (
-            f"NFA should reject {rejected_strings[i]}"
-        )
+    assert_nfa_accepts_rejects(
+        intersection_nfa, accepted_strings, rejected_strings, mask
+    )
