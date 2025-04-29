@@ -53,6 +53,9 @@ class TestNFA:
         for state in ["q0", "q1", "q2"]:
             nfa.add_state(state)
 
+        nfa.add_input_symbol(InputSymbol("0", mask))
+        nfa.add_input_symbol(InputSymbol("1", mask))
+
         # Set initial and final states
         nfa.set_initial_state("q0")
         nfa.add_final_state("q2")
@@ -73,6 +76,9 @@ class TestNFA:
         # Add states
         for state in ["q0", "q1", "q2", "q3", "q4", "q5"]:
             nfa.add_state(state)
+
+        nfa.add_input_symbol(InputSymbol("0", mask))
+        nfa.add_input_symbol(InputSymbol("1", mask))
 
         # Set initial and final states
         nfa.set_initial_state("q0")
@@ -97,6 +103,9 @@ class TestNFA:
         # Add states
         for state in ["q0", "q1", "q2"]:
             nfa.add_state(state)
+
+        nfa.add_input_symbol(InputSymbol("0", mask))
+        nfa.add_input_symbol(InputSymbol("1", mask))
 
         # Set initial and final states
         nfa.set_initial_state("q0")
