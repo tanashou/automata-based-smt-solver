@@ -8,11 +8,14 @@ class State:
     state_value: Any
     id: int = -1
 
-    # for better usage
     def __post_init__(self) -> None:
         if isinstance(self.state_value, State):
-            msg = "state_value cannot be an instance of State"
-            raise TypeError(msg)
+            # Extract the inner state_value and use it instead
+            inner_value = self.state_value.state_value
+            object.__setattr__(self, "state_value", inner_value)
+            # If no id was specified but the inner State has one, preserve it
+            if self.id == -1 and self.state_value.id != -1:
+                object.__setattr__(self, "id", self.state_value.id)
 
     def __hash__(self) -> int:
         return hash((self.state_value, self.id))
