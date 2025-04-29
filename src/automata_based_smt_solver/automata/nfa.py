@@ -5,13 +5,16 @@ import contextlib
 import os
 from collections import defaultdict, deque
 from itertools import chain, count, product, repeat
-from typing import Any, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import pygraphviz as pgv
 from automata.fa.nfa import NFA as BaseNFA  # noqa: N811
 
 from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
 from automata_based_smt_solver.automata.state import INITIAL_STATE, State
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 NFAStateT: TypeAlias = Any  # TODO: Stateにしたい。
 NFATransitionsT: TypeAlias = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
@@ -250,7 +253,8 @@ class NFA:
         new_input_symbols = self.input_symbols | other.input_symbols
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
         # new_initial_state を State にしたい
-        new_initial_state = (self.initial_state, other.initial_state)
+        # Create a proper State for the initial state
+        new_initial_state = State((self.initial_state, other.initial_state), -1)
 
         queue: deque[NFAStateT] = deque()
 
@@ -261,17 +265,15 @@ class NFA:
             curr_state = queue.popleft()
             q_a, q_b = curr_state
             # States we will consider adding to the queue
-            next_states_iterables: list[list[NFAStateT]] = []
+            next_states_iterables: list[Iterable[NFAStateT]] = []
 
             # Get transition dict for states in self
             transitions_a = self.transitions.get(q_a, {})
             # Add epsilon transitions for first set of transitions
             epsilon_transitions_a = transitions_a.get(EPSILON)
             if epsilon_transitions_a is not None:
-                state_dict = new_transitions.setdefault(curr_state, defaultdict(set))
-                state_dict.setdefault(EPSILON, set()).update(
-                    set(zip(epsilon_transitions_a, repeat(q_b)))
-                )
+                state_dict = new_transitions[curr_state]
+                state_dict[EPSILON].update(zip(epsilon_transitions_a, repeat(q_b)))
                 next_states_iterables.append(
                     list(zip(epsilon_transitions_a, repeat(q_b)))
                 )
@@ -281,12 +283,10 @@ class NFA:
             # Add epsilon transitions for second set of transitions
             epsilon_transitions_b = transitions_b.get(EPSILON)
             if epsilon_transitions_b is not None:
-                state_dict = new_transitions.setdefault(curr_state, defaultdict(set))
-                state_dict.setdefault(EPSILON, set()).update(
-                    zip(repeat(q_a), epsilon_transitions_b, strict=False)
-                )
+                state_dict = new_transitions[curr_state]
+                state_dict[EPSILON].update(zip(repeat(q_a), epsilon_transitions_b))
                 next_states_iterables.append(
-                    list(zip(repeat(q_a), epsilon_transitions_b, strict=False))
+                    list(zip(repeat(q_a), epsilon_transitions_b))
                 )
 
             # Add all transitions moving over same input symbols
@@ -295,15 +295,9 @@ class NFA:
                 end_states_b = transitions_b.get(symbol)
 
                 if end_states_a is not None and end_states_b is not None:
-                    state_dict = new_transitions.setdefault(
-                        curr_state, defaultdict(set)
-                    )
-                    state_dict.setdefault(symbol, set()).update(
-                        product(end_states_a, end_states_b)
-                    )
-                    next_states_iterables.append(
-                        list(product(end_states_a, end_states_b))
-                    )
+                    state_dict = new_transitions[curr_state]
+                    state_dict[symbol].update(product(end_states_a, end_states_b))
+                    next_states_iterables.append(product(end_states_a, end_states_b))
 
             # Finally, try visiting every state we found.
             for product_state in chain.from_iterable(next_states_iterables):
