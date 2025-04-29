@@ -286,7 +286,6 @@ class TestNFA:
         union_nfa = nfa_ends_with_01.union(nfa_zero_star_one_star)
         mask = "1"
 
-        # Efficiently compute union
         accepted_strings = list(
             set(self.STRINGS_ACCEPTED_BY_ENDS_WITH_01)
             | set(self.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR)
@@ -304,7 +303,6 @@ class TestNFA:
         union_nfa = nfa_ends_with_01_epsilon.union(nfa_zero_star_one_star)
         mask = "1"
 
-        # Efficiently compute union
         accepted_strings = list(
             set(self.STRINGS_ACCEPTED_BY_ENDS_WITH_01)
             | set(self.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR)
@@ -324,7 +322,6 @@ class TestNFA:
         intersection_nfa = nfa_ends_with_01.intersection(nfa_zero_star_one_star)
         mask = "1"
 
-        # Efficiently compute intersection
         accepted_strings = list(
             set(self.STRINGS_ACCEPTED_BY_ENDS_WITH_01)
             & set(self.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR)
@@ -333,4 +330,26 @@ class TestNFA:
 
         TestNFA.assert_nfa_accepts_rejects(
             intersection_nfa, accepted_strings, rejected_strings, mask
+        )
+
+    def test_intersection_operation_with_epsilon(
+        self, nfa_ends_with_01_epsilon, nfa_zero_star_one_star
+    ):
+        """Test the intersection operation between an NFA with epsilon ."""
+        intersection_nfa = nfa_ends_with_01_epsilon.intersection(nfa_zero_star_one_star)
+        mask = "1"
+
+        # Only '01' and '001'
+        accepted_strings = list(
+            set(self.STRINGS_ACCEPTED_BY_ENDS_WITH_01)
+            & set(self.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR)
+        )
+        rejected_strings = list(self.ALL_STRINGS_UP_TO_LENGTH_3 - set(accepted_strings))
+
+        TestNFA.assert_nfa_accepts_rejects(
+            intersection_nfa,
+            accepted_strings,
+            rejected_strings,
+            mask,
+            "Intersection NFA with epsilon",
         )
