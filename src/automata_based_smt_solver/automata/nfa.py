@@ -264,7 +264,7 @@ class NFA:
 
         while queue:
             curr_state = queue.popleft()
-            q_a, q_b = curr_state
+            q_a, q_b = curr_state.state_value
             # States we will consider adding to the queue
             next_states_iterables: list[Iterable[NFAStateT]] = []
 
@@ -335,9 +335,12 @@ class NFA:
                     queue.append(product_state)
 
         new_final_states = {
-            State((state_a, state_b), result.id)
-            for (state_a, state_b) in new_states
-            if state_a in self.final_states and state_b in other.final_states
+            state
+            for state in new_states
+            if (
+                state.state_value[0] in self.final_states
+                and state.state_value[1] in other.final_states
+            )
         }
 
         result.set_initial_state(new_initial_state)
