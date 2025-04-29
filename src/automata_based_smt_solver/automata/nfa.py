@@ -274,18 +274,12 @@ class NFA:
             epsilon_transitions_a = transitions_a.get(EPSILON)
             if epsilon_transitions_a is not None:
                 state_dict = new_transitions[curr_state]
-                state_dict[EPSILON].update(
-                    [
-                        State((state_a, q_b), result.id)
-                        for state_a in epsilon_transitions_a
-                    ]
-                )
-                next_states_iterables.append(
-                    [
-                        State((state_a, q_b), result.id)
-                        for state_a in epsilon_transitions_a
-                    ]
-                )
+                new_states_a = [
+                    State((state_a, q_b), result.id)
+                    for state_a in epsilon_transitions_a
+                ]
+                state_dict[EPSILON].update(new_states_a)
+                next_states_iterables.append(new_states_a)
 
             # Get transition dict for states in other
             transitions_b = other.transitions.get(q_b, {})
@@ -293,18 +287,12 @@ class NFA:
             epsilon_transitions_b = transitions_b.get(EPSILON)
             if epsilon_transitions_b is not None:
                 state_dict = new_transitions[curr_state]
-                state_dict[EPSILON].update(
-                    [
-                        State((q_a, state_b), result.id)
-                        for state_b in epsilon_transitions_b
-                    ]
-                )
-                next_states_iterables.append(
-                    [
-                        State((q_a, state_b), result.id)
-                        for state_b in epsilon_transitions_b
-                    ]
-                )
+                new_states_b = [
+                    State((q_a, state_b), result.id)
+                    for state_b in epsilon_transitions_b
+                ]
+                state_dict[EPSILON].update(new_states_b)
+                next_states_iterables.append(new_states_b)
 
             # Add all transitions moving over same input symbols
             for symbol in new_input_symbols:
@@ -313,20 +301,13 @@ class NFA:
 
                 if end_states_a is not None and end_states_b is not None:
                     state_dict = new_transitions[curr_state]
-                    state_dict[symbol].update(
-                        [
-                            State((state_a, state_b), result.id)
-                            for state_a in end_states_a
-                            for state_b in end_states_b
-                        ]
-                    )
-                    next_states_iterables.append(
-                        [
-                            State((state_a, state_b), result.id)
-                            for state_a in end_states_a
-                            for state_b in end_states_b
-                        ]
-                    )
+                    product_states = [
+                        State((state_a, state_b), result.id)
+                        for state_a in end_states_a
+                        for state_b in end_states_b
+                    ]
+                    state_dict[symbol].update(product_states)
+                    next_states_iterables.append(product_states)
 
             # Finally, try visiting every state we found.
             for product_state in chain.from_iterable(next_states_iterables):
