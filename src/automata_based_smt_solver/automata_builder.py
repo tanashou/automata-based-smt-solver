@@ -25,7 +25,7 @@ class AutomataBuilder:
         self.coeffs: dict[FNode, int] = extracted.coeffs
         self.const: int = extracted.const
         self.formula_type: FormulaType = extracted.formula_type
-        self.has_bool_negation: bool = extracted.has_bool_negation
+        self.has_negation_before_bool_var: bool = extracted.has_negation_before_bool_var
         self.create_all: bool = create_all  # for debug
 
         self.nfa = NFA()
@@ -73,7 +73,7 @@ class AutomataBuilder:
             case FormulaType.LE:
                 self.le_to_nfa()
             case FormulaType.BOOL:
-                if self.has_bool_negation:
+                if self.has_negation_before_bool_var:
                     self.false_to_nfa()
                 else:
                     self.true_to_nfa()
