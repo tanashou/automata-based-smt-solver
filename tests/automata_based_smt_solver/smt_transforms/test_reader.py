@@ -1,101 +1,9 @@
-from pathlib import Path
-
-import pytest
 from pysmt.fnode import FNode
 
 from automata_based_smt_solver.sat_status import SatStatus
-from automata_based_smt_solver.smt_transforms.reader import Reader
 
 
 class TestReader:
-    @pytest.fixture
-    def reader(self):
-        """Return a Reader instance for testing."""
-        return Reader()
-
-    @pytest.fixture
-    def fixtures_dir(self):
-        """Return the path to the fixtures directory."""
-        project_root = Path(__file__).resolve().parents[3]  # Navigate to project root
-        return project_root / "tests" / "fixtures"
-
-    @pytest.fixture
-    def ensure_fixtures_dir(self, fixtures_dir):
-        """Check if the fixtures directory exists and skip if it doesn't."""
-        benchmark_dir = fixtures_dir / "benchmarks" / "QF_LIA" / "check"
-        if not benchmark_dir.exists():
-            pytest.skip(f"Required test directory {benchmark_dir} does not exist")
-        return fixtures_dir
-
-    @pytest.fixture
-    def benchmark_file_paths(self, ensure_fixtures_dir):
-        """Return the paths to the test benchmark files."""
-        file_names = [
-            "bignum_lia1.smt2",
-            "bignum_lia2_unknown.smt2",
-            "bignum_lia2.smt2",
-            "int_incompleteness1.smt2",
-            "int_incompleteness2.smt2",
-            "int_incompleteness3.smt2",
-        ]
-        result = []
-        for file_name in file_names:
-            file_path = (
-                ensure_fixtures_dir / "benchmarks" / "QF_LIA" / "check" / file_name
-            )
-            if file_path.exists():
-                result.append(file_path)
-
-        if not result:
-            pytest.skip("No benchmark files found in the fixtures directory")
-
-        return result
-
-    @pytest.fixture
-    def benchmark_file_path(self, ensure_fixtures_dir):
-        """Return a single benchmark file path for testing."""
-        file_path = (
-            ensure_fixtures_dir / "benchmarks" / "QF_LIA" / "check" / "bignum_lia1.smt2"
-        )
-
-        if not file_path.exists():
-            pytest.skip(f"Required benchmark file {file_path} not found")
-
-        return file_path
-
-    @pytest.fixture(params=["sat", "unsat", "unknown"])
-    def benchmark_files_by_status(self, request, ensure_fixtures_dir):
-        """Parameterized fixture returning benchmark files by status."""
-        status = request.param
-        benchmark_dir = ensure_fixtures_dir / "benchmarks" / "QF_LIA" / "check"
-
-        # Map of status to file patterns that have that status
-        status_patterns = {
-            "sat": [
-                "bignum_lia2.smt2",
-            ],
-            "unsat": [
-                "bignum_lia1.smt2",
-                "int_incompleteness1.smt2",
-                "int_incompleteness2.smt2",
-                "int_incompleteness3.smt2",
-            ],
-            "unknown": [
-                "bignum_lia2_unknown.smt2",
-            ],
-        }
-
-        # Get all matching files
-        matching_files = []
-        for pattern in status_patterns[status]:
-            matching_files.extend(list(benchmark_dir.glob(pattern)))
-
-        # Skip if no matching files
-        if not matching_files:
-            pytest.skip(f"No benchmark files with {status} status found")
-
-        return matching_files, status
-
     def test_from_smt_lib_file(self, reader, benchmark_file_paths):
         """Test reading from SMT-LIB files."""
         for file_path in benchmark_file_paths:
@@ -163,3 +71,28 @@ class TestReader:
 
         # Check formula
         assert isinstance(formula, FNode)
+
+    def test_parsed_formula_fixture(self, parsed_formula):
+        """Test using the parsed_formula fixture from conftest."""
+        # Verify the formula is parsed correctly
+        assert isinstance(parsed_formula, FNode)
+        assert parsed_formula.is_and()
+
+        # Verify it's the expected formula (bignum_lia1.smt2)
+        variables = parsed_formula.get_free_variables()
+        variable_names = {str(var) for var in variables}
+        expected_vars = {"x1", "x2", "x3", "x4", "x5", "x6"}
+        assert variable_names == expected_vars
+
+    def test_all_parsed_formulas_fixture(self, all_parsed_formulas):
+        """Test using the all_parsed_formulas fixture from conftest."""
+        # Verify we got formula data for all files
+        assert len(all_parsed_formulas) > 0
+
+        for filename, formula in all_parsed_formulas:
+            # Every formula should be an FNode
+            assert isinstance(formula, FNode)
+
+            # Every formula should have variables
+            variables = formula.get_free_variables()
+            assert len(variables) > 0, f"No variables found in {filename}"
