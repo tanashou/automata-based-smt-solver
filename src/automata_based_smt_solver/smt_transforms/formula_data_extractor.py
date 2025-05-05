@@ -119,9 +119,15 @@ class FormulaDataExtractor(DagWalker):
         pass
 
     def walk_and(self, formula, args, **kwargs):
-        msg = "Logical 'and' is not supported in linear constraints."
+        msg = (
+            "Logical 'and' is not allowed. Please eliminate it before using this "
+            "extractor."
+        )
         raise UnsupportedOperatorError(msg)
 
     def walk_or(self, formula, args, **kwargs):
-        msg = "Logical 'or' is not supported in linear constraints."
+        msg = (
+            "Logical 'or' is not allowed. Please eliminate it before using this "
+            "extractor."
+        )
         raise UnsupportedOperatorError(msg)
