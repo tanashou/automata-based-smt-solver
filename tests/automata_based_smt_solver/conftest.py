@@ -51,7 +51,18 @@ def benchmark_file_paths(benchmark_dir):
 
 
 @pytest.fixture
-def benchmark_file_path(benchmark_dir):
+def int_incompleteness1_path(benchmark_dir):
+    """Return a single benchmark file path for testing."""
+    file_path = benchmark_dir / "int_incompleteness1.smt2"
+
+    if not file_path.exists():
+        pytest.skip(f"Required benchmark file {file_path} not found")
+
+    return file_path
+
+
+@pytest.fixture
+def bignum_lia1_path(benchmark_dir):
     """Return a single benchmark file path for testing."""
     file_path = benchmark_dir / "bignum_lia1.smt2"
 
@@ -95,9 +106,16 @@ def benchmark_files_by_status(request, benchmark_dir):
 
 
 @pytest.fixture
-def bignum_lia1_formula(reader, benchmark_file_path):
+def int_incompleteness1_formula(reader, int_incompleteness1_path):
     """Parse the benchmark file and return the formula."""
-    _, formula = reader.from_smt_lib(str(benchmark_file_path), is_file=True)
+    _, formula = reader.from_smt_lib(str(int_incompleteness1_path), is_file=True)
+    return formula
+
+
+@pytest.fixture
+def bignum_lia1_formula(reader, bignum_lia1_path):
+    """Parse the benchmark file and return the formula."""
+    _, formula = reader.from_smt_lib(str(bignum_lia1_path), is_file=True)
     return formula
 
 
