@@ -72,14 +72,14 @@ class TestReader:
         # Check formula
         assert isinstance(formula, FNode)
 
-    def test_parsed_formula_fixture(self, parsed_formula):
+    def test_parsed_formula_fixture(self, bignum_lia1_formula):
         """Test using the parsed_formula fixture from conftest."""
         # Verify the formula is parsed correctly
-        assert isinstance(parsed_formula, FNode)
-        assert parsed_formula.is_and()
+        assert isinstance(bignum_lia1_formula, FNode)
+        assert bignum_lia1_formula.is_and()
 
         # Verify it's the expected formula (bignum_lia1.smt2)
-        variables = parsed_formula.get_free_variables()
+        variables = bignum_lia1_formula.get_free_variables()
         variable_names = {str(var) for var in variables}
         expected_vars = {"x1", "x2", "x3", "x4", "x5", "x6"}
         assert variable_names == expected_vars

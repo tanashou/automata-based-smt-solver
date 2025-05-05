@@ -95,7 +95,7 @@ def benchmark_files_by_status(request, benchmark_dir):
 
 
 @pytest.fixture
-def parsed_formula(reader, benchmark_file_path):
+def bignum_lia1_formula(reader, benchmark_file_path):
     """Parse the benchmark file and return the formula."""
     _, formula = reader.from_smt_lib(str(benchmark_file_path), is_file=True)
     return formula
