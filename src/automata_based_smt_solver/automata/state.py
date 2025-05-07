@@ -10,12 +10,13 @@ class State:
 
     def __post_init__(self) -> None:
         if isinstance(self.state_value, State):
-            # Extract the inner state_value and use it instead
-            inner_value = self.state_value.state_value
+            # Save the original state's id before modifying state_value
+            original_state = self.state_value
+            inner_value = original_state.state_value
             object.__setattr__(self, "state_value", inner_value)
             # If no id was specified but the inner State has one, preserve it
-            if self.id == -1 and self.state_value.id != -1:
-                object.__setattr__(self, "id", self.state_value.id)
+            if self.id == -1 and original_state.id != -1:
+                object.__setattr__(self, "id", original_state.id)
 
     def __hash__(self) -> int:
         return hash((self.state_value, self.id))

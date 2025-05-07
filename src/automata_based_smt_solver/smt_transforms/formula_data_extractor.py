@@ -5,7 +5,7 @@ from pysmt.exceptions import UnsupportedOperatorError
 from pysmt.fnode import FNode
 from pysmt.walkers import DagWalker
 
-from automata_based_smt_solver.formula.formula_type import FormulaType
+from automata_based_smt_solver.smt_transforms.formula_type import FormulaType
 
 
 @dataclass
@@ -14,7 +14,7 @@ class FormulaData:
     vars: set[str]
     const: int
     formula_type: FormulaType
-    has_bool_negation: bool
+    has_negation_before_bool_var: bool
 
 
 class FormulaDataExtractor(DagWalker):
@@ -23,7 +23,7 @@ class FormulaDataExtractor(DagWalker):
         self._coeffs: dict[FNode, int] = {}
         self._const: int = 0
         self._formula_type: FormulaType = FormulaType.BOOL  # eq, le, bool のどれか
-        self._has_bool_negation: bool = False
+        self._has_negation_before_bool_var: bool = False
 
     def extract(self, formula) -> FormulaData:
         # 数式なら =, <= として各種パラメータを取得する。
@@ -40,7 +40,7 @@ class FormulaDataExtractor(DagWalker):
                 declared_vars,
                 self._const,
                 self._formula_type,
-                self._has_bool_negation,
+                self._has_negation_before_bool_var,
             )
         lhs, rhs = formula.args()
         # FNode の Simplify により、定数が現れるなら左辺、右辺のどちらかは定数のみ
@@ -66,13 +66,13 @@ class FormulaDataExtractor(DagWalker):
             declared_vars,
             self._const,
             self._formula_type,
-            self._has_bool_negation,
+            self._has_negation_before_bool_var,
         )
 
     # Walker methods
 
     def walk_not(self, formula, args, **kwargs):
-        self._has_bool_negation = True
+        self._has_negation_before_bool_var = True
         return formula
 
     def walk_times(self, formula, args, **kwargs):
@@ -119,9 +119,15 @@ class FormulaDataExtractor(DagWalker):
         pass
 
     def walk_and(self, formula, args, **kwargs):
-        msg = "Logical 'and' is not supported in linear constraints."
+        msg = (
+            "Logical 'and' is not allowed. Please eliminate it before using this "
+            "extractor."
+        )
         raise UnsupportedOperatorError(msg)
 
     def walk_or(self, formula, args, **kwargs):
-        msg = "Logical 'or' is not supported in linear constraints."
+        msg = (
+            "Logical 'or' is not allowed. Please eliminate it before using this "
+            "extractor."
+        )
         raise UnsupportedOperatorError(msg)

@@ -62,6 +62,7 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
+    "python.testing.nosetestsEnabled": false,
     "files.exclude": {
         "**/.pytest_cache": true,
         "**/.ruff_cache": true,
