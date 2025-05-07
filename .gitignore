@@ -169,4 +169,5 @@ cython_debug/
 
 src/playground.py
 images/*
-benchmarks/
+# only add the benchmarks dir in the project root
+/benchmarks/
