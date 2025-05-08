@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from automata_based_smt_solver.smt_transforms.reader import Reader
+from automata_based_smt_solver.smt_transforms.smtlib_reader import SMTLIBReader
 
 
 @pytest.fixture
 def reader():
     """Return a Reader instance for testing."""
-    return Reader()
+    return SMTLIBReader()
 
 
 @pytest.fixture
