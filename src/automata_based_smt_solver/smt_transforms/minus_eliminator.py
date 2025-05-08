@@ -5,8 +5,8 @@ from pysmt.walkers import IdentityDagWalker
 
 # Transforms a binary minus operator into an addition.
 # For example:
-#   (x1 * 3) - x2       ->  (x1 * 3) + (x2 * -1)
-#   (x1 * 3) - (x2 * 2)   ->  (x1 * 3) + (x2 * -2)
+#   (x1 * 3) - x2       ->  (x1 * 3) + (-1 * x2)
+#   (x1 * 3) - (x2 * 2)   ->  (x1 * 3) + (-2 * x2)
 class MinusEliminator(IdentityDagWalker):
     def __init__(self):
         super().__init__()
@@ -16,6 +16,12 @@ class MinusEliminator(IdentityDagWalker):
             msg = "MinusEliminator expects a binary minus operator with 2 args."
             raise ValueError(msg)
         left, right = args
+
+        # If the right side is a constant, directly negate it
+        if right.is_constant():
+            new_const = -right.constant_value()
+            return Plus(left, Int(new_const))
+
         # If the right side is a TIMES node, try to push the minus into the constant.
         if right.is_times():
             a, b = right.args()
