@@ -64,8 +64,8 @@ class FormulaDataExtractor(DagWalker):
     def extract(self, formula) -> FormulaData:
         self.walk(formula)
         declared_vars = {str(v) for v in formula.get_free_variables()}
-        args_count = 2
-        if len(formula.args()) != args_count:
+        arg_count = 2
+        if len(formula.args()) != arg_count:
             return FormulaData(
                 self._coeffs,
                 declared_vars,
@@ -74,10 +74,8 @@ class FormulaDataExtractor(DagWalker):
                 self._has_negation_before_bool_var,
             )
         lhs, rhs = formula.args()
-        # Collect from both sides
         lhs_coeffs, lhs_const = self._collect_coeffs_and_const(lhs)
         rhs_coeffs, rhs_const = self._collect_coeffs_and_const(rhs)
-        # Move all to lhs: lhs - rhs = 0
         final_coeffs = {}
         for k, v in lhs_coeffs.items():
             final_coeffs[k] = final_coeffs.get(k, 0) + v
