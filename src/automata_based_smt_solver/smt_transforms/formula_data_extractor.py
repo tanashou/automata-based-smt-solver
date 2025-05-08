@@ -25,16 +25,47 @@ class FormulaDataExtractor(DagWalker):
         self._formula_type: FormulaType = FormulaType.BOOL  # eq, le, bool のどれか
         self._has_negation_before_bool_var: bool = False
 
+    def _collect_coeffs_and_const(self, node) -> tuple[dict, int]:
+        coeffs = {}
+        const = 0
+
+        def helper(n, sign=1) -> None:
+            if n.is_symbol():
+                coeffs[n] = coeffs.get(n, 0) + sign
+            elif n.is_int_constant():
+                nonlocal const
+                const += sign * n.constant_value()
+            elif n.is_times():
+                args = n.args()
+                if args[0].is_int_constant() and args[1].is_symbol():
+                    coeffs[args[1]] = (
+                        coeffs.get(args[1], 0) + sign * args[0].constant_value()
+                    )
+                elif args[1].is_int_constant() and args[0].is_symbol():
+                    coeffs[args[0]] = (
+                        coeffs.get(args[0], 0) + sign * args[1].constant_value()
+                    )
+                else:
+                    msg = "TIMES operator must have one constant and one symbol."
+                    raise UnsupportedOperatorError(msg)
+            elif n.is_plus():
+                for arg in n.args():
+                    helper(arg, sign)
+            elif n.is_minus():
+                helper(n.arg(0), sign)
+                helper(n.arg(1), -sign)
+            else:
+                msg = f"Unsupported node in linear formula: {n}"
+                raise UnsupportedOperatorError(msg)
+
+        helper(node)
+        return coeffs, const
+
     def extract(self, formula) -> FormulaData:
-        # 数式なら =, <= として各種パラメータを取得する。
-        # boolean var なら係数は0 として取得する。
         self.walk(formula)
-
         declared_vars = {str(v) for v in formula.get_free_variables()}
-
-        # 左辺と右辺があるので2。not は除去されているため考えなくていい。
-        if len(formula.args()) != 2:  # noqa: PLR2004
-            # boolean var の場合
+        arg_count = 2
+        if len(formula.args()) != arg_count:
             return FormulaData(
                 self._coeffs,
                 declared_vars,
@@ -43,28 +74,20 @@ class FormulaDataExtractor(DagWalker):
                 self._has_negation_before_bool_var,
             )
         lhs, rhs = formula.args()
-        # FNode の Simplify により、定数が現れるなら左辺、右辺のどちらかは定数のみ
-        if lhs.is_int_constant():
-            # 定数が左辺にあるので、右辺に移動させる
-            self._const += -lhs.constant_value()
-            # 変数が右辺あるので、左辺に移動させる
-            for k, v in self._coeffs.items():
-                self._coeffs[k] = -v
-        elif rhs.is_int_constant():
-            self._const += rhs.constant_value()
-        else:
-            lhs_vars = lhs.get_free_variables()
-            rhs_vars = rhs.get_free_variables()
-            for k, v in self._coeffs.items():
-                if k in lhs_vars:
-                    self._coeffs[k] = v
-                elif k in rhs_vars:
-                    self._coeffs[k] = -v
-
+        lhs_coeffs, lhs_const = self._collect_coeffs_and_const(lhs)
+        rhs_coeffs, rhs_const = self._collect_coeffs_and_const(rhs)
+        final_coeffs = {}
+        for k, v in lhs_coeffs.items():
+            final_coeffs[k] = final_coeffs.get(k, 0) + v
+        for k, v in rhs_coeffs.items():
+            final_coeffs[k] = final_coeffs.get(k, 0) - v
+        final_const = rhs_const - lhs_const
+        # Remove zero coefficients
+        final_coeffs = {k: v for k, v in final_coeffs.items() if v != 0}
         return FormulaData(
-            self._coeffs,
+            final_coeffs,
             declared_vars,
-            self._const,
+            final_const,
             self._formula_type,
             self._has_negation_before_bool_var,
         )
