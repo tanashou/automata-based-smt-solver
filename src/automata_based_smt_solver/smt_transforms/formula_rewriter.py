@@ -7,7 +7,7 @@ from automata_based_smt_solver.smt_transforms.negation_eliminator import (
 )
 
 
-class Rewriter:
+class FormulaRewriter:
     def __init__(self) -> None:
         self.cnfizer = CNFizer()
         self.negation_eliminator = NegationEliminator()
