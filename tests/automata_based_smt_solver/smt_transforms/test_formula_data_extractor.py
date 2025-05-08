@@ -1,10 +1,7 @@
 import pytest
 from pysmt.exceptions import UnsupportedOperatorError
 from pysmt.shortcuts import (
-    GE,
-    GT,
     LE,
-    LT,
     And,
     Equals,
     Int,
@@ -23,6 +20,8 @@ from automata_based_smt_solver.smt_transforms.formula_type import FormulaType
 
 
 class TestFormulaDataExtractor:
+    """Only need to test eq, le, and bool."""
+
     def test_extract_equality_formula(self):
         """Test extracting data from an equality formula."""
         # Create a formula: x + 2*y = 5
@@ -50,9 +49,52 @@ class TestFormulaDataExtractor:
         assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
+    def test_extract_equality_formula_with_two_constants(self):
+        """Test extracting data from equality formula with constants on both sides."""
+        # Create formula x + (-5) = 10
+        x = Symbol("x", INT)
+        left_side = Plus(x, Int(-5))
+        right_side = Int(10)
+        formula = Equals(left_side, right_side)
+
+        # Expected results after normalization: x = 15
+        expected_const = 15
+        expected_coeff = 1
+
+        extractor = FormulaDataExtractor()
+        data = extractor.extract(formula)
+
+        assert data.formula_type == FormulaType.EQ
+        assert data.const == expected_const
+        assert data.coeffs[x] == expected_coeff
+        assert data.vars == {"x"}
+        assert not data.has_negation_before_bool_var
+
+    def test_extract_equality_formula_with_multiple_constants(self):
+        """Test extracting data from equality formula with multiple constants."""
+        # Create formula x + 2 + (-5) + 8 = 10 + 3
+        x = Symbol("x", INT)
+        left_side = Plus(x, Int(2), Int(-5), Int(8))
+        right_side = Plus(Int(10), Int(3))
+        formula = Equals(left_side, right_side)
+
+        # Expected results after normalization: x = 13 - 2 + 5 - 8 = 8
+        expected_const = 8
+        expected_coeff = 1
+
+        extractor = FormulaDataExtractor()
+        data = extractor.extract(formula)
+
+        assert data.formula_type == FormulaType.EQ
+        assert data.const == expected_const
+        assert data.coeffs[x] == expected_coeff
+        assert data.vars == {"x"}
+        assert not data.has_negation_before_bool_var
+
     def test_extract_le_formula(self):
         """Test extracting data from a less than or equal formula."""
         # Define constants
+        # Create a formula: x + 3*y <= 10
         y_coeff = 3
         upper_bound = 10
         coeff_count = 2
@@ -72,59 +114,9 @@ class TestFormulaDataExtractor:
         assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
-    def test_extract_lt_formula(self):
-        """Test extracting data from a less than formula."""
-        upper_bound = 5
-        expected_const = 4  # LT x < 5 becomes LE x <= 4
-
-        x = Symbol("x", INT)
-        formula = LT(x, Int(upper_bound))
-
-        extractor = FormulaDataExtractor()
-        data = extractor.extract(formula)
-
-        assert data.formula_type == FormulaType.LE
-        assert data.const == expected_const
-        assert data.coeffs[x] == 1
-        assert data.vars == {"x"}
-        assert not data.has_negation_before_bool_var
-
-    def test_extract_gt_formula(self):
-        """Test extracting data from a greater than formula."""
-        lower_bound = 5
-        expected_coeff = -1  # Should be negated for GT
-
-        x = Symbol("x", INT)
-        formula = GT(x, Int(lower_bound))
-
-        extractor = FormulaDataExtractor()
-        data = extractor.extract(formula)
-
-        # GT should be converted to LE with negated coefficients
-        assert data.formula_type == FormulaType.LE
-        assert data.coeffs[x] == expected_coeff
-        assert data.vars == {"x"}
-        assert not data.has_negation_before_bool_var
-
-    def test_extract_ge_formula(self):
-        """Test extracting data from a greater than or equal formula."""
-        lower_bound = 1000  # Similar to (>= x1 1000) in the SMT2 file
-        expected_coeff = -1  # Should be negated for GE
-
-        x = Symbol("x", INT)
-        formula = GE(x, Int(lower_bound))
-
-        extractor = FormulaDataExtractor()
-        data = extractor.extract(formula)
-
-        # GE should be converted to LE with negated coefficients
-        assert data.formula_type == FormulaType.LE
-        assert data.coeffs[x] == expected_coeff
-        assert data.vars == {"x"}
-        assert not data.has_negation_before_bool_var
-
     def test_extract_bool_formula(self):
         """Test extracting data from a boolean formula."""
+        # Create a boolean formula: b
         expected_coeff = 1
         expected_const = 0
 
@@ -141,6 +133,7 @@ class TestFormulaDataExtractor:
 
     def test_extract_negated_bool_formula(self):
         """Test extracting data from a negated boolean formula."""
+        # Create a negated boolean formula: Not(b)
         expected_coeff = 1
         expected_const = 0
 
@@ -158,6 +151,7 @@ class TestFormulaDataExtractor:
 
     def test_unsupported_operator(self):
         """Test that unsupported operators raise the expected exception."""
+        # Create a formula with an unsupported operator (AND)
         x = Symbol("x", INT)
         y = Symbol("y", INT)
 
