@@ -95,6 +95,7 @@ class TestFormulaDataExtractor:
         """Test extracting data from a less than or equal formula."""
         # Define constants
         # Create a formula: x + 3*y <= 10
+        x_coeff = 1
         y_coeff = 3
         upper_bound = 10
         coeff_count = 2
@@ -109,9 +110,36 @@ class TestFormulaDataExtractor:
         assert data.formula_type == FormulaType.LE
         assert data.const == upper_bound
         assert len(data.coeffs) == coeff_count
-        assert data.coeffs[x] == 1
+        assert data.coeffs[x] == x_coeff
         assert data.coeffs[y] == y_coeff
         assert data.vars == {"x", "y"}
+        assert not data.has_negation_before_bool_var
+
+    def test_extract_le_formula_with_multiple_constants_and_vars(self):
+        """Test extracting <= formula with multiple consts and vars on both sides."""
+        # Create formula: x + 2 + 3*y + 7 = 10 + 4 + 2*z + y
+        x = Symbol("x", INT)
+        y = Symbol("y", INT)
+        z = Symbol("z", INT)
+        left_side = Plus(x, Int(2), Times(Int(3), y), Int(7))
+        right_side = Plus(Int(10), Int(4), Times(Int(2), z), y)
+        formula = LE(left_side, right_side)
+        # After normalization, we get: x + 2*y - 2*z <= 5
+        # So: x:1, y:2, z:-2, const: 5
+        extractor = FormulaDataExtractor()
+        data = extractor.extract(formula)
+
+        expected_const = 5
+        expected_coeff_x = 1
+        expected_coeff_y = 2
+        expected_coeff_z = -2
+
+        assert data.formula_type == FormulaType.LE
+        assert data.coeffs[x] == expected_coeff_x
+        assert data.coeffs[y] == expected_coeff_y
+        assert data.coeffs[z] == expected_coeff_z
+        assert data.const == expected_const
+        assert data.vars == {"x", "y", "z"}
         assert not data.has_negation_before_bool_var
 
     def test_extract_bool_formula(self):
