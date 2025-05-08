@@ -35,7 +35,7 @@ class TestMinusEliminator:
         # Apply the minus eliminator
         result = self.eliminator.walk(formula)
 
-        # Expected: x + (-5) > 10, which simplifies to x > 15
+        # Expected: x + (-5) > 10  # noqa: ERA001
         expected = GT(Plus(self.x, Int(-5)), Int(10))
 
         assert result == expected, f"Expected {expected}, got {result}"
