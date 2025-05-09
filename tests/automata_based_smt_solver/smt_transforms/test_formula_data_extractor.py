@@ -229,3 +229,31 @@ class TestFormulaDataExtractor:
         assert not extracted_data.has_negation_before_bool_var, (
             "Should not have boolean negation"
         )
+
+    def test_extract_nested_parentheses_with_multiplication(self):
+        """Test extracting data from a formula with nested parentheses."""
+        # Create formula: 2 * (x + 3*y + (z + 4)) = 20
+        x = Symbol("x", INT)
+        y = Symbol("y", INT)
+        z = Symbol("z", INT)
+        inner = Plus(z, Int(4))
+        left_side = Times(Int(2), Plus(x, Times(Int(3), y), inner))
+        right_side = Int(20)
+        formula = Equals(left_side, right_side)
+        formula.simplify()
+
+        extractor = FormulaDataExtractor()
+        data = extractor.extract(formula)
+
+        # Expected: 2*x + 6*y + 2*z = 12  # noqa: ERA001
+        expected_const = 12
+        expected_coeff_x = 2
+        expected_coeff_y = 6
+        expected_coeff_z = 2
+        assert data.formula_type == FormulaType.EQ
+        assert data.coeffs[x] == expected_coeff_x
+        assert data.coeffs[y] == expected_coeff_y
+        assert data.coeffs[z] == expected_coeff_z
+        assert data.const == expected_const
+        assert data.vars == {"x", "y", "z"}
+        assert not data.has_negation_before_bool_var
