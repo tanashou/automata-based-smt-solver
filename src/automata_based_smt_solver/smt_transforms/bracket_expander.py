@@ -4,7 +4,7 @@ from pysmt.shortcuts import Int, Minus, Plus, Times
 from pysmt.walkers import IdentityDagWalker
 
 
-class ParsEliminator(IdentityDagWalker):
+class BracketExpander(IdentityDagWalker):
     MINUS_ARITY = 2
 
     def __init__(self) -> None:
