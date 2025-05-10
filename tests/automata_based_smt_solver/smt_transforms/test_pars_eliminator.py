@@ -1,12 +1,12 @@
 from pysmt.shortcuts import Int, Minus, Plus, Symbol, Times
 from pysmt.typing import INT
 
-from automata_based_smt_solver.smt_transforms.pars_eliminator import ParsEliminator
+from automata_based_smt_solver.smt_transforms.bracket_expander import BracketExpander
 
 
 class TestParsEliminator:
     def setup_method(self):
-        self.eliminator = ParsEliminator()
+        self.eliminator = BracketExpander()
         self.x = Symbol("x", INT)
         self.y = Symbol("y", INT)
         self.z = Symbol("z", INT)
