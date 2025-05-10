@@ -1,15 +1,6 @@
 import pytest
 from pysmt.exceptions import UnsupportedOperatorError
-from pysmt.shortcuts import (
-    LE,
-    And,
-    Equals,
-    Int,
-    Not,
-    Plus,
-    Symbol,
-    Times,
-)
+from pysmt.shortcuts import LE, And, Equals, Int, Minus, Not, Plus, Symbol, Times
 from pysmt.typing import BOOL, INT
 
 from automata_based_smt_solver.smt_transforms.formula_data_extractor import (
@@ -221,6 +212,33 @@ class TestFormulaDataExtractor:
 
         assert data.formula_type == FormulaType.EQ
         assert data.const == expected_const
+        assert data.coeffs[x] == x_coeff
+        assert data.coeffs[y] == y_coeff
+        assert data.vars == {"x", "y"}
+        assert not data.has_negation_before_bool_var
+
+    def test_extract_formula_with_minus_symbol(self):
+        """Test extracting data from a formula with negative coefficients using Minus.
+
+        x - y = -3 should yield coeffs: {x: 1, y: -1}, const: -3
+        """
+        x_coeff = 1
+        y_coeff = -1
+        const = -3
+        coeff_count = 2
+
+        x = Symbol("x", INT)
+        y = Symbol("y", INT)
+
+        lhs = Minus(x, y)
+        formula = Equals(lhs, Int(const))
+
+        extractor = FormulaDataExtractor()
+        data = extractor.extract(formula)
+
+        assert data.formula_type == FormulaType.EQ
+        assert data.const == const
+        assert len(data.coeffs) == coeff_count
         assert data.coeffs[x] == x_coeff
         assert data.coeffs[y] == y_coeff
         assert data.vars == {"x", "y"}
