@@ -30,9 +30,25 @@ class ParsEliminator(IdentityDagWalker):
         if len(args) == self.MINUS_ARITY:
             left, right = args
             if right.is_plus():
-                return Plus([Times([left, term]) for term in right.args()])
+                distributed = []
+                for term in right.args():
+                    if left.is_int_constant() and term.is_int_constant():
+                        distributed.append(
+                            Int(left.constant_value() * term.constant_value())
+                        )
+                    else:
+                        distributed.append(Times([left, term]))
+                return Plus(distributed)
             if left.is_plus():
-                return Plus([Times([term, right]) for term in left.args()])
+                distributed = []
+                for term in left.args():
+                    if right.is_int_constant() and term.is_int_constant():
+                        distributed.append(
+                            Int(right.constant_value() * term.constant_value())
+                        )
+                    else:
+                        distributed.append(Times([term, right]))
+                return Plus(distributed)
         flat_args, int_prod, has_int = self._flatten_times_args(args)
         if has_int:
             flat_args.insert(0, Int(int_prod))
