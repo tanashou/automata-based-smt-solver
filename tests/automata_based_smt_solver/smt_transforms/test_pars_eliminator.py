@@ -73,3 +73,10 @@ class TestParsEliminator:
         result = self.eliminator.walk(term)
         expected = Int(2)
         assert result == expected, f"Expected {expected}, got {result}"
+
+    def test_distribute_negative_times_over_plus(self):
+        # -2 * (y + 3) → -2*y - 6
+        term = Times(Int(-2), Plus(self.y, Int(3)))
+        result = self.eliminator.walk(term)
+        expected = Plus(Times(Int(-2), self.y), Int(-6))
+        assert result == expected, f"Expected {expected}, got {result}"
