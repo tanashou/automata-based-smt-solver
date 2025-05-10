@@ -139,3 +139,89 @@ class TestFormulaDataExtractor:
         extractor = FormulaDataExtractor()
         with pytest.raises(UnsupportedOperatorError):
             extractor.extract(formula)
+
+    def test_extract_formula_with_multiple_constants_lhs_rhs(self):
+        """Test extracting data from a formula with constants on both LHS and RHS.
+
+        x + 2*y + 3 = 5 + 1 is expected to be converted to
+        x + 2*y = 5 + 1 - 3 = 3.
+        """
+        const_rhs = 5
+        const_lhs = 3
+        x_coeff = 1
+        y_coeff = 2
+        coeff_count = 2
+
+        x = Symbol("x", INT)
+        y = Symbol("y", INT)
+        lhs = Plus(x, Times(Int(y_coeff), y), Int(const_lhs))
+        formula = Equals(lhs, Int(const_rhs))
+
+        extractor = FormulaDataExtractor()
+        data = extractor.extract(formula)
+
+        # The extractor should move all constants to RHS: x + 2*y = 2
+        assert data.formula_type == FormulaType.EQ
+        assert data.const == const_rhs - const_lhs
+        assert len(data.coeffs) == coeff_count
+        assert data.coeffs[x] == x_coeff
+        assert data.coeffs[y] == y_coeff
+        assert data.vars == {"x", "y"}
+        assert not data.has_negation_before_bool_var
+
+    def test_extract_formula_with_constants_on_both_sides_le(self):
+        """Test extracting data from a LE formula with constants on both sides.
+
+        x + 2*y + 4 <= 10 + 1 is expected to be converted to
+        x + 2*y <= 10 + 1 - 4 = 7.
+        """
+        lhs_const = 4
+        rhs_const = 1
+        x_coeff = 1
+        y_coeff = 2
+        upper_bound = 10
+
+        expected_upper_bound = upper_bound + rhs_const - lhs_const
+
+        x = Symbol("x", INT)
+        y = Symbol("y", INT)
+        lhs = Plus(x, Times(Int(y_coeff), y), Int(lhs_const))
+        rhs = Plus(Int(upper_bound), Int(rhs_const))
+        formula = LE(lhs, rhs)
+
+        extractor = FormulaDataExtractor()
+        data = extractor.extract(formula)
+
+        assert data.formula_type == FormulaType.LE
+        assert data.const == expected_upper_bound
+        assert data.coeffs[x] == x_coeff
+        assert data.coeffs[y] == y_coeff
+        assert data.vars == {"x", "y"}
+        assert not data.has_negation_before_bool_var
+
+    def test_extract_formula_with_negative_constants(self):
+        """Test extracting data from a formula with negative constants.
+
+        x + 2*y - 3 = -5 is expected to be converted to
+        x + 2*y = -5 - (-3) = -2.
+        """
+        lhs_const = -3
+        rhs_const = -5
+        x_coeff = 1
+        y_coeff = 2
+        expected_const = rhs_const - lhs_const
+
+        x = Symbol("x", INT)
+        y = Symbol("y", INT)
+        lhs = Plus(x, Times(Int(y_coeff), y), Int(lhs_const))
+        formula = Equals(lhs, Int(rhs_const))
+
+        extractor = FormulaDataExtractor()
+        data = extractor.extract(formula)
+
+        assert data.formula_type == FormulaType.EQ
+        assert data.const == expected_const
+        assert data.coeffs[x] == x_coeff
+        assert data.coeffs[y] == y_coeff
+        assert data.vars == {"x", "y"}
+        assert not data.has_negation_before_bool_var
