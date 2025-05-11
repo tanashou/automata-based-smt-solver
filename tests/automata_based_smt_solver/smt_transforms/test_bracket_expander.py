@@ -4,7 +4,7 @@ from pysmt.typing import INT
 from automata_based_smt_solver.smt_transforms.bracket_expander import BracketExpander
 
 
-class TestParsEliminator:
+class TestBracketExpander:
     def setup_method(self):
         self.eliminator = BracketExpander()
         self.x = Symbol("x", INT)
