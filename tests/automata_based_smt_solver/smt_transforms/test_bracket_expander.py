@@ -1,7 +1,37 @@
+import itertools
+
 from pysmt.shortcuts import Int, Minus, Plus, Symbol, Times
 from pysmt.typing import INT
 
 from automata_based_smt_solver.smt_transforms.bracket_expander import BracketExpander
+
+
+def is_formula_equal(a, b):
+    """Recursively check if two formulas are equivalent, handling commutativity."""
+    result = False
+    if a is b:
+        result = True
+    elif a.node_type() != b.node_type():
+        result = False
+    elif a.is_symbol() or a.is_int_constant():
+        result = a == b
+    elif a.is_plus() or a.is_times():
+        # Compare as multisets, recursively
+        args_a = list(a.args())
+        args_b = list(b.args())
+        if len(args_a) != len(args_b):
+            result = False
+        else:
+            result = any(
+                all(is_formula_equal(x, y) for x, y in zip(args_a, perm, strict=True))
+                for perm in itertools.permutations(args_b)
+            )
+    else:
+        # For other ops, compare recursively in order
+        result = all(
+            is_formula_equal(x, y) for x, y in zip(a.args(), b.args(), strict=True)
+        )
+    return result
 
 
 class TestBracketExpander:
@@ -16,14 +46,14 @@ class TestBracketExpander:
         term = Times(Int(2), Plus(self.y, self.z))
         result = self.eliminator.walk(term)
         expected = Plus(Times(Int(2), self.y), Times(Int(2), self.z))
-        assert result == expected, f"Expected {expected}, got {result}"
+        assert is_formula_equal(result, expected), f"Expected {expected}, got {result}"
 
     def test_distribute_times_left_plus(self):
         # (x + y) * 3 → x*3 + y*3
         term = Times(Plus(self.x, self.y), Int(3))
         result = self.eliminator.walk(term)
         expected = Plus(Times(self.x, Int(3)), Times(self.y, Int(3)))
-        assert result == expected, f"Expected {expected}, got {result}"
+        assert is_formula_equal(result, expected), f"Expected {expected}, got {result}"
 
     def test_distribute_minus_right_plus(self):
         # x - (y + z) → x - y - z
