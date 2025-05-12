@@ -1,6 +1,6 @@
 # ruff: noqa: ANN201, ANN204, ANN001, ANN003, ARG002, D101, D107, D102
 from pysmt.fnode import FNode
-from pysmt.shortcuts import Int, Minus, Plus, Times
+from pysmt.shortcuts import Int, Plus, Times
 from pysmt.walkers import IdentityDagWalker
 
 
@@ -21,40 +21,14 @@ class BracketExpander(IdentityDagWalker):
             else:
                 flat_args.append(arg)
         if int_sum != 0:
-            flat_args.insert(0, Int(int_sum))
+            flat_args.append(Int(int_sum))
         if len(flat_args) == 1:
+            # result is an integer
             return flat_args[0]
         return Plus(flat_args)
 
     def walk_times(self, formula: FNode, args: list[FNode], **_kwargs: object) -> FNode:
-        if len(args) == self.MINUS_ARITY:
-            left, right = args
-            if right.is_plus():
-                distributed = []
-                for term in right.args():
-                    if left.is_int_constant() and term.is_int_constant():
-                        distributed.append(
-                            Int(left.constant_value() * term.constant_value())
-                        )
-                    else:
-                        distributed.append(Times([left, term]))
-                return Plus(distributed)
-            if left.is_plus():
-                distributed = []
-                for term in left.args():
-                    if right.is_int_constant() and term.is_int_constant():
-                        distributed.append(
-                            Int(right.constant_value() * term.constant_value())
-                        )
-                    else:
-                        distributed.append(Times([term, right]))
-                return Plus(distributed)
-        flat_args, int_prod, has_int = self._flatten_times_args(args)
-        if has_int:
-            flat_args.insert(0, Int(int_prod))
-        if len(flat_args) == 1:
-            return flat_args[0]
-        return Times(flat_args)
+        pass
 
     def _flatten_times_args(self, args: list[FNode]) -> tuple[list[FNode], int, bool]:
         flat_args = []
@@ -76,26 +50,12 @@ class BracketExpander(IdentityDagWalker):
         return flat_args, int_prod, has_int
 
     def walk_minus(self, formula: FNode, args: list[FNode], **_kwargs: object) -> FNode:
-        if len(args) == self.MINUS_ARITY:
-            left, right = args
-            if right.is_plus():
-                # x - (y + z) = x - y - z
-                result = Minus(left, right.args()[0])
-                for term in right.args()[1:]:
-                    result = Minus(result, term)
-                # Recursively simplify in case of nested constants
-                return self.walk_minus(result, [result.arg(0), result.arg(1)])
-            if left.is_plus():
-                # (x + y) - z = x + y - z
-                return Minus(Plus(left.args()), right)
-            if left.is_int_constant() and right.is_int_constant():
-                return Int(left.constant_value() - right.constant_value())
-            return Minus(left, right)
-        # For n-ary minus, chain as left-associative: a-b-c-d = ((a-b)-c)-d
-        result = args[0]
-        for arg in args[1:]:
-            result = Minus(result, arg)
-        return result
+        # args length is guaranteed to be 2
+        minuend, subtrahend = args
+
+        term = Times(Int(-1), subtrahend)
+        rewritten_term = self.walk_times(term, list(term.args()))
+        return Plus(minuend, rewritten_term)
 
     def walk_par(self, _formula: FNode, args: list[FNode], **_kwargs: object) -> FNode:
         if len(args) != 1:
