@@ -1,5 +1,6 @@
 from io import StringIO
 
+import pysmt.smtlib.commands as smtcmd
 from pysmt.fnode import FNode
 from pysmt.smtlib.parser import SmtLibParser
 from pysmt.smtlib.script import SmtLibScript
@@ -25,6 +26,6 @@ class SMTLIBReader:
 
     def _get_sat_status(self, script: SmtLibScript) -> SatStatus:
         for cmd in script.commands:
-            if cmd.name == "set-info" and cmd.args[0] == ":status":
+            if cmd.name == smtcmd.SET_INFO:
                 return SatStatus(cmd.args[1])
         return SatStatus.UNKNOWN
