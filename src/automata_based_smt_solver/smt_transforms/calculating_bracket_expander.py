@@ -4,7 +4,7 @@ from pysmt.shortcuts import Int, Plus, Times
 from pysmt.walkers import IdentityDagWalker
 
 
-# need to use after pysmt.rewriter.TimesDistributor
+# need to use after pysmt.rewriter.TimesDistributor . This also rewrites minus as plus
 class CalculatingBracketExpander(IdentityDagWalker):
     def __init__(self) -> None:
         super().__init__()
@@ -52,14 +52,3 @@ class CalculatingBracketExpander(IdentityDagWalker):
         if len(flat_args) == 1:
             return flat_args[0]
         return Times(flat_args)
-
-    def walk_minus(self, formula: FNode, args: list[FNode], **_kwargs: object) -> FNode:
-        # args length is guaranteed to be 2
-        left, right = args
-
-        negated_right = Times(Int(-1), right)
-        negated_right_expanded = self.walk_times(
-            negated_right, list(negated_right.args())
-        )
-        sum_expr = Plus(left, negated_right_expanded)
-        return self.walk_plus(sum_expr, list(sum_expr.args()))
