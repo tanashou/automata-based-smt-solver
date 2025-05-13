@@ -4,7 +4,8 @@ from pysmt.shortcuts import Int, Plus, Times
 from pysmt.walkers import IdentityDagWalker
 
 
-class BracketExpander(IdentityDagWalker):
+# need to use after pysmt.rewriter.TimesDistributor
+class CalculatingBracketExpander(IdentityDagWalker):
     def __init__(self) -> None:
         super().__init__()
 
@@ -26,55 +27,31 @@ class BracketExpander(IdentityDagWalker):
         return Plus(flat_args)
 
     def walk_times(self, formula: FNode, args: list[FNode], **_kwargs: object) -> FNode:
+        # Flatten nested Times and multiply all integer constants.
+        # Only 1 nested Times is allowed. TimesDistributor removes all nested Times.
         flat_args = []
         int_prod = 1
 
-        # 内側の括弧はすでに展開されているかも
-        for arg in args:
-            if arg.is_int_constant():
-                int_prod *= arg.constant_value()
-            else:
-                flat_args.append(arg)
-
-        if int_prod != 1:
-            flat_args.append(Int(int_prod))
-        if len(flat_args) == 1:
-            # result is an integer or a symbol
-            return flat_args[0]
-
-        # Distribute multiplication over addition if any argument is a Plus node
-        for i, arg in enumerate(flat_args):
-            if arg.is_plus():
-                # Distribute Times over Plus: a * (b + c) => a*b + a*c
-                others = flat_args[:i] + flat_args[i + 1 :]
-                distributed = [
-                    self.walk_times(formula, [term, *others]) for term in arg.args()
-                ]
-                return self.walk_plus(Plus(distributed), distributed)
-
-        # Flatten nested Times and combine integer constants
-        flat_args, int_prod = self._flatten_times_args(flat_args)
-        if int_prod != 1:
-            flat_args.append(Int(int_prod))
-        if len(flat_args) == 1:
-            return flat_args[0]
-        return Times(flat_args)
-
-    def _flatten_times_args(self, args: list[FNode]) -> tuple[list[FNode], int]:
-        flat_args = []
-        int_prod = 1
         for arg in args:
             if arg.is_times():
-                for sub in arg.args():
-                    if sub.is_int_constant():
-                        int_prod *= sub.constant_value()
+                for sub_arg in arg.args():
+                    if sub_arg.is_int_constant():
+                        int_prod *= sub_arg.constant_value()
                     else:
-                        flat_args.append(sub)
+                        flat_args.append(sub_arg)
             elif arg.is_int_constant():
                 int_prod *= arg.constant_value()
             else:
                 flat_args.append(arg)
-        return flat_args, int_prod
+
+        if int_prod == 0:
+            return Int(0)
+        # Only include the constant if it's not 1, or if there are no other args
+        if int_prod != 1 or not flat_args:
+            flat_args = [Int(int_prod), *flat_args]
+        if len(flat_args) == 1:
+            return flat_args[0]
+        return Times(flat_args)
 
     def walk_minus(self, formula: FNode, args: list[FNode], **_kwargs: object) -> FNode:
         # args length is guaranteed to be 2
