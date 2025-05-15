@@ -1,6 +1,6 @@
 import pytest
 from pysmt.exceptions import UnsupportedOperatorError
-from pysmt.shortcuts import LE, And, Equals, Int, Minus, Not, Plus, Symbol, Times
+from pysmt.shortcuts import LE, And, Equals, Int, Not, Plus, Symbol, Times
 from pysmt.typing import BOOL, INT
 
 from automata_based_smt_solver.smt_transforms.formula_data_extractor import (
@@ -10,8 +10,17 @@ from automata_based_smt_solver.smt_transforms.formula_data_extractor import (
 from automata_based_smt_solver.smt_transforms.formula_type import FormulaType
 
 
+# If the coeff of symbol is 1, it should be Times(Int(1), symbol).
+# No Minus is allowed. x - y should be represented as x + (-1) * y.
 class TestFormulaDataExtractor:
-    """Test only formulas with a single integer constant."""
+    def setup_method(self):
+        self.extractor = FormulaDataExtractor()
+        self.x = Symbol("x", INT)
+        self.y = Symbol("y", INT)
+        self.z = Symbol("z", INT)
+        self.x_coeff_1 = Times(Int(1), self.x)
+        self.y_coeff_1 = Times(Int(1), self.y)
+        self.z_coeff_1 = Times(Int(1), self.z)
 
     def test_extract_equality_formula(self):
         """Test extracting data from an equality formula: x + 2*y = 5."""
@@ -20,21 +29,18 @@ class TestFormulaDataExtractor:
         y_coeff = 2
         coeff_count = 2
 
-        x = Symbol("x", INT)
-        y = Symbol("y", INT)
-        two_y = Times(Int(y_coeff), y)
-        left_side = Plus(x, two_y)
+        two_y = Times(Int(y_coeff), self.y)
+        left_side = Plus(self.x_coeff_1, two_y)
         formula = Equals(left_side, Int(const))
 
-        extractor = FormulaDataExtractor()
-        data = extractor.extract(formula)
+        data = self.extractor.extract(formula)
 
         assert isinstance(data, FormulaData)
         assert data.formula_type == FormulaType.EQ
         assert data.const == const
         assert len(data.coeffs) == coeff_count
-        assert data.coeffs[x] == x_coeff
-        assert data.coeffs[y] == y_coeff
+        assert data.coeffs[self.x] == x_coeff
+        assert data.coeffs[self.y] == y_coeff
         assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
@@ -45,18 +51,17 @@ class TestFormulaDataExtractor:
         upper_bound = 10
         coeff_count = 2
 
-        x = Symbol("x", INT)
-        y = Symbol("y", INT)
-        formula = LE(Plus(x, Times(Int(y_coeff), y)), Int(upper_bound))
+        y_term = Times(Int(y_coeff), self.y)
+        left_side = Plus(self.x_coeff_1, y_term)
+        formula = LE(left_side, Int(upper_bound))
 
-        extractor = FormulaDataExtractor()
-        data = extractor.extract(formula)
+        data = self.extractor.extract(formula)
 
         assert data.formula_type == FormulaType.LE
         assert data.const == upper_bound
         assert len(data.coeffs) == coeff_count
-        assert data.coeffs[x] == x_coeff
-        assert data.coeffs[y] == y_coeff
+        assert data.coeffs[self.x] == x_coeff
+        assert data.coeffs[self.y] == y_coeff
         assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
@@ -72,20 +77,19 @@ class TestFormulaDataExtractor:
         coeff_count = 2
         expected_upper_bound = upper_bound - 1
 
-        x = Symbol("x", INT)
-        y = Symbol("y", INT)
         from pysmt.shortcuts import LT
 
-        formula = LT(Plus(Times(Int(x_coeff), x), y), Int(upper_bound))
+        x_term = Times(Int(x_coeff), self.x)
+        left_side = Plus(x_term, self.y_coeff_1)
+        formula = LT(left_side, Int(upper_bound))
 
-        extractor = FormulaDataExtractor()
-        data = extractor.extract(formula)
+        data = self.extractor.extract(formula)
 
         assert data.formula_type == FormulaType.LE
         assert data.const == expected_upper_bound
         assert len(data.coeffs) == coeff_count
-        assert data.coeffs[x] == x_coeff
-        assert data.coeffs[y] == y_coeff
+        assert data.coeffs[self.x] == x_coeff
+        assert data.coeffs[self.y] == y_coeff
         assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
@@ -96,8 +100,7 @@ class TestFormulaDataExtractor:
 
         b = Symbol("b", BOOL)
 
-        extractor = FormulaDataExtractor()
-        data = extractor.extract(b)
+        data = self.extractor.extract(b)
 
         assert data.formula_type == FormulaType.BOOL
         assert data.coeffs[b] == expected_coeff
@@ -113,8 +116,7 @@ class TestFormulaDataExtractor:
         b = Symbol("b", BOOL)
         formula = Not(b)
 
-        extractor = FormulaDataExtractor()
-        data = extractor.extract(formula)
+        data = self.extractor.extract(formula)
 
         assert data.formula_type == FormulaType.BOOL
         assert data.coeffs[b] == expected_coeff
@@ -124,12 +126,9 @@ class TestFormulaDataExtractor:
 
     def test_unsupported_operator(self):
         """Test that unsupported operators raise the expected exception (e.g., And)."""
-        x = Symbol("x", INT)
-        y = Symbol("y", INT)
-        formula = And(Equals(x, Int(1)), Equals(y, Int(2)))
-        extractor = FormulaDataExtractor()
+        formula = And(Equals(self.x, Int(1)), Equals(self.y, Int(2)))
         with pytest.raises(UnsupportedOperatorError):
-            extractor.extract(formula)
+            self.extractor.extract(formula)
 
     def test_extract_formula_with_multiple_constants_lhs_rhs(self):
         """Test extracting data from a formula with constants on both LHS and RHS.
@@ -143,20 +142,18 @@ class TestFormulaDataExtractor:
         y_coeff = 2
         coeff_count = 2
 
-        x = Symbol("x", INT)
-        y = Symbol("y", INT)
-        lhs = Plus(x, Times(Int(y_coeff), y), Int(const_lhs))
+        two_y = Times(Int(y_coeff), self.y)
+        lhs = Plus(self.x_coeff_1, two_y, Int(const_lhs))
         formula = Equals(lhs, Int(const_rhs))
 
-        extractor = FormulaDataExtractor()
-        data = extractor.extract(formula)
+        data = self.extractor.extract(formula)
 
         # The extractor should move all constants to RHS: x + 2*y = 2
         assert data.formula_type == FormulaType.EQ
         assert data.const == const_rhs - const_lhs
         assert len(data.coeffs) == coeff_count
-        assert data.coeffs[x] == x_coeff
-        assert data.coeffs[y] == y_coeff
+        assert data.coeffs[self.x] == x_coeff
+        assert data.coeffs[self.y] == y_coeff
         assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
@@ -174,19 +171,17 @@ class TestFormulaDataExtractor:
 
         expected_upper_bound = upper_bound + rhs_const - lhs_const
 
-        x = Symbol("x", INT)
-        y = Symbol("y", INT)
-        lhs = Plus(x, Times(Int(y_coeff), y), Int(lhs_const))
+        two_y = Times(Int(y_coeff), self.y)
+        lhs = Plus(self.x_coeff_1, two_y, Int(lhs_const))
         rhs = Plus(Int(upper_bound), Int(rhs_const))
         formula = LE(lhs, rhs)
 
-        extractor = FormulaDataExtractor()
-        data = extractor.extract(formula)
+        data = self.extractor.extract(formula)
 
         assert data.formula_type == FormulaType.LE
         assert data.const == expected_upper_bound
-        assert data.coeffs[x] == x_coeff
-        assert data.coeffs[y] == y_coeff
+        assert data.coeffs[self.x] == x_coeff
+        assert data.coeffs[self.y] == y_coeff
         assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
@@ -202,18 +197,16 @@ class TestFormulaDataExtractor:
         y_coeff = 2
         expected_const = rhs_const - lhs_const
 
-        x = Symbol("x", INT)
-        y = Symbol("y", INT)
-        lhs = Plus(x, Times(Int(y_coeff), y), Int(lhs_const))
+        two_y = Times(Int(y_coeff), self.y)
+        lhs = Plus(self.x_coeff_1, two_y, Int(lhs_const))
         formula = Equals(lhs, Int(rhs_const))
 
-        extractor = FormulaDataExtractor()
-        data = extractor.extract(formula)
+        data = self.extractor.extract(formula)
 
         assert data.formula_type == FormulaType.EQ
         assert data.const == expected_const
-        assert data.coeffs[x] == x_coeff
-        assert data.coeffs[y] == y_coeff
+        assert data.coeffs[self.x] == x_coeff
+        assert data.coeffs[self.y] == y_coeff
         assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
@@ -227,19 +220,28 @@ class TestFormulaDataExtractor:
         const = -3
         coeff_count = 2
 
-        x = Symbol("x", INT)
-        y = Symbol("y", INT)
-
-        lhs = Minus(x, y)
+        lhs = Plus(self.x_coeff_1, Times(Int(-1), self.y))
         formula = Equals(lhs, Int(const))
 
-        extractor = FormulaDataExtractor()
-        data = extractor.extract(formula)
+        data = self.extractor.extract(formula)
 
         assert data.formula_type == FormulaType.EQ
         assert data.const == const
         assert len(data.coeffs) == coeff_count
-        assert data.coeffs[x] == x_coeff
-        assert data.coeffs[y] == y_coeff
+        assert data.coeffs[self.x] == x_coeff
+        assert data.coeffs[self.y] == y_coeff
         assert data.vars == {"x", "y"}
+        assert not data.has_negation_before_bool_var
+
+    def test_extract_var_equals_const(self):
+        """Test extracting data from a formula: x = 10."""
+        const = 10
+
+        data = self.extractor.extract(Equals(self.x_coeff_1, Int(const)))
+
+        assert data.formula_type == FormulaType.EQ
+        assert data.const == const
+        assert len(data.coeffs) == 1
+        assert data.coeffs[self.x] == 1
+        assert data.vars == {"x"}
         assert not data.has_negation_before_bool_var
