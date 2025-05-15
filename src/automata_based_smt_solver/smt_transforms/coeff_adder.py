@@ -9,4 +9,4 @@ class CoeffAdder(IdentityDagWalker):
         super().__init__()
 
     def walk_symbol(self, formula, args, **kwargs):
-        return Times(formula, Int(1))
+        return Times(Int(1), formula)
