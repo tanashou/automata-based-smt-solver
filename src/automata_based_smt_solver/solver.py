@@ -14,6 +14,9 @@ from automata_based_smt_solver.smt_transforms.negation_eliminator import (
     NegationEliminator,
 )
 from automata_based_smt_solver.smt_transforms.smtlib_reader import SMTLIBReader
+from automata_based_smt_solver.smt_transforms.symbol_coeff_normalizer import (
+    SymbolCoeffNormalizer,
+)
 
 
 class Solver:
@@ -25,13 +28,27 @@ class Solver:
         cnf = pysmt.rewritings.cnf(formula)
         negation_eliminated_cnf = NegationEliminator().walk(cnf)
         distributed = TimesDistributor().walk(negation_eliminated_cnf)
-        return CalculatingBracketExpander().walk(distributed)
+        normalized_coeff = SymbolCoeffNormalizer().walk(distributed)
+        return CalculatingBracketExpander().walk(normalized_coeff)
 
     def _extract_data(self, cnf: FNode) -> list[list[FormulaData]]:
         result = []
         data_extractor = FormulaDataExtractor()
-        for clause in cnf.args():
-            literals = [data_extractor.extract(literal) for literal in clause.args()]
+        if cnf.is_and():
+            for clause in cnf.args():
+                if clause.is_or():
+                    literals = [
+                        data_extractor.extract(literal) for literal in clause.args()
+                    ]
+                    result.append(literals)
+                else:
+                    literal = data_extractor.extract(clause)
+                    result.append([literal])
+        elif cnf.is_or():
+            literals = [data_extractor.extract(literal) for literal in cnf.args()]
             result.append(literals)
+        else:
+            literal = data_extractor.extract(cnf)
+            result.append([literal])
 
         return result
