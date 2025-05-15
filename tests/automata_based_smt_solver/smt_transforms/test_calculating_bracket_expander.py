@@ -36,7 +36,7 @@ def is_formula_equal(a, b):
     return result
 
 
-class TestBracketExpander:
+class TestCalculatingBracketExpander:
     def setup_method(self):
         self.eliminator = CalculatingBracketExpander()
         self.x = Symbol("x", INT)
