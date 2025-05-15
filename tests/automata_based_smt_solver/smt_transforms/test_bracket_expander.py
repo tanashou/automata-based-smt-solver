@@ -42,17 +42,20 @@ class TestBracketExpander:
         self.x = Symbol("x", INT)
         self.y = Symbol("y", INT)
         self.z = Symbol("z", INT)
+        self.x_coeff_1 = Times(Int(1), self.x)
+        self.y_coeff_1 = Times(Int(1), self.y)
+        self.z_coeff_1 = Times(Int(1), self.z)
 
     def test_flatten_plus(self):
         # x + (y + z) → x + y + z
-        term = Plus(self.x, Plus(self.y, self.z))
+        term = Plus(self.x_coeff_1, Plus(self.y_coeff_1, self.z_coeff_1))
         result = self.eliminator.walk(term)
-        expected = Plus(self.x, self.y, self.z)
+        expected = Plus(self.x_coeff_1, self.y_coeff_1, self.z_coeff_1)
         assert is_formula_equal(result, expected), f"Expected {expected}, got {result}"
 
     def test_flatten_times(self):
         # 2 * (3 * x) → 6 * x
-        term = Times(Int(2), Times(Int(3), self.x))
+        term = Times(Int(2), Times(Int(3), self.x_coeff_1))
         result = self.eliminator.walk(term)
         expected = Times(Int(6), self.x)
         assert is_formula_equal(result, expected), f"Expected {expected}, got {result}"
@@ -80,7 +83,14 @@ class TestBracketExpander:
 
     def test_nested_times_with_vars(self):
         # 2 * (3 * (5 * x)) → 30 * x
-        term = Times(Int(2), Times(Int(3), Times(Int(5), self.x)))
+        term = Times(Int(2), Times(Int(3), Times(Int(5), self.x_coeff_1)))
         result = self.eliminator.walk(term)
         expected = Times(Int(30), self.x)
+        assert is_formula_equal(result, expected), f"Expected {expected}, got {result}"
+
+    def test_coeff_1(self):
+        # 1 * x → 1 * x
+        term = Times(Int(1), self.x)
+        result = self.eliminator.walk(term)
+        expected = Times(Int(1), self.x)
         assert is_formula_equal(result, expected), f"Expected {expected}, got {result}"
