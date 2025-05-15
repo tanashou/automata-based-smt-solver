@@ -102,23 +102,10 @@ class FormulaDataExtractor(DagWalker):
         for arg in args:
             if arg.is_int_constant():
                 self._const += arg.constant_value() * (-self._side_sign)
-            elif arg.is_symbol():  # if the coeff is 1, it should be a symbol in Plus
-                self._coeffs[arg] += self._side_sign
         return formula
 
     def walk_minus(self, formula, args, **kwargs):
-        minuend, *subtrahends = args
-
-        if minuend.is_int_constant():
-            self._const += minuend.constant_value() * (-self._side_sign)
-        elif minuend.is_symbol():
-            self._coeffs[minuend] += self._side_sign
-
-        for sub in subtrahends:
-            if sub.is_int_constant():
-                self._const -= sub.constant_value() * (-self._side_sign)
-            elif sub.is_symbol():
-                self._coeffs[sub] -= self._side_sign
+        # Minus is removed by pysmt.rewriter.TimesDistributor
         return formula
 
     def walk_and(self, formula, args, **kwargs):
