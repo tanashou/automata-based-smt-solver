@@ -1,5 +1,5 @@
 from pysmt.shortcuts import Int, Plus, Symbol, Times
-from pysmt.typing import INT
+from pysmt.typing import BOOL, INT
 
 from automata_based_smt_solver.smt_transforms.symbol_coeff_normalizer import (
     SymbolCoeffNormalizer,
@@ -11,6 +11,7 @@ class TestSymbolCoeffNormalizer:
         self.normalizer = SymbolCoeffNormalizer()
         self.x = Symbol("x", INT)
         self.y = Symbol("y", INT)
+        self.b = Symbol("b", BOOL)
 
     def test_symbol_is_wrapped(self):
         # x -> 1 * x
@@ -36,4 +37,10 @@ class TestSymbolCoeffNormalizer:
         expr = Times(Int(3), Plus(self.x, self.y))
         result = self.normalizer.walk(expr)
         expected = Times(Int(3), Plus(Times(Int(1), self.x), Times(Int(1), self.y)))
+        assert result == expected, f"Expected {expected}, got {result}"
+
+    def test_bool_var(self):
+        # b (BOOL) -> b (should not be wrapped)
+        result = self.normalizer.walk(self.b)
+        expected = self.b
         assert result == expected, f"Expected {expected}, got {result}"
