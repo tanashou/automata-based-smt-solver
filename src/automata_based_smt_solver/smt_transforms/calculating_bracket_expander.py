@@ -46,9 +46,8 @@ class CalculatingBracketExpander(IdentityDagWalker):
 
         if int_prod == 0:
             return Int(0)
-        # Only include the constant if it's not 1, or if there are no other args
-        if int_prod != 1 or not flat_args:
-            flat_args = [Int(int_prod), *flat_args]
+        # Always include the constant, even if it is 1
+        flat_args = [Int(int_prod), *flat_args]
         if len(flat_args) == 1:
             return flat_args[0]
         return Times(flat_args)
