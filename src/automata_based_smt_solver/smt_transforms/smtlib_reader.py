@@ -13,9 +13,9 @@ class SMTLIBReader:
         self.parser = SmtLibParser()
 
     def from_smt_lib(
-        self, source: str, *, is_file: bool = False
+        self, source: str, *, is_file_path: bool = False
     ) -> tuple[SatStatus, FNode]:
-        if is_file:
+        if is_file_path:
             smt_script = self.parser.get_script_fname(source)
         else:
             smt_script = self.parser.get_script(StringIO(source))
@@ -26,6 +26,6 @@ class SMTLIBReader:
 
     def _get_sat_status(self, script: SmtLibScript) -> SatStatus:
         for cmd in script.commands:
-            if cmd.name == smtcmd.SET_INFO:
+            if cmd.name == smtcmd.SET_INFO and cmd.args[0] == ":status":
                 return SatStatus(cmd.args[1])
         return SatStatus.UNKNOWN
