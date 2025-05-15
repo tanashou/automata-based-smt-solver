@@ -4,7 +4,7 @@ from pysmt.shortcuts import Int, Times
 from pysmt.walkers import IdentityDagWalker
 
 
-class CoeffAdder(IdentityDagWalker):
+class SymbolCoeffNormalizer(IdentityDagWalker):
     def __init__(self) -> None:
         super().__init__()
 
