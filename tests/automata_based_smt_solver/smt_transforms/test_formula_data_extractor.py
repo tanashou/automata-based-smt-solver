@@ -243,3 +243,18 @@ class TestFormulaDataExtractor:
         assert data.coeffs[y] == y_coeff
         assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
+
+    def test_extract_var_equals_const(self):
+        """Test extracting data from a formula: x = 10."""
+        x = Symbol("x", INT)
+        const = 10
+
+        extractor = FormulaDataExtractor()
+        data = extractor.extract(Equals(x, Int(const)))
+
+        assert data.formula_type == FormulaType.EQ
+        assert data.const == const
+        assert len(data.coeffs) == 1
+        assert data.coeffs[x] == 1
+        assert data.vars == {"x"}
+        assert not data.has_negation_before_bool_var
