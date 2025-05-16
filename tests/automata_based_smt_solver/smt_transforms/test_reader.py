@@ -11,7 +11,7 @@ class TestReader:
             file_path_str = str(file_path)
 
             # Test each benchmark file
-            status, formula = reader.from_smt_lib(file_path_str, is_file=True)
+            status, formula = reader.from_smt_lib(file_path_str, is_file_path=True)
 
             # Check formula basics (should work for all files)
             assert isinstance(formula, FNode)
@@ -28,7 +28,7 @@ class TestReader:
             # Convert Path to string for pysmt compatibility
             file_path_str = str(file_path)
 
-            status, _ = reader.from_smt_lib(file_path_str, is_file=True)
+            status, _ = reader.from_smt_lib(file_path_str, is_file_path=True)
             assert status == SatStatus(expected_status), (
                 f"Wrong status for {file_path.name}"
             )
@@ -43,7 +43,7 @@ class TestReader:
         (assert (= x y))
         (check-sat)
         """
-        status, formula = reader.from_smt_lib(smt_content, is_file=False)
+        status, formula = reader.from_smt_lib(smt_content, is_file_path=False)
 
         # Check status
         assert status == SatStatus.SAT
@@ -64,7 +64,7 @@ class TestReader:
         (assert (> x 0))
         (check-sat)
         """
-        status, formula = reader.from_smt_lib(smt_content, is_file=False)
+        status, formula = reader.from_smt_lib(smt_content, is_file_path=False)
 
         # Status should be unknown as there's no status info
         assert status == SatStatus.UNKNOWN
