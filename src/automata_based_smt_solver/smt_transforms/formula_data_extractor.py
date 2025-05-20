@@ -54,6 +54,9 @@ class FormulaDataExtractor(DagWalker):
         elif formula.is_lt():
             self._formula_type = FormulaType.LE
             self._const -= 1
+        else:
+            msg = "Unsupported formula type. Only EQ, LE, and LT are supported."
+            raise UnsupportedOperatorError(msg)
 
         lhs, rhs = formula.args()
         if lhs.is_int_constant():
