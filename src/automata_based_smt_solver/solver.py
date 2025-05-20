@@ -28,7 +28,6 @@ class Solver:
     def _rewrite_formula(self, formula: FNode) -> FNode:
         cnf = pysmt.rewritings.cnf(formula)
         negation_eliminated_cnf = NegationEliminator().walk(cnf)
-        # Flatten nested ORs
         flattened_cnf = OrFlattener().walk(negation_eliminated_cnf)
         distributed = TimesDistributor().walk(flattened_cnf)
         normalized_coeff = SymbolCoeffNormalizer().walk(distributed)
