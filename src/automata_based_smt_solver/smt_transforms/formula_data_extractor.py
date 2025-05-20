@@ -21,7 +21,7 @@ class FormulaData:
 
 class FormulaDataExtractor(DagWalker):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(invalidate_memoization=True)
         self._coeffs: defaultdict[FNode, int] = defaultdict(int)
         self._const: int = 0
         self._formula_type: FormulaType = FormulaType.BOOL
