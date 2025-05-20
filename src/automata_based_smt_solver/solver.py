@@ -13,6 +13,7 @@ from automata_based_smt_solver.smt_transforms.formula_data_extractor import (
 from automata_based_smt_solver.smt_transforms.negation_eliminator import (
     NegationEliminator,
 )
+from automata_based_smt_solver.smt_transforms.or_flattener import OrFlattener
 from automata_based_smt_solver.smt_transforms.smtlib_reader import SMTLIBReader
 from automata_based_smt_solver.smt_transforms.symbol_coeff_normalizer import (
     SymbolCoeffNormalizer,
@@ -27,7 +28,9 @@ class Solver:
     def _rewrite_formula(self, formula: FNode) -> FNode:
         cnf = pysmt.rewritings.cnf(formula)
         negation_eliminated_cnf = NegationEliminator().walk(cnf)
-        distributed = TimesDistributor().walk(negation_eliminated_cnf)
+        # Flatten nested ORs
+        flattened_cnf = OrFlattener().walk(negation_eliminated_cnf)
+        distributed = TimesDistributor().walk(flattened_cnf)
         normalized_coeff = SymbolCoeffNormalizer().walk(distributed)
         return CalculatingBracketExpander().walk(normalized_coeff)
 
