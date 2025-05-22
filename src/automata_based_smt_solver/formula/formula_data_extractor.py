@@ -7,7 +7,7 @@ from pysmt.fnode import FNode
 from pysmt.typing import BOOL
 from pysmt.walkers import DagWalker
 
-from automata_based_smt_solver.formula_rewriter.formula_type import FormulaType
+from automata_based_smt_solver.formula.formula_type import FormulaType
 
 
 @dataclass
