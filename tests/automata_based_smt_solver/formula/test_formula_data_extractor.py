@@ -4,17 +4,17 @@ from pysmt.shortcuts import LE, And, Equals, Int, Not, Plus, Symbol, Times
 from pysmt.typing import BOOL, INT
 
 from automata_based_smt_solver.formula import (
+    DataExtractor,
     FormulaData,
-    FormulaDataExtractor,
     FormulaType,
 )
 
 
 # If the coeff of symbol is 1, it should be Times(Int(1), symbol).
 # No Minus is allowed. x - y should be represented as x + (-1) * y.
-class TestFormulaDataExtractor:
+class TestDataExtractor:
     def setup_method(self):
-        self.extractor = FormulaDataExtractor()
+        self.extractor = DataExtractor()
         self.x = Symbol("x", INT)
         self.y = Symbol("y", INT)
         self.z = Symbol("z", INT)
