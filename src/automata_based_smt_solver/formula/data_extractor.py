@@ -1,25 +1,19 @@
 # ruff: noqa: ANN201, ANN204, ANN001, ANN003, ARG002, D101, D107, D102
 from collections import defaultdict
-from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from pysmt.exceptions import UnsupportedOperatorError
-from pysmt.fnode import FNode
 from pysmt.typing import BOOL
 from pysmt.walkers import DagWalker
 
+from automata_based_smt_solver.formula.formula_data import FormulaData
 from automata_based_smt_solver.formula.formula_type import FormulaType
 
-
-@dataclass
-class FormulaData:
-    coeffs: dict[FNode, int]
-    vars: set[str]
-    const: int
-    formula_type: FormulaType
-    has_negation_before_bool_var: bool
+if TYPE_CHECKING:
+    from pysmt.fnode import FNode
 
 
-class FormulaDataExtractor(DagWalker):
+class DataExtractor(DagWalker):
     def __init__(self) -> None:
         super().__init__(invalidate_memoization=True)
         self._coeffs: defaultdict[FNode, int] = defaultdict(int)

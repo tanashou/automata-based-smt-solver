@@ -5,10 +5,7 @@ from pysmt.fnode import FNode
 from automata_based_smt_solver.automata.input_symbol import InputSymbol
 from automata_based_smt_solver.automata.nfa import NFA
 from automata_based_smt_solver.automata.state import INITIAL_STATE
-from automata_based_smt_solver.formula.formula_data_extractor import (
-    FormulaDataExtractor,
-)
-from automata_based_smt_solver.formula.formula_type import FormulaType
+from automata_based_smt_solver.formula import DataExtractor, FormulaType
 
 
 # 1つのリテラルに対してnfaを作成していくクラス
@@ -20,7 +17,7 @@ class AutomataBuilder:
         *,
         create_all: bool = False,
     ) -> None:
-        extracted = FormulaDataExtractor().extract(formula)
+        extracted = DataExtractor().extract(formula)
 
         self.coeffs: dict[FNode, int] = extracted.coeffs
         self.const: int = extracted.const

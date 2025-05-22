@@ -3,7 +3,7 @@ from pysmt.fnode import FNode
 from pysmt.rewritings import TimesDistributor
 from pysmt.smtlib.parser import SmtLibParser
 
-from automata_based_smt_solver.formula import FormulaData, FormulaDataExtractor
+from automata_based_smt_solver.formula import DataExtractor, FormulaData
 from automata_based_smt_solver.formula.rewritings import (
     CalculatingBracketExpander,
     NegationEliminator,
@@ -26,7 +26,7 @@ class Solver:
 
     def _extract_data(self, cnf: FNode) -> list[list[FormulaData]]:
         result = []
-        data_extractor = FormulaDataExtractor()
+        data_extractor = DataExtractor()
         if cnf.is_and():
             for clause in cnf.args():
                 if clause.is_or():
