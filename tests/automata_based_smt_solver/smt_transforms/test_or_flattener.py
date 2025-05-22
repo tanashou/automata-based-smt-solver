@@ -1,7 +1,7 @@
 from pysmt.shortcuts import Or, Symbol
 from pysmt.typing import BOOL
 
-from automata_based_smt_solver.smt_transforms.or_flattener import OrFlattener
+from automata_based_smt_solver.formula_rewriter.or_flattener import OrFlattener
 
 
 class TestOrFlattener:

@@ -1,7 +1,7 @@
 from pysmt.shortcuts import Int, Plus, Symbol, Times
 from pysmt.typing import BOOL, INT
 
-from automata_based_smt_solver.smt_transforms.symbol_coeff_normalizer import (
+from automata_based_smt_solver.formula_rewriter.symbol_coeff_normalizer import (
     SymbolCoeffNormalizer,
 )
 
