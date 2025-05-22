@@ -1,4 +1,5 @@
-from automata_based_smt_solver.solver import SMTLIBReader, Solver
+from automata_based_smt_solver.formula.smtlib_reader import SMTLIBReader
+from automata_based_smt_solver.solver import Solver
 
 
 class TestSolver:

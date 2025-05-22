@@ -3,10 +3,9 @@ from pysmt.fnode import FNode
 from pysmt.rewritings import TimesDistributor
 from pysmt.smtlib.parser import SmtLibParser
 
-from automata_based_smt_solver.formula_rewriter import (
+from automata_based_smt_solver.formula import FormulaData, FormulaDataExtractor
+from automata_based_smt_solver.formula.rewritings import (
     CalculatingBracketExpander,
-    FormulaData,
-    FormulaDataExtractor,
     NegationEliminator,
     OrFlattener,
     SymbolCoeffNormalizer,
