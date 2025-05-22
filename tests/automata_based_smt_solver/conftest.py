@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from automata_based_smt_solver.smt_transforms.smtlib_reader import SMTLIBReader
+from automata_based_smt_solver.formula.smtlib_reader import SMTLIBReader
 
 
 @pytest.fixture
@@ -108,14 +108,14 @@ def benchmark_files_by_status(request, benchmark_dir):
 @pytest.fixture
 def int_incompleteness1_formula(reader, int_incompleteness1_path):
     """Parse the benchmark file and return the formula."""
-    _, formula = reader.from_smt_lib(str(int_incompleteness1_path), is_file=True)
+    _, formula = reader.from_smt_lib(str(int_incompleteness1_path), is_file_path=True)
     return formula
 
 
 @pytest.fixture
 def bignum_lia1_formula(reader, bignum_lia1_path):
     """Parse the benchmark file and return the formula."""
-    _, formula = reader.from_smt_lib(str(bignum_lia1_path), is_file=True)
+    _, formula = reader.from_smt_lib(str(bignum_lia1_path), is_file_path=True)
     return formula
 
 
@@ -124,6 +124,6 @@ def all_parsed_formulas(reader, benchmark_file_paths):
     """Parse all benchmark files and return their formulas."""
     results = []
     for file_path in benchmark_file_paths:
-        _, formula = reader.from_smt_lib(str(file_path), is_file=True)
+        _, formula = reader.from_smt_lib(str(file_path), is_file_path=True)
         results.append((file_path.name, formula))
     return results

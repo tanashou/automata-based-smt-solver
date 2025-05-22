@@ -1,7 +1,7 @@
 from pysmt.shortcuts import GE, GT, LE, LT, Equals, Not, Or, Symbol
 from pysmt.typing import INT
 
-from automata_based_smt_solver.smt_transforms.negation_eliminator import (
+from automata_based_smt_solver.formula.rewritings import (
     NegationEliminator,
 )
 

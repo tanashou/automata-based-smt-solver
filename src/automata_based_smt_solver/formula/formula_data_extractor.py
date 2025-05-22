@@ -7,7 +7,7 @@ from pysmt.fnode import FNode
 from pysmt.typing import BOOL
 from pysmt.walkers import DagWalker
 
-from automata_based_smt_solver.smt_transforms.formula_type import FormulaType
+from automata_based_smt_solver.formula.formula_type import FormulaType
 
 
 @dataclass
@@ -21,7 +21,7 @@ class FormulaData:
 
 class FormulaDataExtractor(DagWalker):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(invalidate_memoization=True)
         self._coeffs: defaultdict[FNode, int] = defaultdict(int)
         self._const: int = 0
         self._formula_type: FormulaType = FormulaType.BOOL
@@ -54,6 +54,9 @@ class FormulaDataExtractor(DagWalker):
         elif formula.is_lt():
             self._formula_type = FormulaType.LE
             self._const -= 1
+        else:
+            msg = "Unsupported formula type. Only EQ, LE, and LT are supported."
+            raise UnsupportedOperatorError(msg)
 
         lhs, rhs = formula.args()
         if lhs.is_int_constant():
