@@ -3,19 +3,12 @@ from pysmt.fnode import FNode
 from pysmt.rewritings import TimesDistributor
 from pysmt.smtlib.parser import SmtLibParser
 
-from automata_based_smt_solver.smt_transforms.calculating_bracket_expander import (
+from automata_based_smt_solver.smt_transforms import (
     CalculatingBracketExpander,
-)
-from automata_based_smt_solver.smt_transforms.formula_data_extractor import (
     FormulaData,
     FormulaDataExtractor,
-)
-from automata_based_smt_solver.smt_transforms.negation_eliminator import (
     NegationEliminator,
-)
-from automata_based_smt_solver.smt_transforms.or_flattener import OrFlattener
-from automata_based_smt_solver.smt_transforms.smtlib_reader import SMTLIBReader
-from automata_based_smt_solver.smt_transforms.symbol_coeff_normalizer import (
+    OrFlattener,
     SymbolCoeffNormalizer,
 )
 
@@ -23,7 +16,6 @@ from automata_based_smt_solver.smt_transforms.symbol_coeff_normalizer import (
 class Solver:
     def __init__(self) -> None:
         self.parser = SmtLibParser()
-        self.reader = SMTLIBReader()
 
     def _rewrite_formula(self, formula: FNode) -> FNode:
         cnf = pysmt.rewritings.cnf(formula)
@@ -54,3 +46,8 @@ class Solver:
             result.append([literal])
 
         return result
+
+    # ファイルはユーザー側がpysmt.parser を使って FNode に変換してもらう
+    # 渡された FNode を AND でラップする
+    def add(self, formula: FNode) -> None:
+        pass
