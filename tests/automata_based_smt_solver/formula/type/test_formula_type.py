@@ -1,4 +1,4 @@
-from automata_based_smt_solver.formula import FormulaType
+from automata_based_smt_solver.formula.type import FormulaType
 
 
 class TestFormulaType:

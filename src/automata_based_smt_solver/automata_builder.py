@@ -5,7 +5,8 @@ from pysmt.fnode import FNode
 from automata_based_smt_solver.automata.input_symbol import InputSymbol
 from automata_based_smt_solver.automata.nfa import NFA
 from automata_based_smt_solver.automata.state import INITIAL_STATE
-from automata_based_smt_solver.formula import DataExtractor, FormulaType
+from automata_based_smt_solver.formula import DataExtractor
+from automata_based_smt_solver.formula.type import FormulaType
 
 
 # 1つのリテラルに対してnfaを作成していくクラス
