@@ -1,41 +1,35 @@
 from itertools import product
 
-from pysmt.fnode import FNode
-
 from automata_based_smt_solver.automata.input_symbol import InputSymbol
 from automata_based_smt_solver.automata.nfa import NFA
 from automata_based_smt_solver.automata.state import INITIAL_STATE
-from automata_based_smt_solver.formula import DataExtractor
-from automata_based_smt_solver.formula.type import FormulaType
+from automata_based_smt_solver.formula.type import FormulaData, FormulaType
 
 
 # 1つのリテラルに対してnfaを作成していくクラス
 class AutomataBuilder:
     def __init__(
         self,
-        formula: FNode,
+        formula_data: FormulaData,
         all_vars_index_map: dict[str, int],
         *,
         create_all: bool = False,
     ) -> None:
-        extracted = DataExtractor().extract(formula)
-
-        self.coeffs: dict[FNode, int] = extracted.coeffs
-        self.const: int = extracted.const
-        self.formula_type: FormulaType = extracted.formula_type
-        self.has_negation_before_bool_var: bool = extracted.has_negation_before_bool_var
+        self.formula_data: FormulaData = formula_data
         self.create_all: bool = create_all  # for debug
 
         self.nfa = NFA()
-        self.nfa.add_state(self.const)
+        # initialize nfa
+        self.nfa.add_state(self.formula_data.const)
         self.nfa.set_input_symbols(
-            self._generate_input_symbols(all_vars_index_map, extracted.vars)
+            self._generate_input_symbols(all_vars_index_map, self.formula_data.vars)
         )
         self.nfa.set_initial_state(INITIAL_STATE)
-        self.nfa.add_final_state(self.const)
+        self.nfa.add_final_state(self.formula_data.const)
 
         self.dots: dict[InputSymbol, int] = self._calc_dots(all_vars_index_map)
-        self.work_list = [self.const]
+        self.work_list = [self.formula_data.const]
+
         self.__build_completed = False
 
     @property
@@ -57,7 +51,8 @@ class AutomataBuilder:
     def _calc_dots(self, all_vars_index_map: dict[str, int]) -> dict[InputSymbol, int]:
         result = {}
         var_coef_index_pairs = [
-            (coeff, all_vars_index_map[str(var)]) for var, coeff in self.coeffs.items()
+            (coeff, all_vars_index_map[str(var)])
+            for var, coeff in self.formula_data.coeffs.items()
         ]
         for symbol in self.nfa.input_symbols:
             result[symbol] = symbol.dot(var_coef_index_pairs)
@@ -65,13 +60,13 @@ class AutomataBuilder:
 
     def next(self) -> None:
         # yeild を使って 各種nfa変換関数を呼び出す
-        match self.formula_type:
+        match self.formula_data.formula_type:
             case FormulaType.EQ:
                 self.eq_to_nfa()
             case FormulaType.LE:
                 self.le_to_nfa()
             case FormulaType.BOOL:
-                if self.has_negation_before_bool_var:
+                if self.formula_data.has_negation_before_bool_var:
                     self.false_to_nfa()
                 else:
                     self.true_to_nfa()
@@ -126,7 +121,7 @@ class AutomataBuilder:
 
     def false_to_nfa(self) -> None:
         # 1 を含むsymbolでfinal stateに遷移するnfaを作成する。
-        final_state = self.const
+        final_state = self.formula_data.const
         for symbol in self.nfa.input_symbols:
             dot_value = self.dots[symbol]
             if dot_value == 1:  # if the input_symbol includes 1
@@ -137,7 +132,7 @@ class AutomataBuilder:
 
     def true_to_nfa(self) -> None:
         # 0 を含むsymbolでfinal stateに遷移するnfaを作成する。
-        final_state = self.const
+        final_state = self.formula_data.const
         for symbol in self.nfa.input_symbols:
             dot_value = self.dots[symbol]
             if dot_value == 0:
