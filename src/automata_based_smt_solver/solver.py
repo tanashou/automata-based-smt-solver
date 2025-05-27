@@ -1,6 +1,7 @@
 import pysmt.rewritings
 from pysmt.fnode import FNode
 from pysmt.rewritings import TimesDistributor
+from pysmt.shortcuts import And
 from pysmt.smtlib.parser import SmtLibParser
 
 from automata_based_smt_solver.formula import DataExtractor
@@ -10,12 +11,14 @@ from automata_based_smt_solver.formula.rewritings import (
     OrFlattener,
     SymbolCoeffNormalizer,
 )
-from automata_based_smt_solver.formula.type.formula_data import FormulaData
+from automata_based_smt_solver.formula.type import FormulaData
+from automata_based_smt_solver.sat_status import SatStatus
 
 
 class Solver:
     def __init__(self) -> None:
         self.parser = SmtLibParser()
+        self._formulas: list[FNode] = []
 
     def _rewrite_formula(self, formula: FNode) -> FNode:
         cnf = pysmt.rewritings.cnf(formula)
@@ -47,7 +50,21 @@ class Solver:
 
         return result
 
-    # ファイルはユーザー側がpysmt.parser を使って FNode に変換してもらう
-    # 渡された FNode を AND でラップする
     def add(self, formula: FNode) -> None:
-        pass
+        self._formulas.append(formula)
+
+    def solve(self) -> SatStatus:
+        if not self._formulas:
+            msg = "No formulas to solve."
+            raise ValueError(msg)
+
+        formula = And(self._formulas).simplify()
+        cnf = self._rewrite_formula(formula)
+        cnf_data = self._extract_data(cnf)
+
+        for clause_data in cnf_data:
+            for _ in clause_data:
+                # AutomataBuilder に渡す
+                pass
+
+        return SatStatus.UNKNOWN
