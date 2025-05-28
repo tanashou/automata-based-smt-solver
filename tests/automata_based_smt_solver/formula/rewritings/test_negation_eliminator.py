@@ -36,7 +36,7 @@ class TestNegationEliminator:
         # Apply the negation eliminator
         result = self.eliminator.walk(formula)
 
-        # Expected: (y <= x)  # noqa: ERA001
+        # Expected: (y <= x)
         expected = LE(self.y, self.x)
 
         assert result == expected, f"Expected {expected}, got {result}"
@@ -49,7 +49,7 @@ class TestNegationEliminator:
         # Apply the negation eliminator
         result = self.eliminator.walk(formula)
 
-        # Expected: x > y  # noqa: ERA001
+        # Expected: x > y
         expected = GT(self.x, self.y)
 
         assert result == expected, f"Expected {expected}, got {result}"
@@ -62,7 +62,7 @@ class TestNegationEliminator:
         # Apply the negation eliminator
         result = self.eliminator.walk(formula)
 
-        # Expected: x <= y  # noqa: ERA001
+        # Expected: x <= y
         expected = LE(self.x, self.y)
 
         assert result == expected, f"Expected {expected}, got {result}"
@@ -75,7 +75,7 @@ class TestNegationEliminator:
         # Apply the negation eliminator
         result = self.eliminator.walk(formula)
 
-        # Expected: x < y  # noqa: ERA001
+        # Expected: x < y
         expected = LT(self.x, self.y)
 
         assert result == expected, f"Expected {expected}, got {result}"
@@ -89,7 +89,7 @@ class TestNegationEliminator:
         # Apply the negation eliminator
         result = self.eliminator.walk(formula)
 
-        # Expected: x <= y  # noqa: ERA001
+        # Expected: x <= y
         expected = LE(self.x, self.y)
 
         assert result == expected, f"Expected {expected}, got {result}"
