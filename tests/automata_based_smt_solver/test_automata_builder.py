@@ -17,63 +17,60 @@ class TestAutomataBuilder:
             name: index for index, name in enumerate(self.all_vars)
         }
 
-    def test_generate_input_symbols(self):
-        # x = 1
-        coeffs = {self.x: 1}
+    @pytest.mark.parametrize(
+        ("coeffs", "vars_set", "mask", "const", "expected_symbols"),
+        [
+            # x = 0
+            (
+                {"x": 1},
+                {"x"},
+                "100",
+                0,
+                {"000", "100"},
+            ),
+            # x + y = 0
+            (
+                {"x": 1, "y": 1},
+                {"x", "y"},
+                "110",
+                0,
+                {"000", "010", "100", "110"},
+            ),
+            # x + z = 0
+            (
+                {"x": 1, "z": 1},
+                {"x", "z"},
+                "101",
+                0,
+                {"000", "001", "100", "101"},
+            ),
+            # x + y + z = 0
+            (
+                {"x": 1, "y": 1, "z": 1},
+                {"x", "y", "z"},
+                "111",
+                0,
+                {"000", "001", "010", "011", "100", "101", "110", "111"},
+            ),
+        ],
+    )
+    def test_generate_input_symbols_parametrized(
+        self, coeffs, vars_set, mask, const, expected_symbols
+    ):
+        var_map = {"x": self.x, "y": self.y, "z": self.z}
+        coeffs_sym = {var_map[k]: v for k, v in coeffs.items()}
+        vars_sym = {var_map[k] for k in vars_set}
         formula_data = FormulaData(
-            coeffs=coeffs,
-            vars={self.x},
-            const=1,
+            coeffs=coeffs_sym,
+            vars=vars_sym,
+            const=const,
             formula_type=FormulaType.EQ,
             has_negation_before_bool_var=False,
         )
         builder = AutomataBuilder(formula_data, self.all_vars, self.all_var_index_map)
         input_symbols = builder._generate_input_symbols(self.all_vars)
-        mask = "100"
-        expected_symbols = {InputSymbol("000", mask), InputSymbol("100", mask)}
-        assert input_symbols == expected_symbols
-
-    def test_generate_input_symbols_with_multiple_vars(self):
-        # x + y = 2
-        coeffs = {self.x: 1, self.y: 1}
-        formula_data = FormulaData(
-            coeffs=coeffs,
-            vars={self.x, self.y},
-            const=2,
-            formula_type=FormulaType.EQ,
-            has_negation_before_bool_var=False,
-        )
-        builder = AutomataBuilder(formula_data, self.all_vars, self.all_var_index_map)
-        input_symbols = builder._generate_input_symbols(self.all_vars)
-        mask = "110"
-        expected_symbols = {
-            InputSymbol("000", mask),
-            InputSymbol("010", mask),
-            InputSymbol("100", mask),
-            InputSymbol("110", mask),
-        }
-        assert input_symbols == expected_symbols
-
-    def test_generate_input_symbols_mask_and_symbols(self):
-        # x + z = 3, all_vars = [x, y, z]
-        coeffs = {self.x: 1, self.z: 1}
-        formula_data = FormulaData(
-            coeffs=coeffs,
-            vars={self.x, self.z},
-            const=3,
-            formula_type=FormulaType.EQ,
-            has_negation_before_bool_var=False,
-        )
-        builder = AutomataBuilder(formula_data, self.all_vars, self.all_var_index_map)
-        input_symbols = builder._generate_input_symbols(self.all_vars)
-        mask = "101"
-        expected_symbols = {
-            InputSymbol("000", mask),
-            InputSymbol("001", mask),
-            InputSymbol("100", mask),
-            InputSymbol("101", mask),
-        }
-        assert input_symbols == expected_symbols
+        expected = {InputSymbol(bits, mask) for bits in expected_symbols}
+        assert input_symbols == expected
 
     @pytest.mark.parametrize(
         ("coeffs", "vars_set", "mask", "expected_dots"),
