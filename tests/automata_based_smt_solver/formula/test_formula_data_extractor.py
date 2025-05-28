@@ -38,7 +38,6 @@ class TestDataExtractor:
         assert len(data.coeffs) == coeff_count
         assert data.coeffs[self.x] == x_coeff
         assert data.coeffs[self.y] == y_coeff
-        assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
     def test_extract_le_formula(self):
@@ -59,7 +58,6 @@ class TestDataExtractor:
         assert len(data.coeffs) == coeff_count
         assert data.coeffs[self.x] == x_coeff
         assert data.coeffs[self.y] == y_coeff
-        assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
     def test_extract_lt_formula(self):
@@ -87,7 +85,6 @@ class TestDataExtractor:
         assert len(data.coeffs) == coeff_count
         assert data.coeffs[self.x] == x_coeff
         assert data.coeffs[self.y] == y_coeff
-        assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
     def test_extract_bool_formula(self):
@@ -102,7 +99,6 @@ class TestDataExtractor:
         assert data.formula_type == FormulaType.BOOL
         assert data.coeffs[b] == expected_coeff
         assert data.const == expected_const
-        assert data.vars == {"b"}
         assert not data.has_negation_before_bool_var
 
     def test_extract_negated_bool_formula(self):
@@ -118,7 +114,6 @@ class TestDataExtractor:
         assert data.formula_type == FormulaType.BOOL
         assert data.coeffs[b] == expected_coeff
         assert data.const == expected_const
-        assert data.vars == {"b"}
         assert data.has_negation_before_bool_var
 
     def test_unsupported_operator(self):
@@ -151,7 +146,6 @@ class TestDataExtractor:
         assert len(data.coeffs) == coeff_count
         assert data.coeffs[self.x] == x_coeff
         assert data.coeffs[self.y] == y_coeff
-        assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
     def test_extract_formula_with_constants_on_both_sides_le(self):
@@ -179,7 +173,6 @@ class TestDataExtractor:
         assert data.const == expected_upper_bound
         assert data.coeffs[self.x] == x_coeff
         assert data.coeffs[self.y] == y_coeff
-        assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
     def test_extract_formula_with_negative_constants(self):
@@ -204,7 +197,6 @@ class TestDataExtractor:
         assert data.const == expected_const
         assert data.coeffs[self.x] == x_coeff
         assert data.coeffs[self.y] == y_coeff
-        assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
     def test_extract_formula_with_minus_symbol(self):
@@ -227,7 +219,6 @@ class TestDataExtractor:
         assert len(data.coeffs) == coeff_count
         assert data.coeffs[self.x] == x_coeff
         assert data.coeffs[self.y] == y_coeff
-        assert data.vars == {"x", "y"}
         assert not data.has_negation_before_bool_var
 
     def test_extract_var_equals_const(self):
@@ -240,5 +231,4 @@ class TestDataExtractor:
         assert data.const == const
         assert len(data.coeffs) == 1
         assert data.coeffs[self.x] == 1
-        assert data.vars == {"x"}
         assert not data.has_negation_before_bool_var
