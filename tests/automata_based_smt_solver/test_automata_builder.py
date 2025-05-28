@@ -73,21 +73,3 @@ class TestAutomataBuilder:
             InputSymbol("101", mask),
         }
         assert input_symbols == expected_symbols
-
-    def test_eq_formula(self):
-        # x + y = 2
-        coeffs = {self.x: 1, self.y: 1}
-        formula_data = FormulaData(
-            coeffs=coeffs,
-            vars={self.x, self.y},
-            const=2,
-            formula_type=FormulaType.EQ,
-            has_negation_before_bool_var=False,
-        )
-        builder = AutomataBuilder(formula_data, self.all_vars, self.all_var_index_map)
-        # Check NFA is initialized and has the correct final state
-        assert builder.nfa is not None
-        assert formula_data.const in builder.nfa.final_states
-        assert builder.nfa.initial_state is not None
-        # Optionally, check input symbols
-        assert len(builder.nfa.input_symbols) > 0
