@@ -232,3 +232,14 @@ class TestDataExtractor:
         assert len(data.coeffs) == 1
         assert data.coeffs[self.x] == 1
         assert not data.has_negation_before_bool_var
+
+    def test_extract_var_times_var_raises(self):
+        """Test that extracting data from a formula with var * var raises an error."""
+        from pysmt.exceptions import UnsupportedOperatorError
+
+        formula = Equals(Times(self.x, self.y), Int(0))
+        with pytest.raises(
+            UnsupportedOperatorError,
+            match="TIMES operator must have one int constant and one symbol.",
+        ):
+            self.extractor.extract(formula)
