@@ -18,12 +18,11 @@ class TestAutomataBuilder:
         }
 
     @pytest.mark.parametrize(
-        ("coeffs", "vars_set", "mask", "const", "expected_symbols"),
+        ("coeffs", "mask", "const", "expected_symbols"),
         [
             # x = 0
             (
                 {"x": 1},
-                {"x"},
                 "100",
                 0,
                 {"000", "100"},
@@ -31,7 +30,6 @@ class TestAutomataBuilder:
             # x + y = 0
             (
                 {"x": 1, "y": 1},
-                {"x", "y"},
                 "110",
                 0,
                 {"000", "010", "100", "110"},
@@ -39,7 +37,6 @@ class TestAutomataBuilder:
             # x + z = 0
             (
                 {"x": 1, "z": 1},
-                {"x", "z"},
                 "101",
                 0,
                 {"000", "001", "100", "101"},
@@ -47,7 +44,6 @@ class TestAutomataBuilder:
             # x + y + z = 0
             (
                 {"x": 1, "y": 1, "z": 1},
-                {"x", "y", "z"},
                 "111",
                 0,
                 {"000", "001", "010", "011", "100", "101", "110", "111"},
@@ -55,14 +51,12 @@ class TestAutomataBuilder:
         ],
     )
     def test_generate_input_symbols_parametrized(
-        self, coeffs, vars_set, mask, const, expected_symbols
+        self, coeffs, mask, const, expected_symbols
     ):
         var_map = {"x": self.x, "y": self.y, "z": self.z}
         coeffs_sym = {var_map[k]: v for k, v in coeffs.items()}
-        vars_sym = {var_map[k] for k in vars_set}
         formula_data = FormulaData(
             coeffs=coeffs_sym,
-            vars=vars_sym,
             const=const,
             formula_type=FormulaType.EQ,
             has_negation_before_bool_var=False,
@@ -73,13 +67,12 @@ class TestAutomataBuilder:
         assert input_symbols == expected
 
     @pytest.mark.parametrize(
-        ("coeffs", "vars_set", "mask", "expected_dots"),
+        ("coeffs", "mask", "expected_dots"),
         [
             # x = 1
             # coeff vector: [1, 0, 0]
             (
                 {"x": 1},
-                {"x"},
                 "100",
                 {
                     "000": 0,  # 0*1 + wildcard * 0 + wildcard * 0 = 0
@@ -90,7 +83,6 @@ class TestAutomataBuilder:
             # coeff vector: [1, 1, 0]
             (
                 {"x": 1, "y": 1},
-                {"x", "y"},
                 "110",
                 {
                     "000": 0,  # 0*1 + 0*1 + wildcard * 0 = 0
@@ -103,7 +95,6 @@ class TestAutomataBuilder:
             # coeff vector: [1, -1, 0]
             (
                 {"x": 1, "y": -1},
-                {"x", "y"},
                 "110",
                 {
                     "000": 0,  # 0*1 + 0*(-1) + wildcard * 0 = 0
@@ -116,7 +107,6 @@ class TestAutomataBuilder:
             # coeff vector: [1, 1, 1]
             (
                 {"x": 1, "y": 1, "z": 1},
-                {"x", "y", "z"},
                 "111",
                 {
                     "000": 0,  # 0*1 + 0*1 + 0*1 = 0
@@ -133,7 +123,6 @@ class TestAutomataBuilder:
             # coeff vector: [1, 5, -3]
             (
                 {"x": 1, "y": 5, "z": -3},
-                {"x", "y", "z"},
                 "111",
                 {
                     "000": 0,  # 0*1 + 0*5 + 0*(-3) = 0
@@ -148,14 +137,12 @@ class TestAutomataBuilder:
             ),
         ],
     )
-    def test_calc_dots_parametrized(self, coeffs, vars_set, mask, expected_dots):
+    def test_calc_dots_parametrized(self, coeffs, mask, expected_dots):
         # Map string variable names to actual symbols
         var_map = {"x": self.x, "y": self.y, "z": self.z}
         coeffs_sym = {var_map[k]: v for k, v in coeffs.items()}
-        vars_sym = {var_map[k] for k in vars_set}
         formula_data = FormulaData(
             coeffs=coeffs_sym,
-            vars=vars_sym,
             const=0,  # const is not used in dot calculation
             formula_type=FormulaType.EQ,
             has_negation_before_bool_var=False,
