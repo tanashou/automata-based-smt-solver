@@ -4,6 +4,7 @@ from pysmt.rewritings import TimesDistributor
 from pysmt.shortcuts import And
 from pysmt.smtlib.parser import SmtLibParser
 
+from automata_based_smt_solver.automata_builder import AutomataBuilder
 from automata_based_smt_solver.formula import DataExtractor
 from automata_based_smt_solver.formula.rewritings import (
     CalculatingBracketExpander,
@@ -62,9 +63,16 @@ class Solver:
         cnf = self._rewrite_formula(formula)
         cnf_data = self._extract_data(cnf)
 
+        variables: list[FNode] = sorted(cnf.get_free_variables(), key=lambda v: str(v))
+        var_index_map = {name: index for index, name in enumerate(variables)}
+
         for clause_data in cnf_data:
-            for _ in clause_data:
-                # AutomataBuilder に渡す
-                pass
+            for literal_data in clause_data:
+                builder = AutomataBuilder(
+                    literal_data,
+                    variables,
+                    var_index_map,
+                )
+                builder.next()
 
         return SatStatus.UNKNOWN
