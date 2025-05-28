@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from itertools import product
 
 from pysmt.fnode import FNode
@@ -31,11 +32,11 @@ class AutomataBuilder:
         self.dots: dict[InputSymbol, int] = self._calc_dots(all_var_index_map)
         self.work_list = [self.formula_data.const]
 
-        self.__build_completed = False
+        self._build_completed = False
 
     @property
     def build_completed(self) -> bool:
-        return self.__build_completed
+        return self._build_completed
 
     # formula_data.vars と all_vars_index_map, all_vars を使う。
     def _generate_input_symbols(self, all_vars: list[FNode]) -> set[InputSymbol]:
@@ -56,20 +57,30 @@ class AutomataBuilder:
             result[symbol] = symbol.dot(var_coef_index_pairs)
         return result
 
-    def next(self) -> None:
-        # yeild を使って 各種nfa変換関数を呼び出す
+    def _build_nfa_generator(self) -> Generator[None]:
+        # yield を使って 各種nfa変換関数を呼び出す
         match self.formula_data.formula_type:
             case FormulaType.EQ:
-                self.eq_to_nfa()
+                yield from self.eq_to_nfa()
             case FormulaType.LE:
-                self.le_to_nfa()
+                yield from self.le_to_nfa()
             case FormulaType.BOOL:
                 if self.formula_data.has_negation_before_bool_var:
-                    self.false_to_nfa()
+                    yield from self.false_to_nfa()
                 else:
-                    self.true_to_nfa()
+                    yield from self.true_to_nfa()
 
-    def eq_to_nfa(self) -> None:
+    def build_step(self) -> None:
+        if not hasattr(self, "_build_gen"):
+            self._build_gen = self._build_nfa_generator()
+        if self._build_completed:
+            return
+        try:
+            next(self._build_gen)
+        except StopIteration:
+            self._build_completed = True
+
+    def eq_to_nfa(self) -> Generator[None]:
         partial_sat = False
 
         while self.work_list:
@@ -87,14 +98,11 @@ class AutomataBuilder:
                 if current_state_val == -dot:
                     self.nfa.add_transition(INITIAL_STATE, symbol, current_state_val)
                     partial_sat = True
-            # return after the for loop is finished.
+
             if partial_sat and not self.create_all:
-                return
+                yield
 
-        # when the work_list is empty, building nfa is completed.
-        self.__build_completed = True
-
-    def le_to_nfa(self) -> None:
+    def le_to_nfa(self) -> Generator[None]:
         partial_sat = False
 
         while self.work_list:
@@ -110,31 +118,23 @@ class AutomataBuilder:
                 if current_state_val + dot >= 0:
                     self.nfa.add_transition(INITIAL_STATE, symbol, current_state_val)
                     partial_sat = True
-            # return after the for loop is finished.
             if partial_sat and not self.create_all:
-                return
+                yield
 
-        # when the work_list is empty, building nfa is completed.
-        self.__build_completed = True
-
-    def false_to_nfa(self) -> None:
-        # 1 を含むsymbolでfinal stateに遷移するnfaを作成する。
+    def false_to_nfa(self) -> Generator[None]:
         final_state = self.formula_data.const
         for symbol in self.nfa.input_symbols:
             dot_value = self.dots[symbol]
-            if dot_value == 1:  # if the input_symbol includes 1
+            if dot_value == 1:
                 self.nfa.add_transition(INITIAL_STATE, symbol, final_state)
+                yield
                 break
 
-        self.__build_completed = True
-
-    def true_to_nfa(self) -> None:
-        # 0 を含むsymbolでfinal stateに遷移するnfaを作成する。
+    def true_to_nfa(self) -> Generator[None]:
         final_state = self.formula_data.const
         for symbol in self.nfa.input_symbols:
             dot_value = self.dots[symbol]
             if dot_value == 0:
                 self.nfa.add_transition(INITIAL_STATE, symbol, final_state)
+                yield
                 break
-
-        self.__build_completed = True
