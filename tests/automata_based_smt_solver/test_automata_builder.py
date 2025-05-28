@@ -1,3 +1,4 @@
+import pytest
 from pysmt.shortcuts import Symbol
 from pysmt.typing import INT
 
@@ -73,3 +74,96 @@ class TestAutomataBuilder:
             InputSymbol("101", mask),
         }
         assert input_symbols == expected_symbols
+
+    @pytest.mark.parametrize(
+        ("coeffs", "vars_set", "mask", "expected_dots"),
+        [
+            # x = 1
+            # coeff vector: [1, 0, 0]
+            (
+                {"x": 1},
+                {"x"},
+                "100",
+                {
+                    "000": 0,  # 0*1 + wildcard * 0 + wildcard * 0 = 0
+                    "100": 1,  # 1*1 + wildcard * 0 + wildcard * 0 = 1
+                },
+            ),
+            # x + y = 1, z is unused
+            # coeff vector: [1, 1, 0]
+            (
+                {"x": 1, "y": 1},
+                {"x", "y"},
+                "110",
+                {
+                    "000": 0,  # 0*1 + 0*1 + wildcard * 0 = 0
+                    "010": 1,  # 0*1 + 1*1 + wildcard * 0 = 1
+                    "100": 1,  # 1*1 + 0*1 + wildcard * 0 = 1
+                    "110": 2,  # 1*1 + 1*1 + wildcard * 0 = 2
+                },
+            ),
+            # x - y = 0
+            # coeff vector: [1, -1, 0]
+            (
+                {"x": 1, "y": -1},
+                {"x", "y"},
+                "110",
+                {
+                    "000": 0,  # 0*1 + 0*(-1) + wildcard * 0 = 0
+                    "010": -1,  # 0*1 + 1*(-1) + wildcard * 0 = -1
+                    "100": 1,  # 1*1 + 0*(-1) + wildcard * 0 = 1
+                    "110": 0,  # 1*1 + 1*(-1) + wildcard * 0 = 0
+                },
+            ),
+            # x + y + z = 3
+            # coeff vector: [1, 1, 1]
+            (
+                {"x": 1, "y": 1, "z": 1},
+                {"x", "y", "z"},
+                "111",
+                {
+                    "000": 0,  # 0*1 + 0*1 + 0*1 = 0
+                    "001": 1,  # 0*1 + 0*1 + 1*1 = 1
+                    "010": 1,  # 0*1 + 1*1 + 0*1 = 1
+                    "011": 2,  # 0*1 + 1*1 + 1*1 = 2
+                    "100": 1,  # 1*1 + 0*1 + 0*1 = 1
+                    "101": 2,  # 1*1 + 0*1 + 1*1 = 2
+                    "110": 2,  # 1*1 + 1*1 + 0*1 = 2
+                    "111": 3,  # 1*1 + 1*1 + 1*1 = 3
+                },
+            ),
+            # x + 5y - 3z = 0
+            # coeff vector: [1, 5, -3]
+            (
+                {"x": 1, "y": 5, "z": -3},
+                {"x", "y", "z"},
+                "111",
+                {
+                    "000": 0,  # 0*1 + 0*5 + 0*(-3) = 0
+                    "001": -3,  # 0*1 + 0*5 + 1*(-3) = -3
+                    "010": 5,  # 0*1 + 1*5 + 0*(-3) = 5
+                    "011": 2,  # 0*1 + 1*5 + 1*(-3) = 2
+                    "100": 1,  # 1*1 + 0*5 + 0*(-3) = 1
+                    "101": -2,  # 1*1 + 0*5 + 1*(-3) = -2
+                    "110": 6,  # 1*1 + 1*5 + 0*(-3) = 6
+                    "111": 3,  # 1*1 + 1*5 + 1*(-3) = 3
+                },
+            ),
+        ],
+    )
+    def test_calc_dots_parametrized(self, coeffs, vars_set, mask, expected_dots):
+        # Map string variable names to actual symbols
+        var_map = {"x": self.x, "y": self.y, "z": self.z}
+        coeffs_sym = {var_map[k]: v for k, v in coeffs.items()}
+        vars_sym = {var_map[k] for k in vars_set}
+        formula_data = FormulaData(
+            coeffs=coeffs_sym,
+            vars=vars_sym,
+            const=0,  # const is not used in dot calculation
+            formula_type=FormulaType.EQ,
+            has_negation_before_bool_var=False,
+        )
+        builder = AutomataBuilder(formula_data, self.all_vars, self.all_var_index_map)
+        dots = builder._calc_dots(self.all_var_index_map)
+        for bits, expected in expected_dots.items():
+            assert dots[InputSymbol(bits, mask)] == expected
