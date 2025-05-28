@@ -53,6 +53,27 @@ class TestAutomataBuilder:
         }
         assert input_symbols == expected_symbols
 
+    def test_generate_input_symbols_mask_and_symbols(self):
+        # x + z = 3, all_vars = [x, y, z]
+        coeffs = {self.x: 1, self.z: 1}
+        formula_data = FormulaData(
+            coeffs=coeffs,
+            vars={self.x, self.z},
+            const=3,
+            formula_type=FormulaType.EQ,
+            has_negation_before_bool_var=False,
+        )
+        builder = AutomataBuilder(formula_data, self.all_vars, self.all_var_index_map)
+        input_symbols = builder._generate_input_symbols(self.all_vars)
+        mask = "101"
+        expected_symbols = {
+            InputSymbol("000", mask),
+            InputSymbol("001", mask),
+            InputSymbol("100", mask),
+            InputSymbol("101", mask),
+        }
+        assert input_symbols == expected_symbols
+
     def test_eq_formula(self):
         # x + y = 2
         coeffs = {self.x: 1, self.y: 1}
