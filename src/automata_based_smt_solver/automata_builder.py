@@ -70,15 +70,14 @@ class AutomataBuilder:
                 else:
                     yield from self.true_to_nfa()
 
-    def build_step(self) -> None:
+    def build_step(self) -> bool:
         if not hasattr(self, "_build_gen"):
             self._build_gen = self._build_nfa_generator()
-        if self._build_completed:
-            return
         try:
             next(self._build_gen)
         except StopIteration:
             self._build_completed = True
+        return self._build_completed
 
     def eq_to_nfa(self) -> Generator[None]:
         partial_sat = False
