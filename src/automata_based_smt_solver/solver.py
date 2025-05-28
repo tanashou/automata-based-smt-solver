@@ -73,6 +73,6 @@ class Solver:
                     variables,
                     var_index_map,
                 )
-                builder.next()
+                builder.build_step()
 
         return SatStatus.UNKNOWN
