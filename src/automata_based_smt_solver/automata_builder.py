@@ -1,5 +1,7 @@
 from itertools import product
 
+from pysmt.fnode import FNode
+
 from automata_based_smt_solver.automata.input_symbol import InputSymbol
 from automata_based_smt_solver.automata.nfa import NFA
 from automata_based_smt_solver.automata.state import INITIAL_STATE
@@ -11,7 +13,8 @@ class AutomataBuilder:
     def __init__(
         self,
         formula_data: FormulaData,
-        all_vars_index_map: dict[str, int],
+        all_vars: list[FNode],
+        all_var_index_map: dict[FNode, int],
         *,
         create_all: bool = False,
     ) -> None:
@@ -21,13 +24,11 @@ class AutomataBuilder:
         self.nfa = NFA()
         # initialize nfa
         self.nfa.add_state(self.formula_data.const)
-        self.nfa.set_input_symbols(
-            self._generate_input_symbols(all_vars_index_map, self.formula_data.vars)
-        )
+        self.nfa.set_input_symbols(self._generate_input_symbols(all_vars))
         self.nfa.set_initial_state(INITIAL_STATE)
         self.nfa.add_final_state(self.formula_data.const)
 
-        self.dots: dict[InputSymbol, int] = self._calc_dots(all_vars_index_map)
+        self.dots: dict[InputSymbol, int] = self._calc_dots(all_var_index_map)
         self.work_list = [self.formula_data.const]
 
         self.__build_completed = False
@@ -36,22 +37,19 @@ class AutomataBuilder:
     def build_completed(self) -> bool:
         return self.__build_completed
 
-    def _generate_input_symbols(
-        self, all_vars_index_map: dict[str, int], declared_vars: set[str]
-    ) -> set[InputSymbol]:
-        all_sorted_vars = [
-            var
-            for var, _ in sorted(all_vars_index_map.items(), key=lambda item: item[1])
-        ]
-        mask = "".join("1" if var in declared_vars else "0" for var in all_sorted_vars)
+    # formula_data.vars と all_vars_index_map, all_vars を使う。
+    def _generate_input_symbols(self, all_vars: list[FNode]) -> set[InputSymbol]:
+        mask = "".join(
+            "1" if var in self.formula_data.coeffs else "0" for var in all_vars
+        )
         choices = [("0", "1") if ch == "1" else ("0",) for ch in mask]
         symbols = {"".join(bits) for bits in product(*choices)}
         return {InputSymbol(symbol, mask) for symbol in symbols}
 
-    def _calc_dots(self, all_vars_index_map: dict[str, int]) -> dict[InputSymbol, int]:
+    def _calc_dots(self, all_var_index_map: dict[FNode, int]) -> dict[InputSymbol, int]:
         result = {}
         var_coef_index_pairs = [
-            (coeff, all_vars_index_map[str(var)])
+            (coeff, all_var_index_map[var])
             for var, coeff in self.formula_data.coeffs.items()
         ]
         for symbol in self.nfa.input_symbols:
