@@ -27,14 +27,12 @@ class DataExtractor(DagWalker):
         self._formula_type = FormulaType.BOOL
         self._has_negation_before_bool_var = False
 
-        declared_vars = {str(v) for v in formula.get_free_variables()}
         arg_count = 2
         # formulas with bool var have 1 argument
         if len(formula.args()) != arg_count:
             self.walk(formula)
             return FormulaData(
                 dict(self._coeffs),
-                declared_vars,
                 self._const,
                 self._formula_type,
                 self._has_negation_before_bool_var,
@@ -63,7 +61,6 @@ class DataExtractor(DagWalker):
         final_coeffs = {k: v for k, v in self._coeffs.items() if v != 0}
         return FormulaData(
             final_coeffs,
-            declared_vars,
             self._const,
             self._formula_type,
             self._has_negation_before_bool_var,
