@@ -87,7 +87,7 @@ class DataExtractor(DagWalker):
             coeff = b.constant_value() * self._side_sign
             self._coeffs[a] += coeff
         else:
-            msg = "TIMES operator must have one int constant and one symbol."
+            msg = "Multiplication of variables (var * var) is not allowed in LIA."
             raise UnsupportedOperatorError(msg)
         return formula
 
