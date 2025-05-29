@@ -5,7 +5,6 @@ from pysmt.fnode import FNode
 
 from automata_based_smt_solver.automata.input_symbol import InputSymbol
 from automata_based_smt_solver.automata.nfa import NFA
-from automata_based_smt_solver.automata.state import INITIAL_STATE
 from automata_based_smt_solver.formula.type import FormulaData, FormulaType
 
 
@@ -26,7 +25,6 @@ class AutomataBuilder:
         # initialize nfa
         self.nfa.add_state(self.formula_data.const)
         self.nfa.set_input_symbols(self._generate_input_symbols(all_vars))
-        self.nfa.set_initial_state(INITIAL_STATE)
         self.nfa.add_final_state(self.formula_data.const)
 
         self.dots: dict[InputSymbol, int] = self._calc_dots(all_var_index_map)
@@ -95,7 +93,9 @@ class AutomataBuilder:
                         previous_state_val, symbol, current_state_val
                     )
                 if current_state_val == -dot:
-                    self.nfa.add_transition(INITIAL_STATE, symbol, current_state_val)
+                    self.nfa.add_transition(
+                        self.nfa.initial_state, symbol, current_state_val
+                    )
                     partial_sat = True
 
             if partial_sat and not self.create_all:
@@ -115,7 +115,9 @@ class AutomataBuilder:
                 self.nfa.add_transition(previous_state_val, symbol, current_state_val)
 
                 if current_state_val + dot >= 0:
-                    self.nfa.add_transition(INITIAL_STATE, symbol, current_state_val)
+                    self.nfa.add_transition(
+                        self.nfa.initial_state, symbol, current_state_val
+                    )
                     partial_sat = True
             if partial_sat and not self.create_all:
                 yield
@@ -125,7 +127,7 @@ class AutomataBuilder:
         for symbol in self.nfa.input_symbols:
             dot_value = self.dots[symbol]
             if dot_value == 1:
-                self.nfa.add_transition(INITIAL_STATE, symbol, final_state)
+                self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
                 yield
                 break
 
@@ -134,6 +136,6 @@ class AutomataBuilder:
         for symbol in self.nfa.input_symbols:
             dot_value = self.dots[symbol]
             if dot_value == 0:
-                self.nfa.add_transition(INITIAL_STATE, symbol, final_state)
+                self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
                 yield
                 break
