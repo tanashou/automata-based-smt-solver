@@ -122,7 +122,8 @@ class NFA:
         self._transitions = transitions
 
     def add_final_state(self, new_final_state: NFAStateT) -> None:
-        new_final_state = State(new_final_state, self.id)
+        if new_final_state != self.initial_state:
+            new_final_state = State(new_final_state, self.id)
         self._final_states.add(new_final_state)
 
     def set_final_states(self, final_states: set[NFAStateT]) -> None:
