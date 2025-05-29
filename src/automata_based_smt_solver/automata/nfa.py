@@ -351,10 +351,7 @@ class NFA:
         the union of L1 and L2.
         """
         result = self.__class__()
-
-        new_states = {State(state, self.id) for state in self.states} | {
-            State(state, other.id) for state in other.states
-        }
+        new_states = self.states | other.states
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
 
         # Add epsilon transitions from initial state
