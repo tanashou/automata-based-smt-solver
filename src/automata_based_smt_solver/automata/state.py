@@ -8,6 +8,13 @@ class State:
     state_value: Any
     id: int
 
+    def __post_init__(self) -> None:
+        if isinstance(self.state_value, State):
+            # Save the original state's id before modifying state_value
+            original_state = self.state_value
+            inner_value = original_state.state_value
+            object.__setattr__(self, "state_value", inner_value)
+
     def __hash__(self) -> int:
         return hash((self.state_value, self.id))
 
