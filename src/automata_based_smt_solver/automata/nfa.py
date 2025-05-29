@@ -213,11 +213,12 @@ class NFA:
             if current_state in self.final_states:
                 return True
 
-            adjacent_states: set[NFAStateT] = set()
-            for next_states in self.transitions.get(current_state, {}).values():
-                adjacent_states.update(next_states)
-
-            stack.extend(state for state in adjacent_states if state not in visited)
+            stack.extend(
+                state
+                for next_states in self.transitions.get(current_state, {}).values()
+                for state in next_states
+                if state not in visited
+            )
         return False
 
     def _follow_epsilon_transitions(self, states: set[NFAStateT]) -> set[NFAStateT]:
