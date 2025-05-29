@@ -106,6 +106,13 @@ class NFA:
         self._initial_state = State(initial_state_name, self.id)
         self._states.add(self._initial_state)
 
+    def _set_custom_initial_state(self, initial_state: NFAStateT) -> None:
+        """Set a custom initial state for the NFA. Only used in intersection."""
+        initial_state = State(initial_state, self.id)
+        self._initial_state = initial_state
+        self._states.add(initial_state)
+        self._states.remove(self._initial_state)
+
     def add_transition(
         self,
         start_state: NFAStateT,
@@ -259,6 +266,9 @@ class NFA:
         new_states: set[NFAStateT] = set()
         new_input_symbols: set[InputSymbol] = self.input_symbols | other.input_symbols
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
+
+        new_initial_state_value = (self.initial_state, other.initial_state)
+        result._set_custom_initial_state(new_initial_state_value)  # noqa: SLF001
 
         queue: deque[NFAStateT] = deque()
 
