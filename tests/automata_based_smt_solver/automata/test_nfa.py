@@ -105,19 +105,17 @@ class TestNFA:
         nfa = NFA()
 
         # Add states
-        for state in ["q0", "q1", "q2"]:
+        for state in ["q1", "q2"]:
             nfa.add_state(state)
 
         nfa.add_input_symbol(InputSymbol("0", mask))
         nfa.add_input_symbol(InputSymbol("1", mask))
 
-        # Set initial and final states
-        nfa.set_initial_state("q0")
         nfa.add_final_state("q2")
 
-        nfa.add_transition("q0", InputSymbol("0", mask), "q0")
-        nfa.add_transition("q0", InputSymbol("0", mask), "q1")
-        nfa.add_transition("q0", InputSymbol("1", mask), "q0")
+        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), nfa.initial_state)
+        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), "q1")
+        nfa.add_transition(nfa.initial_state, InputSymbol("1", mask), nfa.initial_state)
         nfa.add_transition("q1", InputSymbol("1", mask), "q2")
 
         return nfa
@@ -129,17 +127,15 @@ class TestNFA:
         nfa = NFA()
 
         # Add states
-        for state in ["q0", "q1", "q2", "q3", "q4", "q5"]:
+        for state in [nfa.initial_state, "q1", "q2", "q3", "q4", "q5"]:
             nfa.add_state(state)
 
         nfa.add_input_symbol(InputSymbol("0", mask))
         nfa.add_input_symbol(InputSymbol("1", mask))
 
-        # Set initial and final states
-        nfa.set_initial_state("q0")
         nfa.add_final_state("q5")
 
-        nfa.add_transition("q0", EPSILON, "q1")
+        nfa.add_transition(nfa.initial_state, EPSILON, "q1")
         nfa.add_transition("q1", InputSymbol("0", mask), "q1")
         nfa.add_transition("q1", InputSymbol("1", mask), "q1")
         nfa.add_transition("q1", EPSILON, "q2")
@@ -156,17 +152,16 @@ class TestNFA:
         nfa = NFA()
 
         # Add states
-        for state in ["q0", "q1", "q2"]:
+        for state in [nfa.initial_state, "q1", "q2"]:
             nfa.add_state(state)
 
         nfa.add_input_symbol(InputSymbol("0", mask))
         nfa.add_input_symbol(InputSymbol("1", mask))
 
         # Set initial and final states
-        nfa.set_initial_state("q0")
         nfa.add_final_state("q2")
 
-        nfa.add_transition("q0", EPSILON, "q1")
+        nfa.add_transition(nfa.initial_state, EPSILON, "q1")
         nfa.add_transition("q1", InputSymbol("0", mask), "q1")
         nfa.add_transition("q1", EPSILON, "q2")
         nfa.add_transition("q2", InputSymbol("1", mask), "q2")
@@ -176,7 +171,7 @@ class TestNFA:
     def test_transitions(self, nfa_ends_with_01):
         """Test that transitions work as expected."""
         # Get states
-        q0 = State("q0", nfa_ends_with_01.id)
+        q0 = nfa_ends_with_01.initial_state
         q1 = State("q1", nfa_ends_with_01.id)
         q2 = State("q2", nfa_ends_with_01.id)
 
@@ -192,7 +187,7 @@ class TestNFA:
     def test_add_state(self):
         """Test adding states to an NFA."""
         nfa = NFA()
-        state_names = ["q0", "q1"]
+        state_names = [nfa.initial_state, "q1"]
 
         for state_name in state_names:
             nfa.add_state(state_name)
@@ -204,21 +199,21 @@ class TestNFA:
     def test_add_duplicate_state(self):
         """Test adding a duplicate state has no effect."""
         nfa = NFA()
-        nfa.add_state("q0")
+        nfa.add_state(nfa.initial_state)
         initial_state_count = len(nfa.states)
-        nfa.add_state("q0")  # Add the same state again
+        nfa.add_state(nfa.initial_state)  # Add the same state again
         assert len(nfa.states) == initial_state_count
 
     def test_add_transition(self):
         """Test adding transitions to an NFA."""
         nfa = NFA()
-        nfa.add_state("q0")
+        nfa.add_state(nfa.initial_state)
         nfa.add_state("q1")
 
         symbol = InputSymbol("1", "1")
-        nfa.add_transition("q0", symbol, "q1")
+        nfa.add_transition(nfa.initial_state, symbol, "q1")
 
-        q0 = State("q0", nfa.id)
+        q0 = State(nfa.initial_state, nfa.id)
         q1 = State("q1", nfa.id)
         assert nfa.get_next_states(q0, symbol) == {q1}
 
@@ -358,42 +353,32 @@ class TestNFA:
         """Test the is_acceptable function for various NFA configurations."""
         # Accepting NFA: initial state is also final
         nfa1 = NFA()
-        nfa1.add_state("q0")
-        nfa1.set_initial_state("q0")
-        nfa1.add_final_state("q0")
+        nfa1.add_final_state(nfa1.initial_state)
         assert nfa1.is_acceptable() is True
 
         # Non-accepting NFA: no final state
         nfa2 = NFA()
-        nfa2.add_state("q0")
-        nfa2.set_initial_state("q0")
         assert nfa2.is_acceptable() is False
 
         # Accepting NFA: path to final state
         nfa3 = NFA()
-        nfa3.add_state("q0")
         nfa3.add_state("q1")
-        nfa3.set_initial_state("q0")
         nfa3.add_final_state("q1")
         symbol = InputSymbol("1", "1")
         nfa3.add_input_symbol(symbol)
-        nfa3.add_transition("q0", symbol, "q1")
+        nfa3.add_transition(nfa3.initial_state, symbol, "q1")
         assert nfa3.is_acceptable() is True
 
         # Non-accepting NFA: no path to final state
         nfa4 = NFA()
-        nfa4.add_state("q0")
         nfa4.add_state("q1")
-        nfa4.set_initial_state("q0")
         nfa4.add_final_state("q1")
         # No transition from q0 to q1
         assert nfa4.is_acceptable() is False
 
         # Accepting NFA: epsilon transition to final state
         nfa5 = NFA()
-        nfa5.add_state("q0")
         nfa5.add_state("q1")
-        nfa5.set_initial_state("q0")
         nfa5.add_final_state("q1")
-        nfa5.add_transition("q0", EPSILON, "q1")
+        nfa5.add_transition(nfa5.initial_state, EPSILON, "q1")
         assert nfa5.is_acceptable() is True
