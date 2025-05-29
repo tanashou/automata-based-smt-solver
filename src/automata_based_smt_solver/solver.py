@@ -1,5 +1,8 @@
 from collections.abc import Generator
 
+# for debug
+from pathlib import Path
+
 import pysmt.rewritings
 from pysmt.fnode import FNode
 from pysmt.rewritings import TimesDistributor
@@ -92,7 +95,7 @@ class Solver:
                         continue
                     builder.build_step()
                     break
-            yield  # allow stepwise progress
+            yield
 
     def _union_nfas_per_clause(
         self, cnf_builders: list[list[AutomataBuilder]]
@@ -101,8 +104,8 @@ class Solver:
         for clause_builders in cnf_builders:
             if not clause_builders:
                 continue
-            union_nfa = clause_builders[0].nfa
-            for builder in clause_builders[1:]:
+            union_nfa = NFA()
+            for builder in clause_builders:
                 if builder.build_status != BuildStatus.UNTOUCHED:
                     union_nfa = union_nfa.union(builder.nfa)
             union_nfas.append(union_nfa)
@@ -138,3 +141,17 @@ class Solver:
                 return SatStatus.SAT
 
         return SatStatus.UNSAT
+
+    # for debug
+    def show_all_diagram(self, builders: list[list[AutomataBuilder]]) -> None:
+        project_root = Path(__file__).resolve().parents[2]
+        images_dir = project_root / "images"
+        for clause_builders in builders:
+            for builder in clause_builders:
+                if builder.build_status != BuildStatus.UNTOUCHED:
+                    builder.nfa.show_diagram(path=images_dir / f"{builder.nfa.id}.png")
+
+    def show_diagram_of_nfa(self, nfa: NFA, image_name: str) -> None:
+        project_root = Path(__file__).resolve().parents[2]
+        images_dir = project_root / "images"
+        nfa.show_diagram(path=images_dir / image_name)
