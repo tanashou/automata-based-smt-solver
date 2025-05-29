@@ -129,7 +129,8 @@ class Solver:
         for _ in self._stepwise_build(cnf_builders):
             union_nfas = self._union_nfas_per_clause(cnf_builders)
             if not union_nfas:
-                return SatStatus.UNSAT
+                msg = "No NFA generated from the CNF clauses."
+                raise ValueError(msg)
             all_nfa = self._intersect_all_nfa_(union_nfas)
             if all_nfa and all_nfa.is_acceptable():
                 return SatStatus.SAT
