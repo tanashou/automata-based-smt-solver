@@ -75,6 +75,7 @@ class AutomataBuilder:
         if not hasattr(self, "_build_gen"):
             self._build_gen = self._build_nfa_generator()
         try:
+            self._build_status = BuildStatus.ONGOING
             next(self._build_gen)
         except StopIteration:
             self._build_status = BuildStatus.COMPLETED
