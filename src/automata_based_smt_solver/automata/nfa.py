@@ -201,6 +201,25 @@ class NFA:
         # Accept if any current state is final
         return bool(current_states & self.final_states)
 
+    def is_acceptable(self) -> bool:
+        visited = set()
+        stack = [self.initial_state]
+
+        while stack:
+            current_state = stack.pop()
+            if current_state in visited:
+                continue
+            visited.add(current_state)
+            if current_state in self.final_states:
+                return True
+
+            adjacent_states: set[NFAStateT] = set()
+            for next_states in self.transitions.get(current_state, {}).values():
+                adjacent_states.update(next_states)
+
+            stack.extend(state for state in adjacent_states if state not in visited)
+        return False
+
     def _follow_epsilon_transitions(self, states: set[NFAStateT]) -> set[NFAStateT]:
         """Follow all epsilon transitions from given states."""
         result = set(states)
