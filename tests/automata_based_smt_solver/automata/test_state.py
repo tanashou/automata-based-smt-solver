@@ -1,4 +1,4 @@
-from automata_based_smt_solver.automata.state import INITIAL_STATE, State
+from automata_based_smt_solver.automata.state import State
 
 
 class TestState:
@@ -8,9 +8,9 @@ class TestState:
 
     def test_basic_state_creation(self):
         """Test basic creation of a state."""
-        state = State("q1")
+        state = State("q1", self.TEST_ID_1)
         assert state.state_value == "q1"
-        assert state.id == -1
+        assert state.id == self.TEST_ID_1
 
         state_with_id = State("q2", self.TEST_ID_1)
         assert state_with_id.state_value == "q2"
@@ -19,11 +19,11 @@ class TestState:
     def test_nested_state_creation(self):
         """Test creating a state from another state."""
         original = State("q3", self.TEST_ID_2)
-        nested = State(original)
+        nested = State(original, self.TEST_ID_2)
 
         # Should extract inner state_value
         assert nested.state_value == "q3"
-        # Should preserve ID if not specified
+        # Should preserve ID if not specified (now always specify)
         assert nested.id == self.TEST_ID_2
 
         # Test with different ID
@@ -64,35 +64,25 @@ class TestState:
 
     def test_string_representation(self):
         """Test string representation of states."""
-        # State with default ID
-        state1 = State("q7")
-        assert str(state1) == "q7"
-        assert repr(state1) == "q7"
-
         # State with custom ID
         state2 = State("q8", 30)
         assert str(state2) == "q8(30)"
         assert repr(state2) == "q8(30)"
 
         # Nested state
-        nested = State(state2)
+        nested = State(state2, 30)
         assert str(nested) == "q8(30)"
-
-    def test_initial_state_constant(self):
-        """Test the INITIAL_STATE constant."""
-        assert INITIAL_STATE.state_value == "q0"
-        assert INITIAL_STATE.id == -1
 
     def test_complex_values(self):
         """Test states with complex objects as values."""
         # Tuple as state value
-        tuple_state = State(("q9", "q10"))
+        tuple_state = State(("q9", "q10"), 99)
         assert tuple_state.state_value == ("q9", "q10")
 
         # List as state value (note: may not be hashable)
-        list_state = State(["q11", "q12"])
+        list_state = State(["q11", "q12"], 100)
         assert list_state.state_value == ["q11", "q12"]
 
         # Nested state with complex value
-        nested = State(tuple_state)
+        nested = State(tuple_state, 99)
         assert nested.state_value == ("q9", "q10")
