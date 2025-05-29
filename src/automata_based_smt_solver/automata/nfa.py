@@ -45,7 +45,7 @@ class NFA:
         self._transitions: NFATransitionsT = cast(
             NFATransitionsT, defaultdict(lambda: defaultdict(set))
         )
-        self._initial_state: NFAStateT = self._set_initial_state()
+        self._set_initial_state()
         self._states.add(self._initial_state)
         self._final_states: set[NFAStateT] = set()
 
