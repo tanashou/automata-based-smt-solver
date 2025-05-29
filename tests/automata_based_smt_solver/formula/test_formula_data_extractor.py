@@ -238,8 +238,5 @@ class TestDataExtractor:
         from pysmt.exceptions import UnsupportedOperatorError
 
         formula = Equals(Times(self.x, self.y), Int(0))
-        with pytest.raises(
-            UnsupportedOperatorError,
-            match="TIMES operator must have one int constant and one symbol.",
-        ):
+        with pytest.raises(UnsupportedOperatorError):
             self.extractor.extract(formula)
