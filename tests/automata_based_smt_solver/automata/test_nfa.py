@@ -353,3 +353,47 @@ class TestNFA:
             mask,
             "Intersection NFA with epsilon",
         )
+
+    def test_is_acceptable(self):
+        """Test the is_acceptable function for various NFA configurations."""
+        # Accepting NFA: initial state is also final
+        nfa1 = NFA()
+        nfa1.add_state("q0")
+        nfa1.set_initial_state("q0")
+        nfa1.add_final_state("q0")
+        assert nfa1.is_acceptable() is True
+
+        # Non-accepting NFA: no final state
+        nfa2 = NFA()
+        nfa2.add_state("q0")
+        nfa2.set_initial_state("q0")
+        assert nfa2.is_acceptable() is False
+
+        # Accepting NFA: path to final state
+        nfa3 = NFA()
+        nfa3.add_state("q0")
+        nfa3.add_state("q1")
+        nfa3.set_initial_state("q0")
+        nfa3.add_final_state("q1")
+        symbol = InputSymbol("1", "1")
+        nfa3.add_input_symbol(symbol)
+        nfa3.add_transition("q0", symbol, "q1")
+        assert nfa3.is_acceptable() is True
+
+        # Non-accepting NFA: no path to final state
+        nfa4 = NFA()
+        nfa4.add_state("q0")
+        nfa4.add_state("q1")
+        nfa4.set_initial_state("q0")
+        nfa4.add_final_state("q1")
+        # No transition from q0 to q1
+        assert nfa4.is_acceptable() is False
+
+        # Accepting NFA: epsilon transition to final state
+        nfa5 = NFA()
+        nfa5.add_state("q0")
+        nfa5.add_state("q1")
+        nfa5.set_initial_state("q0")
+        nfa5.add_final_state("q1")
+        nfa5.add_transition("q0", EPSILON, "q1")
+        assert nfa5.is_acceptable() is True
