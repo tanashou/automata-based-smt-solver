@@ -92,8 +92,8 @@ class NFA:
         new_state = State(new_state, self.id)
         self._states.add(new_state)
 
-    def set_states(self, states: set[NFAStateT]) -> None:
-        self._states = states
+    def add_states(self, states: set[NFAStateT]) -> None:
+        self._states.update(states)
 
     def add_input_symbol(self, new_input_symbol: InputSymbol) -> None:
         self._input_symbols.add(new_input_symbol)
@@ -259,14 +259,10 @@ class NFA:
         new_states: set[NFAStateT] = set()
         new_input_symbols: set[InputSymbol] = self.input_symbols | other.input_symbols
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
-        new_initial_state: State = State(
-            (self.initial_state, other.initial_state), result.id
-        )
 
         queue: deque[NFAStateT] = deque()
 
-        queue.append(new_initial_state)
-        new_states.add(new_initial_state)
+        queue.append(result.initial_state)
 
         while queue:
             curr_state = queue.popleft()
@@ -332,7 +328,7 @@ class NFA:
 
         result.set_input_symbols(new_input_symbols)
         result.set_transitions(new_transitions)
-        result.set_states(new_states)
+        result.add_states(new_states)
         result.set_final_states(new_final_states)
 
         return result
@@ -364,7 +360,7 @@ class NFA:
 
         result.set_input_symbols(new_input_symbols)
         result.set_transitions(new_transitions)
-        result.set_states(new_states)
+        result.add_states(new_states)
         result.set_final_states(new_final_states)
 
         return result
