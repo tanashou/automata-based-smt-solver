@@ -8,6 +8,7 @@ from pysmt.smtlib.parser import SmtLibParser
 
 from automata_based_smt_solver.automata.nfa import NFA
 from automata_based_smt_solver.automata_builder import AutomataBuilder
+from automata_based_smt_solver.build_status import BuildStatus
 from automata_based_smt_solver.formula import DataExtractor
 from automata_based_smt_solver.formula.rewritings import (
     CalculatingBracketExpander,
@@ -81,13 +82,13 @@ class Solver:
         self, cnf_builders: list[list[AutomataBuilder]]
     ) -> Generator[None]:
         while not all(
-            builder.build_completed
+            builder.build_status == BuildStatus.COMPLETED
             for clause_builders in cnf_builders
             for builder in clause_builders
         ):
             for clause_builders in cnf_builders:
                 for builder in clause_builders:
-                    if builder.build_completed:
+                    if builder.build_status == BuildStatus.COMPLETED:
                         continue
                     builder.build_step()
                     break
@@ -102,7 +103,8 @@ class Solver:
                 continue
             union_nfa = clause_builders[0].nfa
             for builder in clause_builders[1:]:
-                union_nfa = union_nfa.union(builder.nfa)
+                if builder.build_status != BuildStatus.UNTOUCHED:
+                    union_nfa = union_nfa.union(builder.nfa)
             union_nfas.append(union_nfa)
         return union_nfas
 
@@ -126,12 +128,22 @@ class Solver:
         var_index_map = {name: index for index, name in enumerate(variables)}
         cnf_builders = self._setup_builders(cnf_data, variables, var_index_map)
 
+        diagram_counter = 0
+
         for _ in self._stepwise_build(cnf_builders):
             union_nfas = self._union_nfas_per_clause(cnf_builders)
             if not union_nfas:
                 msg = "No NFA generated from the CNF clauses."
                 raise ValueError(msg)
             all_nfa = self._intersect_all_nfa_(union_nfas)
+            if all_nfa:
+                from pathlib import Path
+
+                path = (
+                    Path(__file__).parent / f"../../images/all_nfa{diagram_counter}.png"
+                ).resolve()
+                all_nfa.show_diagram(path=path)
+                diagram_counter += 1
             if all_nfa and all_nfa.is_acceptable():
                 return SatStatus.SAT
 
