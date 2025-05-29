@@ -112,18 +112,15 @@ class NFA:
         symbol: InputSymbol,
         end_state: NFAStateT,
     ) -> None:
-        if start_state != self.initial_state:
-            start_state = State(start_state, self.id)
-        if end_state != self.initial_state:
-            end_state = State(end_state, self.id)
+        start_state = State(start_state, self.id)
+        end_state = State(end_state, self.id)
         self._transitions[start_state][symbol].add(end_state)
 
     def set_transitions(self, transitions: NFATransitionsT) -> None:
         self._transitions = transitions
 
     def add_final_state(self, new_final_state: NFAStateT) -> None:
-        if new_final_state != self.initial_state:
-            new_final_state = State(new_final_state, self.id)
+        new_final_state = State(new_final_state, self.id)
         self._final_states.add(new_final_state)
 
     def set_final_states(self, final_states: set[NFAStateT]) -> None:
