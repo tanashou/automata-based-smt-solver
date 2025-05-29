@@ -128,22 +128,12 @@ class Solver:
         var_index_map = {name: index for index, name in enumerate(variables)}
         cnf_builders = self._setup_builders(cnf_data, variables, var_index_map)
 
-        diagram_counter = 0
-
         for _ in self._stepwise_build(cnf_builders):
             union_nfas = self._union_nfas_per_clause(cnf_builders)
             if not union_nfas:
                 msg = "No NFA generated from the CNF clauses."
                 raise ValueError(msg)
             all_nfa = self._intersect_all_nfa_(union_nfas)
-            if all_nfa:
-                from pathlib import Path
-
-                path = (
-                    Path(__file__).parent / f"../../images/all_nfa{diagram_counter}.png"
-                ).resolve()
-                all_nfa.show_diagram(path=path)
-                diagram_counter += 1
             if all_nfa and all_nfa.is_acceptable():
                 return SatStatus.SAT
 
