@@ -108,10 +108,10 @@ class NFA:
 
     def _set_custom_initial_state(self, initial_state: NFAStateT) -> None:
         """Set a custom initial state for the NFA. Only used in intersection."""
+        self._states.remove(self._initial_state)
         initial_state = State(initial_state, self.id)
         self._initial_state = initial_state
         self._states.add(initial_state)
-        self._states.remove(self._initial_state)
 
     def add_transition(
         self,
