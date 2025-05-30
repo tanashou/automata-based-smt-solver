@@ -16,14 +16,12 @@ from automata_based_smt_solver.automata.state import State
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-NFAStateT: TypeAlias = Any  # TODO: Stateにしたい。
+NFAStateT: TypeAlias = Any
 NFATransitionsT: TypeAlias = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
 
 
 class NFA:
     """NFA represents a custom NFA for use in the automata-based SMT solver.
-
-    TODO: More detailed description.
 
     Attributes:
         _id (int): Unique identifier for the NFA.
@@ -261,7 +259,7 @@ class NFA:
             for combo in product(*options)
         }
 
-    def intersection(self, other: "NFA") -> "NFA":
+    def intersection(self, other: "NFA") -> "NFA":  # noqa: C901
         result = self.__class__()
         new_states: set[NFAStateT] = set()
         new_input_symbols: set[InputSymbol] = self.input_symbols | other.input_symbols
@@ -271,7 +269,6 @@ class NFA:
         result._set_custom_initial_state(new_initial_state_value)  # noqa: SLF001
 
         queue: deque[NFAStateT] = deque()
-
         queue.append(result.initial_state)
 
         while queue:
@@ -308,8 +305,16 @@ class NFA:
 
             # Add all transitions moving over same input symbols
             for symbol in new_input_symbols:
-                end_states_a = transitions_a.get(symbol)
-                end_states_b = transitions_b.get(symbol)
+                # Get end states considering the wildcards.
+                end_states_a = set()
+                for key, dests in transitions_a.items():
+                    if symbol == key:
+                        end_states_a.update(dests)
+
+                end_states_b = set()
+                for key, dests in transitions_b.items():
+                    if symbol == key:
+                        end_states_b.update(dests)
 
                 if end_states_a is not None and end_states_b is not None:
                     state_dict = new_transitions[curr_state]
