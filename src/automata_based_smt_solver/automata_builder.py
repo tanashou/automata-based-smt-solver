@@ -125,19 +125,35 @@ class AutomataBuilder:
                 yield
 
     def false_to_nfa(self) -> Generator[None]:
+        # add dead state
+        dead_state = -1
+        self.nfa.add_state(dead_state)
+        # add final state
         final_state = self.formula_data.const
+        self.nfa.add_state(final_state)
+
+        # length of input_symbols is always 2 for boolean formulas
         for symbol in self.nfa.input_symbols:
             dot_value = self.dots[symbol]
             if dot_value == 1:
                 self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
-                yield
-                break
+            else:
+                self.nfa.add_transition(self.nfa.initial_state, symbol, dead_state)
+        yield
 
     def true_to_nfa(self) -> Generator[None]:
+        # add dead state
+        dead_state = -1
+        self.nfa.add_state(dead_state)
+        # add final state
         final_state = self.formula_data.const
+        self.nfa.add_state(final_state)
+
+        # length of input_symbols is always 2 for boolean formulas
         for symbol in self.nfa.input_symbols:
             dot_value = self.dots[symbol]
             if dot_value == 0:
                 self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
-                yield
-                break
+            else:
+                self.nfa.add_transition(self.nfa.initial_state, symbol, dead_state)
+        yield
