@@ -5,6 +5,7 @@ from pysmt.fnode import FNode
 
 from automata_based_smt_solver.automata.input_symbol import InputSymbol
 from automata_based_smt_solver.automata.nfa import NFA
+from automata_based_smt_solver.build_status import BuildStatus
 from automata_based_smt_solver.formula.type import FormulaData, FormulaType
 
 
@@ -30,11 +31,11 @@ class AutomataBuilder:
         self.dots: dict[InputSymbol, int] = self._calc_dots(all_var_index_map)
         self.work_list = [self.formula_data.const]
 
-        self._build_completed = False
+        self._build_status = BuildStatus.UNTOUCHED
 
     @property
-    def build_completed(self) -> bool:
-        return self._build_completed
+    def build_status(self) -> BuildStatus:
+        return self._build_status
 
     # formula_data.vars と all_vars_index_map, all_vars を使う。
     def _generate_input_symbols(self, all_vars: list[FNode]) -> set[InputSymbol]:
@@ -68,14 +69,15 @@ class AutomataBuilder:
                 else:
                     yield from self.true_to_nfa()
 
-    def build_step(self) -> bool:
+    def build_step(self) -> BuildStatus:
         if not hasattr(self, "_build_gen"):
             self._build_gen = self._build_nfa_generator()
         try:
             next(self._build_gen)
+            self._build_status = BuildStatus.ONGOING
         except StopIteration:
-            self._build_completed = True
-        return self._build_completed
+            self._build_status = BuildStatus.COMPLETED
+        return self._build_status
 
     def eq_to_nfa(self) -> Generator[None]:
         partial_sat = False
