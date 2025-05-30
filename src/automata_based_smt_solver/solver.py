@@ -104,8 +104,8 @@ class Solver:
         for clause_builders in cnf_builders:
             if not clause_builders:
                 continue
-            union_nfa = NFA()
-            for builder in clause_builders:
+            union_nfa = clause_builders[0].nfa
+            for builder in clause_builders[1:]:
                 if builder.build_status != BuildStatus.UNTOUCHED:
                     union_nfa = union_nfa.union(builder.nfa)
             union_nfas.append(union_nfa)
