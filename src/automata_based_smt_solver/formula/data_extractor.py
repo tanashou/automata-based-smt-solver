@@ -54,6 +54,8 @@ class DataExtractor(DagWalker):
             self._const -= lhs.constant_value()
         if rhs.is_int_constant():
             self._const += rhs.constant_value()
+
+        self._side_sign = 1
         self.walk(lhs)
         self._side_sign = -1
         self.walk(rhs)
