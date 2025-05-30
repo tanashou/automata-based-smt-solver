@@ -316,7 +316,7 @@ class NFA:
                     if symbol == key:
                         end_states_b.update(dests)
 
-                if end_states_a is not None and end_states_b is not None:
+                if end_states_a and end_states_b:
                     state_dict = new_transitions[curr_state]
                     product_states = [
                         State((state_a, state_b), result.id)
