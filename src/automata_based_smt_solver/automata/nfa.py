@@ -259,10 +259,26 @@ class NFA:
             for combo in product(*options)
         }
 
+    def _input_symbol_intersection(
+        self, s1: set[InputSymbol], s2: set[InputSymbol]
+    ) -> set[InputSymbol]:
+        tmp = s1 | s2
+        mask = 0
+        # 全ての input symbol でワイルドカードの桁を探す
+        for symbol in tmp:
+            mask |= symbol.mask
+
+        mask_str = bin(mask)[2:]
+        choices = [("0", "1") if ch == "1" else ("0",) for ch in mask_str]
+        symbols = {"".join(bits) for bits in product(*choices)}
+        return {InputSymbol(symbol, mask_str) for symbol in symbols}
+
     def intersection(self, other: "NFA") -> "NFA":  # noqa: C901
         result = self.__class__()
         new_states: set[NFAStateT] = set()
-        new_input_symbols: set[InputSymbol] = self.input_symbols | other.input_symbols
+        new_input_symbols: set[InputSymbol] = self._input_symbol_intersection(
+            self.input_symbols, other.input_symbols
+        )
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
 
         new_initial_state_value = (self.initial_state, other.initial_state)
