@@ -151,3 +151,90 @@ class TestAutomataBuilder:
         dots = builder._calc_dots(self.all_var_index_map)
         for bits, expected in expected_dots.items():
             assert dots[InputSymbol(bits, mask)] == expected
+
+    # x = 0 and y = 0 and x + y = 1 で unsat になるか
+    def test_unsat(self):
+        # x = 0
+        coeffs = {self.x: 1}
+        const = 0
+        all_vars = [self.x, self.y]
+        all_var_index_map = {var: index for index, var in enumerate(all_vars)}
+        formula_data = FormulaData(
+            coeffs=coeffs,
+            const=const,
+            formula_type=FormulaType.EQ,
+            has_negation_before_bool_var=False,
+        )
+        builder1 = AutomataBuilder(
+            formula_data, all_vars, all_var_index_map, create_all=True
+        )
+        builder1.build_step()
+
+        # y = 0
+        coeffs = {self.y: 1}
+        const = 0
+        formula_data = FormulaData(
+            coeffs=coeffs,
+            const=const,
+            formula_type=FormulaType.EQ,
+            has_negation_before_bool_var=False,
+        )
+        builder2 = AutomataBuilder(
+            formula_data, all_vars, all_var_index_map, create_all=True
+        )
+        builder2.build_step()
+
+        # x + y = 1
+        coeffs = {self.x: 1, self.y: 1}
+        const = 1
+        formula_data = FormulaData(
+            coeffs=coeffs,
+            const=const,
+            formula_type=FormulaType.EQ,
+            has_negation_before_bool_var=False,
+        )
+        builder3 = AutomataBuilder(
+            formula_data, all_vars, all_var_index_map, create_all=True
+        )
+        builder3.build_step()
+
+        intersection12 = builder1.nfa.intersection(builder2.nfa)
+        intersection123 = intersection12.intersection(builder3.nfa)
+
+        assert not intersection123.is_acceptable()
+
+    # x + y = 1 と 2x + y = 0 でsat になるか
+    def test_sat(self):
+        # x + y = 1
+        coeffs = {self.x: 1, self.y: 1}
+        const = 1
+        all_vars = [self.x, self.y]
+        all_var_index_map = {var: index for index, var in enumerate(all_vars)}
+        formula_data = FormulaData(
+            coeffs=coeffs,
+            const=const,
+            formula_type=FormulaType.LE,
+            has_negation_before_bool_var=False,
+        )
+        builder1 = AutomataBuilder(
+            formula_data, all_vars, all_var_index_map, create_all=True
+        )
+        builder1.build_step()
+
+        # 2x + y = 0
+        coeffs = {self.x: 2, self.y: 1}
+        const = 0
+        formula_data = FormulaData(
+            coeffs=coeffs,
+            const=const,
+            formula_type=FormulaType.LE,
+            has_negation_before_bool_var=False,
+        )
+        builder2 = AutomataBuilder(
+            formula_data, all_vars, all_var_index_map, create_all=True
+        )
+        builder2.build_step()
+
+        intersection = builder1.nfa.intersection(builder2.nfa)
+
+        assert intersection.is_acceptable()
