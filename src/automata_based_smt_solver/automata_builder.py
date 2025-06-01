@@ -139,6 +139,10 @@ class AutomataBuilder:
                 self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
             else:
                 self.nfa.add_transition(self.nfa.initial_state, symbol, dead_state)
+
+            # add loop to dead state and final state
+            self.nfa.add_transition(final_state, symbol, final_state)
+            self.nfa.add_transition(dead_state, symbol, dead_state)
         yield
 
     def true_to_nfa(self) -> Generator[None]:
@@ -156,4 +160,8 @@ class AutomataBuilder:
                 self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
             else:
                 self.nfa.add_transition(self.nfa.initial_state, symbol, dead_state)
+
+            # add loop to dead state and final state
+            self.nfa.add_transition(final_state, symbol, final_state)
+            self.nfa.add_transition(dead_state, symbol, dead_state)
         yield
