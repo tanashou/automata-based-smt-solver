@@ -267,13 +267,13 @@ class NFA:
         # 全ての input symbol でワイルドカードの桁を探す
         for symbol in tmp:
             mask |= symbol.mask
-
-        mask_str = bin(mask)[2:]
+        bin_length = tmp.pop().bin_length
+        mask_str = bin(mask)[2:].zfill(bin_length)
         choices = [("0", "1") if ch == "1" else ("0",) for ch in mask_str]
         symbols = {"".join(bits) for bits in product(*choices)}
         return {InputSymbol(symbol, mask_str) for symbol in symbols}
 
-    def intersection(self, other: "NFA") -> "NFA":  # noqa: C901
+    def intersection(self, other: "NFA") -> "NFA":  # noqa: C901, PLR0912
         result = self.__class__()
         new_states: set[NFAStateT] = set()
         new_input_symbols: set[InputSymbol] = self._input_symbol_intersection(
@@ -348,14 +348,15 @@ class NFA:
                     new_states.add(product_state)
                     queue.append(product_state)
 
-        new_final_states = {
-            state
-            for state in new_states
-            if (
-                state.state_value[0] in self.final_states
-                and state.state_value[1] in other.final_states
-            )
+        new_final_states: set[NFAStateT] = set()
+        possible_final_states = {
+            State((q_a, q_b), result.id)
+            for q_a in self.final_states
+            for q_b in other.final_states
         }
+        for possible_final_state in possible_final_states:
+            if possible_final_state in new_states:
+                new_final_states.add(possible_final_state)
 
         result.set_input_symbols(new_input_symbols)
         result.set_transitions(new_transitions)
