@@ -267,8 +267,8 @@ class NFA:
         # 全ての input symbol でワイルドカードの桁を探す
         for symbol in tmp:
             mask |= symbol.mask
-
-        mask_str = bin(mask)[2:]
+        bin_length = tmp.pop().bin_length
+        mask_str = bin(mask)[2:].zfill(bin_length)
         choices = [("0", "1") if ch == "1" else ("0",) for ch in mask_str]
         symbols = {"".join(bits) for bits in product(*choices)}
         return {InputSymbol(symbol, mask_str) for symbol in symbols}
