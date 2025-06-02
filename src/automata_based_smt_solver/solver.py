@@ -33,6 +33,14 @@ class Solver:
         normalized_coeff = SymbolCoeffNormalizer().walk(distributed)
         return CalculatingBracketExpander().walk(normalized_coeff)
 
+    def _rewrite_formula_all_and(self, formula: FNode) -> FNode:
+        cnf = formula
+        negation_eliminated_cnf = NegationEliminator().walk(cnf)
+        flattened_cnf = OrFlattener().walk(negation_eliminated_cnf)
+        distributed = TimesDistributor().walk(flattened_cnf)
+        normalized_coeff = SymbolCoeffNormalizer().walk(distributed)
+        return CalculatingBracketExpander().walk(normalized_coeff)
+
     def _extract_data(self, cnf: FNode) -> list[list[FormulaData]]:
         result = []
         data_extractor = DataExtractor()
@@ -123,6 +131,29 @@ class Solver:
 
         formula = And(self._formulas).simplify()
         cnf = self._rewrite_formula(formula)
+        cnf_data = self._extract_data(cnf)
+        variables: list[FNode] = sorted(cnf.get_free_variables(), key=lambda v: str(v))
+        var_index_map = {name: index for index, name in enumerate(variables)}
+        cnf_builders = self._setup_builders(cnf_data, variables, var_index_map)
+
+        for _ in self._stepwise_build(cnf_builders):
+            union_nfas = self._union_nfas_per_clause(cnf_builders)
+            if not union_nfas:
+                msg = "No NFA generated from the CNF clauses."
+                raise ValueError(msg)
+            all_nfa = self._intersect_all_nfa_(union_nfas)
+            if all_nfa and all_nfa.is_acceptable():
+                return SatStatus.SAT
+
+        return SatStatus.UNSAT
+
+    def solve_all_and(self) -> SatStatus:
+        if not self._formulas:
+            msg = "No formulas to solve."
+            raise ValueError(msg)
+
+        formula = And(self._formulas).simplify()
+        cnf = self._rewrite_formula_all_and(formula)
         cnf_data = self._extract_data(cnf)
         variables: list[FNode] = sorted(cnf.get_free_variables(), key=lambda v: str(v))
         var_index_map = {name: index for index, name in enumerate(variables)}
