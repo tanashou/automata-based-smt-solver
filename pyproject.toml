@@ -14,6 +14,7 @@ dependencies = ["automata-lib[visual]>=8.4.0", "pysmt==0.9.6"]
 [tool.uv]
 dev-dependencies = [
     "pre-commit>=4.1.0",
+    "psutil>=7.0.0",
     "pyright>=1.1.392.post0",
     "pytest>=8.3.4",
     "pytest-cov>=6.0.0",
