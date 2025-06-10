@@ -4,7 +4,7 @@
 import contextlib
 import os
 from collections import defaultdict, deque
-from itertools import chain, count, product
+from itertools import chain, product
 from typing import TYPE_CHECKING, TypeAlias, cast
 
 import pygraphviz as pgv
@@ -32,11 +32,8 @@ class NFA:
 
     """
 
-    _id_counter = count(0)
-
     def __init__(self) -> None:
         """Initialize a NFA."""
-        self._id: int = next(NFA._id_counter)
         self._states: set[NFAStateT] = set()
         self._input_symbols: set[InputSymbol] = set()
         self._transitions: NFATransitionsT = cast(
@@ -80,11 +77,6 @@ class NFA:
     def final_states(self) -> set[NFAStateT]:
         return self._final_states
 
-    @property
-    def id(self) -> int:
-        return self._id
-
-    # id のことを気にせずに使えるようにしたい
     def add_state(self, new_state: NFAStateT) -> None:
         self._states.add(new_state)
 
