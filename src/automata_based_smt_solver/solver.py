@@ -129,7 +129,7 @@ class Solver:
             msg = "No formulas to solve."
             raise ValueError(msg)
 
-        formula = And(self._formulas).simplify()
+        formula = And(self._formulas)
         cnf = self._rewrite_formula(formula)
         cnf_data = self._extract_data(cnf)
         variables: list[FNode] = sorted(cnf.get_free_variables(), key=lambda v: str(v))
@@ -152,7 +152,7 @@ class Solver:
             msg = "No formulas to solve."
             raise ValueError(msg)
 
-        formula = And(self._formulas).simplify()
+        formula = And(self._formulas)
         cnf = self._rewrite_formula_all_and(formula)
         cnf_data = self._extract_data(cnf)
         variables: list[FNode] = sorted(cnf.get_free_variables(), key=lambda v: str(v))
