@@ -345,34 +345,5 @@ class NFA:
 
         return result
 
-    def union(self, other: "NFA") -> "NFA":
-        """Return an NFA which accepts the union of L1 and L2.
-
-        Given two NFAs, M1 and M2, which accept the languages
-        L1 and L2 respectively, returns an NFA which accepts
-        the union of L1 and L2.
-        """
-        result = self.__class__()
-        new_states = self.states | other.states
-        new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
-
-        # Add epsilon transitions from initial state
-        new_transitions[result.initial_state][EPSILON] = {
-            self.initial_state,
-            other.initial_state,
-        }
-        new_transitions.update(self.transitions)
-        new_transitions.update(other.transitions)
-
-        new_final_states = self.final_states | other.final_states
-        new_input_symbols = self.input_symbols | other.input_symbols
-
-        result.set_input_symbols(new_input_symbols)
-        result.set_transitions(new_transitions)
-        result.add_states(new_states)
-        result.set_final_states(new_final_states)
-
-        return result
-
     # def concatenate(self, other: "NFA") -> "NFA":
     #     pass
