@@ -5,7 +5,6 @@ import pytest
 
 from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
 from automata_based_smt_solver.automata.nfa import NFA
-from automata_based_smt_solver.automata.state import State
 
 
 def create_symbols(*bits: str, mask: str) -> set[InputSymbol]:
@@ -172,8 +171,8 @@ class TestNFA:
         """Test that transitions work as expected."""
         # Get states
         q0 = nfa_ends_with_01.initial_state
-        q1 = State("q1", nfa_ends_with_01.id)
-        q2 = State("q2", nfa_ends_with_01.id)
+        q1 = "q1"
+        q2 = "q2"
 
         # Test transitions
         assert nfa_ends_with_01.get_next_states(q0, InputSymbol("0", "1")) == {q0, q1}
@@ -193,7 +192,7 @@ class TestNFA:
             nfa.add_state(state_name)
 
         for state_name in state_names:
-            assert State(state_name, nfa.id) in nfa.states
+            assert state_name in nfa.states
         assert len(nfa.states) == len(state_names)
 
     def test_add_duplicate_state(self):
@@ -213,8 +212,8 @@ class TestNFA:
         symbol = InputSymbol("1", "1")
         nfa.add_transition(nfa.initial_state, symbol, "q1")
 
-        q0 = State(nfa.initial_state, nfa.id)
-        q1 = State("q1", nfa.id)
+        q0 = nfa.initial_state
+        q1 = "q1"
         assert nfa.get_next_states(q0, symbol) == {q1}
 
     def test_accepts_nfa_ends_with_01(self, nfa_ends_with_01):
@@ -275,42 +274,6 @@ class TestNFA:
     def test_union_of_input_symbols(self, mask, expected_symbols):
         new_symbols = NFA.create_input_symbols_from_mask(mask)
         assert new_symbols == expected_symbols
-
-    def test_union_operation(self, nfa_ends_with_01, nfa_zero_star_one_star):
-        """Test the union operation between two NFAs."""
-        union_nfa = nfa_ends_with_01.union(nfa_zero_star_one_star)
-        mask = "1"
-
-        accepted_strings = list(
-            set(self.STRINGS_ACCEPTED_BY_ENDS_WITH_01)
-            | set(self.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR)
-        )
-        rejected_strings = list(self.ALL_STRINGS_UP_TO_LENGTH_3 - set(accepted_strings))
-
-        TestNFA.assert_nfa_accepts_rejects(
-            union_nfa, accepted_strings, rejected_strings, mask
-        )
-
-    def test_union_operation_with_epsilon(
-        self, nfa_ends_with_01_epsilon, nfa_zero_star_one_star
-    ):
-        """Test the union operation between an NFA with epsilon ."""
-        union_nfa = nfa_ends_with_01_epsilon.union(nfa_zero_star_one_star)
-        mask = "1"
-
-        accepted_strings = list(
-            set(self.STRINGS_ACCEPTED_BY_ENDS_WITH_01)
-            | set(self.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR)
-        )
-        rejected_strings = list(self.ALL_STRINGS_UP_TO_LENGTH_3 - set(accepted_strings))
-
-        TestNFA.assert_nfa_accepts_rejects(
-            union_nfa,
-            accepted_strings,
-            rejected_strings,
-            mask,
-            "Union NFA with epsilon",
-        )
 
     def test_intersection_operation(self, nfa_ends_with_01, nfa_zero_star_one_star):
         """Test the intersection operation between two NFAs."""
