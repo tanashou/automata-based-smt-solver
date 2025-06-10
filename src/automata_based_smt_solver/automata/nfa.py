@@ -344,6 +344,3 @@ class NFA:
         result.set_final_states(new_final_states)
 
         return result
-
-    # def concatenate(self, other: "NFA") -> "NFA":
-    #     pass
