@@ -34,8 +34,7 @@ class Solver:
         return CalculatingBracketExpander().walk(normalized_coeff)
 
     def _rewrite_formula_all_and(self, formula: FNode) -> FNode:
-        cnf = formula
-        negation_eliminated_cnf = NegationEliminator().walk(cnf)
+        negation_eliminated_cnf = NegationEliminator().walk(formula)
         flattened_cnf = OrFlattener().walk(negation_eliminated_cnf)
         distributed = TimesDistributor().walk(flattened_cnf)
         normalized_coeff = SymbolCoeffNormalizer().walk(distributed)
@@ -102,20 +101,6 @@ class Solver:
                     break
             yield
 
-    def _union_nfas_per_clause(
-        self, cnf_builders: list[list[AutomataBuilder]]
-    ) -> list[NFA]:
-        union_nfas: list[NFA] = []
-        for clause_builders in cnf_builders:
-            if not clause_builders:
-                continue
-            union_nfa = clause_builders[0].nfa
-            for builder in clause_builders[1:]:
-                if builder.build_status != BuildStatus.UNTOUCHED:
-                    union_nfa = union_nfa.union(builder.nfa)
-            union_nfas.append(union_nfa)
-        return union_nfas
-
     def _intersect_all_nfa_(self, union_nfas: list[NFA]) -> NFA | None:
         if not union_nfas:
             return None
@@ -124,47 +109,28 @@ class Solver:
             all_nfa = all_nfa.intersection(union_nfa)
         return all_nfa
 
-    def solve(self) -> SatStatus:
-        if not self._formulas:
-            msg = "No formulas to solve."
-            raise ValueError(msg)
-
-        formula = And(self._formulas)
-        cnf = self._rewrite_formula(formula)
-        cnf_data = self._extract_data(cnf)
-        variables: list[FNode] = sorted(cnf.get_free_variables(), key=lambda v: str(v))
-        var_index_map = {name: index for index, name in enumerate(variables)}
-        cnf_builders = self._setup_builders(cnf_data, variables, var_index_map)
-
-        for _ in self._stepwise_build(cnf_builders):
-            union_nfas = self._union_nfas_per_clause(cnf_builders)
-            if not union_nfas:
-                msg = "No NFA generated from the CNF clauses."
-                raise ValueError(msg)
-            all_nfa = self._intersect_all_nfa_(union_nfas)
-            if all_nfa and all_nfa.is_acceptable():
-                return SatStatus.SAT
-
-        return SatStatus.UNSAT
-
+    # or を含まない場合。簡易テスト用。
     def solve_all_and(self) -> SatStatus:
         if not self._formulas:
             msg = "No formulas to solve."
             raise ValueError(msg)
 
         formula = And(self._formulas)
-        cnf = self._rewrite_formula_all_and(formula)
-        cnf_data = self._extract_data(cnf)
-        variables: list[FNode] = sorted(cnf.get_free_variables(), key=lambda v: str(v))
+        conjunction = self._rewrite_formula_all_and(formula)
+        conj_data = self._extract_data(conjunction)
+        variables: list[FNode] = sorted(
+            conjunction.get_free_variables(), key=lambda v: str(v)
+        )
         var_index_map = {name: index for index, name in enumerate(variables)}
-        cnf_builders = self._setup_builders(cnf_data, variables, var_index_map)
+        cnf_builders = self._setup_builders(conj_data, variables, var_index_map)
 
         for _ in self._stepwise_build(cnf_builders):
-            union_nfas = self._union_nfas_per_clause(cnf_builders)
-            if not union_nfas:
-                msg = "No NFA generated from the CNF clauses."
-                raise ValueError(msg)
-            all_nfa = self._intersect_all_nfa_(union_nfas)
+            conj_nfas = [
+                builder.nfa
+                for clause_builders in cnf_builders
+                for builder in clause_builders
+            ]
+            all_nfa = self._intersect_all_nfa_(conj_nfas)
             if all_nfa and all_nfa.is_acceptable():
                 return SatStatus.SAT
 
