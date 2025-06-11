@@ -1,16 +1,13 @@
 import pytest
 from pysmt.fnode import FNode
-from pysmt.shortcuts import FALSE, TRUE, And, Not, Or, Symbol
-from pysmt.typing import BOOL
+from pysmt.shortcuts import FALSE, GT, LT, TRUE, And, Equals, Not, Or, Symbol
+from pysmt.typing import INT
 
+# Using the import path you specified
 from automata_based_smt_solver.formula.rewritings.dnf_generator import DNFGenerator
 
 
 def formula_equal(f1, f2):
-    """Check if two formulas are mathematically equal.
-
-    Ignores argument order for And/Or. Accepts pysmt formula objects.
-    """
     if isinstance(f1, FNode) and isinstance(f2, FNode):
         if f1.is_and() and f2.is_and():
             return set(f1.args()) == set(f2.args())
@@ -19,43 +16,51 @@ def formula_equal(f1, f2):
     return f1 == f2
 
 
-class TestDNFGenerator:
+class TestDNFGeneratorWithInts:
     def setup_method(self):
         self.dnf_generator = DNFGenerator()
-        self.a = Symbol("bv_a", BOOL)
-        self.b = Symbol("bv_b", BOOL)
-        self.c = Symbol("bv_c", BOOL)
-        self.d = Symbol("bv_d", BOOL)
-        self.x = Symbol("bv_x", BOOL)
-        self.y = Symbol("bv_y", BOOL)
+        # Integer variables
+        x_var = Symbol("x", INT)
+        y_var = Symbol("y", INT)
+        z_var = Symbol("z", INT)
+        k_var = Symbol("k", INT)
+
+        # Atomic formulas based on integer arithmetic
+        self.a = GT(x_var, y_var)
+        self.b = LT(y_var, z_var)
+        self.c = Equals(z_var, k_var)
+        self.d = GT(k_var, x_var)
+        self.x = Equals(x_var, y_var)  # Reusing x/y for different atoms
+        self.y = LT(z_var, k_var)
+
+    def assert_dnf_equals(self, formula, expected_dnf_set):
+        actual_dnf_set = set(self.dnf_generator.get_conjunctions(formula))
+        assert len(actual_dnf_set) == len(expected_dnf_set)
+
+        # Check that every expected formula has an equivalent in the actual results
+        for expected_formula in expected_dnf_set:
+            assert any(
+                formula_equal(expected_formula, actual_formula)
+                for actual_formula in actual_dnf_set
+            ), f"Expected conjunction {expected_formula} not found in DNF"
 
     def test_single_literals(self):
-        # Test a single positive literal
-        assert set(self.dnf_generator.get_conjunctions(self.a)) == {self.a}
-        # Test a single negative literal
-        assert set(self.dnf_generator.get_conjunctions(Not(self.a))) == {Not(self.a)}
+        self.assert_dnf_equals(self.a, {self.a})
+        self.assert_dnf_equals(Not(self.a), {Not(self.a)})
 
     def test_constants(self):
-        # TRUE is a DNF with one conjunction: TRUE
-        assert set(self.dnf_generator.get_conjunctions(TRUE())) == {TRUE()}
-        # FALSE is an empty DNF (no conjunctions)
-        assert set(self.dnf_generator.get_conjunctions(FALSE())) == set()
+        self.assert_dnf_equals(TRUE(), {TRUE()})
+        self.assert_dnf_equals(FALSE(), set())
 
     def test_nested_ands(self):
         formula = And(And(self.a, self.b), And(self.c, self.d))
         expected = {And(self.a, self.b, self.c, self.d)}
-        actual = set(self.dnf_generator.get_conjunctions(formula))
-        assert len(actual) == len(expected)
-        for e in expected:
-            assert any(formula_equal(e, a) for a in actual)
+        self.assert_dnf_equals(formula, expected)
 
     def test_nested_ors(self):
         formula = Or(Or(self.a, self.b), Or(self.c, self.d))
         expected = {self.a, self.b, self.c, self.d}
-        actual = set(self.dnf_generator.get_conjunctions(formula))
-        assert len(actual) == len(expected)
-        for e in expected:
-            assert any(formula_equal(e, a) for a in actual)
+        self.assert_dnf_equals(formula, expected)
 
     def test_double_distribution(self):
         formula = And(Or(self.a, self.b), Or(self.c, self.d))
@@ -65,10 +70,7 @@ class TestDNFGenerator:
             And(self.b, self.c),
             And(self.b, self.d),
         }
-        actual = set(self.dnf_generator.get_conjunctions(formula))
-        assert len(actual) == len(expected)
-        for e in expected:
-            assert any(formula_equal(e, a) for a in actual)
+        self.assert_dnf_equals(formula, expected)
 
     def test_complex_nested_formula(self):
         # Formula: (a & (b|c)) | ((x|y) & d)
@@ -81,13 +83,10 @@ class TestDNFGenerator:
             And(self.x, self.d),
             And(self.y, self.d),
         }
-        actual = set(self.dnf_generator.get_conjunctions(formula))
-        assert len(actual) == len(expected)
-        for e in expected:
-            assert any(formula_equal(e, a) for a in actual)
+        self.assert_dnf_equals(formula, expected)
 
     def test_deeply_nested_and_or(self):
-        # Formula: (a|b&c) & (d|e&f)
+        # Formula: (a|b&c) & (d|x&y)
         part1 = Or(self.a, And(self.b, self.c))
         part2 = Or(self.d, And(self.x, self.y))
         formula = And(part1, part2)
@@ -98,19 +97,13 @@ class TestDNFGenerator:
             And(self.b, self.c, self.d),
             And(self.b, self.c, self.x, self.y),
         }
-        actual = set(self.dnf_generator.get_conjunctions(formula))
-        assert len(actual) == len(expected)
-        for e in expected:
-            assert any(formula_equal(e, a) for a in actual)
+        self.assert_dnf_equals(formula, expected)
 
     def test_generator_exhaustion(self):
-        expected_conjunctions_count = 4
         formula = And(Or(self.a, self.b), Or(self.c, self.d))
         conjunction_gen = self.dnf_generator.get_conjunctions(formula)
-        # Consume it completely
         results = list(conjunction_gen)
-        assert len(results) == expected_conjunctions_count
-        # Now, calling next should raise StopIteration
+        assert len(results) == 4
         with pytest.raises(StopIteration):
             next(conjunction_gen)
 
@@ -123,27 +116,15 @@ class TestDNFGenerator:
             And(self.b, self.d),
         }
 
-        # Get the generator object, do not consume it yet
         conjunction_gen = self.dnf_generator.get_conjunctions(formula)
-
-        # Pull items one by one and check state at each step
+        # Pull items and verify count at each step
         results = set()
+        for i in range(1, 5):
+            results.add(next(conjunction_gen))
+            assert len(results) == i
 
-        results.add(next(conjunction_gen))
-        assert len(results) == 1
-
-        results.add(next(conjunction_gen))
-        assert len(results) == 2
-
-        results.add(next(conjunction_gen))
-        assert len(results) == 3
-
-        results.add(next(conjunction_gen))
-        assert len(results) == 4
-
-        # After pulling all items, the set of results should match the expected DNF
-        assert results == expected_conjunctions
-
-        # The next call should now fail, proving exhaustion
+        # Final check against expected results
+        self.assert_dnf_equals(formula, expected_conjunctions)
+        # Check for exhaustion
         with pytest.raises(StopIteration):
             next(conjunction_gen)
