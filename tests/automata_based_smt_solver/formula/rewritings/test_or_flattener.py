@@ -7,10 +7,10 @@ from automata_based_smt_solver.formula.rewritings import OrFlattener
 class TestOrFlattener:
     def setup_method(self):
         self.flattener = OrFlattener()
-        self.a = Symbol("a", BOOL)
-        self.b = Symbol("b", BOOL)
-        self.c = Symbol("c", BOOL)
-        self.d = Symbol("d", BOOL)
+        self.a = Symbol("bv_a", BOOL)
+        self.b = Symbol("bv_b", BOOL)
+        self.c = Symbol("bv_c", BOOL)
+        self.d = Symbol("bv_d", BOOL)
 
     def test_flatten_nested_or(self):
         # (a OR (b OR c) OR d) should flatten to (a OR b OR c OR d)

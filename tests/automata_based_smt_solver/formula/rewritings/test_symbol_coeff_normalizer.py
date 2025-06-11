@@ -11,7 +11,7 @@ class TestSymbolCoeffNormalizer:
         self.normalizer = SymbolCoeffNormalizer()
         self.x = Symbol("x", INT)
         self.y = Symbol("y", INT)
-        self.b = Symbol("b", BOOL)
+        self.b = Symbol("bv_b", BOOL)
 
     def test_symbol_is_wrapped(self):
         # x -> 1 * x
