@@ -1,9 +1,22 @@
 import pytest
+from pysmt.fnode import FNode
 from pysmt.shortcuts import FALSE, TRUE, And, Not, Or, Symbol
 from pysmt.typing import BOOL
 
-# Using the import path you specified
 from automata_based_smt_solver.formula.rewritings.dnf_generator import DNFGenerator
+
+
+def formula_equal(f1, f2):
+    """Check if two formulas are mathematically equal.
+
+    Ignores argument order for And/Or. Accepts pysmt formula objects.
+    """
+    if isinstance(f1, FNode) and isinstance(f2, FNode):
+        if f1.is_and() and f2.is_and():
+            return set(f1.args()) == set(f2.args())
+        if f1.is_or() and f2.is_or():
+            return set(f1.args()) == set(f2.args())
+    return f1 == f2
 
 
 class TestDNFGenerator:
@@ -31,12 +44,18 @@ class TestDNFGenerator:
     def test_nested_ands(self):
         formula = And(And(self.a, self.b), And(self.c, self.d))
         expected = {And(self.a, self.b, self.c, self.d)}
-        assert set(self.dnf_generator.get_conjunctions(formula)) == expected
+        actual = set(self.dnf_generator.get_conjunctions(formula))
+        assert len(actual) == len(expected)
+        for e in expected:
+            assert any(formula_equal(e, a) for a in actual)
 
     def test_nested_ors(self):
         formula = Or(Or(self.a, self.b), Or(self.c, self.d))
         expected = {self.a, self.b, self.c, self.d}
-        assert set(self.dnf_generator.get_conjunctions(formula)) == expected
+        actual = set(self.dnf_generator.get_conjunctions(formula))
+        assert len(actual) == len(expected)
+        for e in expected:
+            assert any(formula_equal(e, a) for a in actual)
 
     def test_double_distribution(self):
         formula = And(Or(self.a, self.b), Or(self.c, self.d))
@@ -46,7 +65,10 @@ class TestDNFGenerator:
             And(self.b, self.c),
             And(self.b, self.d),
         }
-        assert set(self.dnf_generator.get_conjunctions(formula)) == expected
+        actual = set(self.dnf_generator.get_conjunctions(formula))
+        assert len(actual) == len(expected)
+        for e in expected:
+            assert any(formula_equal(e, a) for a in actual)
 
     def test_complex_nested_formula(self):
         # Formula: (a & (b|c)) | ((x|y) & d)
@@ -59,23 +81,27 @@ class TestDNFGenerator:
             And(self.x, self.d),
             And(self.y, self.d),
         }
-        assert set(self.dnf_generator.get_conjunctions(formula)) == expected
+        actual = set(self.dnf_generator.get_conjunctions(formula))
+        assert len(actual) == len(expected)
+        for e in expected:
+            assert any(formula_equal(e, a) for a in actual)
 
     def test_deeply_nested_and_or(self):
-        # Formula: ( (a|b) & (c|d) ) | ( (x&y) | a )
-        part1 = And(Or(self.a, self.b), Or(self.c, self.d))
-        part2 = Or(And(self.x, self.y), self.a)
-        formula = Or(part1, part2)
-
+        # Formula: (a|b&c) & (d|e&f)
+        part1 = Or(self.a, And(self.b, self.c))
+        part2 = Or(self.d, And(self.x, self.y))
+        formula = And(part1, part2)
+        # Expected DNF: (a & d) | (a & x & y) | (b & c & d) | (b & c & x & y)
         expected = {
-            And(self.a, self.c),
             And(self.a, self.d),
-            And(self.b, self.c),
-            And(self.b, self.d),
-            And(self.x, self.y),
-            self.a,  # Note that 'a' itself is a valid conjunction
+            And(self.a, self.x, self.y),
+            And(self.b, self.c, self.d),
+            And(self.b, self.c, self.x, self.y),
         }
-        assert set(self.dnf_generator.get_conjunctions(formula)) == expected
+        actual = set(self.dnf_generator.get_conjunctions(formula))
+        assert len(actual) == len(expected)
+        for e in expected:
+            assert any(formula_equal(e, a) for a in actual)
 
     def test_generator_exhaustion(self):
         expected_conjunctions_count = 4
