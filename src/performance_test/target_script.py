@@ -67,7 +67,7 @@ def main():
     print(formula)
 
     solver.add(formula)
-    result = solver.solve_all_and()
+    result = solver.solve_with_dnf()
     print(f"Status: {result}")
 
 
