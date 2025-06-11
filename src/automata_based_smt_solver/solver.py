@@ -12,6 +12,7 @@ from automata_based_smt_solver.build_status import BuildStatus
 from automata_based_smt_solver.formula import DataExtractor
 from automata_based_smt_solver.formula.rewritings import (
     CalculatingBracketExpander,
+    DNFGenerator,
     NegationEliminator,
     OrFlattener,
     SymbolCoeffNormalizer,
@@ -25,7 +26,7 @@ class Solver:
         self.parser = SmtLibParser()
         self._formulas: list[FNode] = []
 
-    def _rewrite_formula(self, formula: FNode) -> FNode:
+    def _rewrite_formula_to_cnf(self, formula: FNode) -> FNode:
         cnf = pysmt.rewritings.cnf(formula)
         negation_eliminated_cnf = NegationEliminator().walk(cnf)
         flattened_cnf = OrFlattener().walk(negation_eliminated_cnf)
@@ -39,6 +40,28 @@ class Solver:
         distributed = TimesDistributor().walk(flattened_cnf)
         normalized_coeff = SymbolCoeffNormalizer().walk(distributed)
         return CalculatingBracketExpander().walk(normalized_coeff)
+
+    def _rewrite_formula_to_dnf(self, formula: FNode) -> Generator[FNode]:
+        # 否定を除去してから dnf に変換。変換後の formula には否定が現れない。
+        nnf = pysmt.rewritings.nnf(formula)
+        negation_eliminated_nnf = NegationEliminator().walk(nnf)
+        flattened_nnf = OrFlattener().walk(negation_eliminated_nnf)
+        return DNFGenerator().get_conjunctions(flattened_nnf)
+
+    def _extract_data_from_conjunction(self, conjunction: FNode) -> list[FormulaData]:
+        times_distributor = TimesDistributor()
+        coeff_normalizer = SymbolCoeffNormalizer()
+        bracket_expander = CalculatingBracketExpander()
+
+        data_extractor = DataExtractor()
+
+        distributed = times_distributor.walk(conjunction)
+        normalized_coeff = coeff_normalizer.walk(distributed)
+        expanded = bracket_expander.walk(normalized_coeff)
+        if expanded.is_and():
+            return [data_extractor.extract(literal) for literal in expanded.args()]
+        current_literal = data_extractor.extract(expanded)
+        return [current_literal]
 
     def _extract_data(self, cnf: FNode) -> list[list[FormulaData]]:
         result = []
@@ -65,7 +88,7 @@ class Solver:
     def add(self, formula: FNode) -> None:
         self._formulas.append(formula)
 
-    def _setup_builders(
+    def _setup_builders_for_cnf(
         self,
         cnf_data: list[list[FormulaData]],
         variables: list[FNode],
@@ -85,6 +108,23 @@ class Solver:
             cnf_builders.append(clause_builders)
         return cnf_builders
 
+    def _setup_builders_for_conjunction(
+        self,
+        conjunction_data: list[FormulaData],
+        variables: list[FNode],
+        var_index_map: dict[FNode, int],
+    ) -> list[AutomataBuilder]:
+        builders: list[AutomataBuilder] = []
+        for literal_data in conjunction_data:
+            builder = AutomataBuilder(
+                literal_data,
+                variables,
+                var_index_map,
+                create_all=False,
+            )
+            builders.append(builder)
+        return builders
+
     def _stepwise_build(
         self, cnf_builders: list[list[AutomataBuilder]]
     ) -> Generator[None]:
@@ -101,6 +141,19 @@ class Solver:
                     break
             yield
 
+    def _stepwise_build_conjunction(
+        self, literal_builders: list[AutomataBuilder]
+    ) -> Generator[None]:
+        while not all(
+            builder.build_status == BuildStatus.COMPLETED
+            for builder in literal_builders
+        ):
+            for builder in literal_builders:
+                if builder.build_status == BuildStatus.COMPLETED:
+                    continue
+                builder.build_step()
+            yield
+
     def _intersect_all_nfa_(self, union_nfas: list[NFA]) -> NFA | None:
         if not union_nfas:
             return None
@@ -109,29 +162,32 @@ class Solver:
             all_nfa = all_nfa.intersection(union_nfa)
         return all_nfa
 
-    # or を含まない場合。簡易テスト用。
-    def solve_all_and(self) -> SatStatus:
+    def solve_with_dnf(self) -> SatStatus:
         if not self._formulas:
             msg = "No formulas to solve."
             raise ValueError(msg)
 
         formula = And(self._formulas)
-        conjunction = self._rewrite_formula_all_and(formula)
-        conj_data = self._extract_data(conjunction)
-        variables: list[FNode] = sorted(
-            conjunction.get_free_variables(), key=lambda v: str(v)
-        )
-        var_index_map = {name: index for index, name in enumerate(variables)}
-        cnf_builders = self._setup_builders(conj_data, variables, var_index_map)
+        dnf_generator = self._rewrite_formula_to_dnf(formula)
 
-        for _ in self._stepwise_build(cnf_builders):
-            conj_nfas = [
-                builder.nfa
-                for clause_builders in cnf_builders
-                for builder in clause_builders
-            ]
-            all_nfa = self._intersect_all_nfa_(conj_nfas)
-            if all_nfa and all_nfa.is_acceptable():
-                return SatStatus.SAT
+        for conjunction in dnf_generator:
+            variables: list[FNode] = sorted(
+                conjunction.get_free_variables(), key=lambda v: str(v)
+            )
+            var_index_map = {name: index for index, name in enumerate(variables)}
+            data = self._extract_data_from_conjunction(conjunction)
+
+            literal_builders = self._setup_builders_for_conjunction(
+                data,
+                variables,
+                var_index_map,
+            )
+
+            for _ in self._stepwise_build_conjunction(literal_builders):
+                all_nfa = self._intersect_all_nfa_(
+                    [builder.nfa for builder in literal_builders]
+                )
+                if all_nfa and all_nfa.is_acceptable():
+                    return SatStatus.SAT
 
         return SatStatus.UNSAT

@@ -58,9 +58,13 @@ class DNFGenerator(DagWalker):
         op.SYMBOL,
         op.NOT,
         op.BOOL_CONSTANT,
+        op.INT_CONSTANT,
         op.LT,
         op.LE,
         op.EQUALS,
+        op.TIMES,
+        op.PLUS,
+        op.MINUS,
     )
     def walk_literal(self, formula, **kwargs):
         if formula.is_false():
