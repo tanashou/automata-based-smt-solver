@@ -52,7 +52,16 @@ class DNFGenerator(DagWalker):
         # before starting on the second, all on demand.
         return itertools.chain(*args)
 
-    @handles(op.SYMBOL, op.NOT, op.BOOL_CONSTANT)
+    # This is the corrected handler. It now includes all theory relations
+    # (LT, GT, Equals, etc.) as atoms, which fixes the error.
+    @handles(
+        op.SYMBOL,
+        op.NOT,
+        op.BOOL_CONSTANT,
+        op.LT,
+        op.LE,
+        op.EQUALS,
+    )
     def walk_literal(self, formula, **kwargs):
         if formula.is_false():
             # An empty generator represents a False DNF
