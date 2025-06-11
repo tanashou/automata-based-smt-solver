@@ -92,27 +92,27 @@ class TestDataExtractor:
         expected_coeff = 1
         expected_const = 0
 
-        b = Symbol("b", BOOL)
+        bv1 = Symbol("BV1", BOOL)
 
-        data = self.extractor.extract(b)
+        data = self.extractor.extract(bv1)
 
         assert data.formula_type == FormulaType.BOOL
-        assert data.coeffs[b] == expected_coeff
+        assert data.coeffs[bv1] == expected_coeff
         assert data.const == expected_const
         assert not data.has_negation_before_bool_var
 
     def test_extract_negated_bool_formula(self):
-        """Test extracting data from a negated boolean formula: Not(b)."""
+        """Test extracting data from a negated boolean formula: Not(bv1)."""
         expected_coeff = 1
         expected_const = 0
 
-        b = Symbol("b", BOOL)
-        formula = Not(b)
+        bv1 = Symbol("BV1", BOOL)
+        formula = Not(bv1)
 
         data = self.extractor.extract(formula)
 
         assert data.formula_type == FormulaType.BOOL
-        assert data.coeffs[b] == expected_coeff
+        assert data.coeffs[bv1] == expected_coeff
         assert data.const == expected_const
         assert data.has_negation_before_bool_var
 
