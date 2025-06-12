@@ -351,3 +351,32 @@ class NFA:
         result.set_final_states(new_final_states)
 
         return result
+
+    def merge(self, incoming_trans: NFATransitionsT) -> None:
+        """Merge a transition dictionary into the current NFA in-place.
+
+        This method takes a transition dictionary and integrates its
+        structure into the current NFA. It does not perform any state
+        renaming. If a state in the incoming transitions already exists,
+        the new transitions are added to it. If a state does not exist,
+        it is automatically created and added to the NFA's set of states.
+
+        This is a low-level operation that directly manipulates the NFA's
+        graph. It does not update final states; they must be managed
+        separately. Input symbols referenced in the new transitions are
+        added to the NFA's symbol set.
+
+        Args:
+            incoming_trans: A dictionary representing the transitions to merge.
+                            The format is {State: {InputSymbol: {State, ...}}}.
+
+        """
+        for start_state, transitions in incoming_trans.items():
+            self.add_state(start_state)
+            for symbol, end_states in transitions.items():
+                self.add_input_symbol(symbol)
+                for end_state in end_states:
+                    # Ensure end state exists
+                    self.add_state(end_state)
+                    # Add the transition
+                    self.add_transition(start_state, symbol, end_state)
