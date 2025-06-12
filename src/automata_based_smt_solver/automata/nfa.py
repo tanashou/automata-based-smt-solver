@@ -11,12 +11,12 @@ import pygraphviz as pgv
 from automata.fa.nfa import NFA as BaseNFA  # noqa: N811
 
 from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
+from automata_based_smt_solver.automata.state import NFAStateT, State
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-NFAStateT: TypeAlias = str | int | tuple["NFAStateT", ...]
-NFATransitionsT: TypeAlias = dict[NFAStateT, dict[InputSymbol, set[NFAStateT]]]
+NFATransitionsT: TypeAlias = dict[State, dict[InputSymbol, set[State]]]
 
 
 class NFA:
@@ -24,24 +24,24 @@ class NFA:
 
     Attributes:
         _id (int): Unique identifier for the NFA.
-        _states (set[NFAStateT]): Set of all states.
+        _states (set[State]): Set of all states.
         _input_symbols (set[InputSymbol]): Set of input symbols.
         _transitions (NFATransitionsT): Transition mapping.
-        _initial_state (NFAStateT): Starting state.
-        _final_states (set[NFAStateT]): Set of accepting states.
+        _initial_state (State): Starting state.
+        _final_states (set[State]): Set of accepting states.
 
     """
 
     def __init__(self) -> None:
         """Initialize a NFA."""
-        self._states: set[NFAStateT] = set()
+        self._states: set[State] = set()
         self._input_symbols: set[InputSymbol] = set()
         self._transitions: NFATransitionsT = cast(
             NFATransitionsT, defaultdict(lambda: defaultdict(set))
         )
         self._set_initial_state()
         self._states.add(self._initial_state)
-        self._final_states: set[NFAStateT] = set()
+        self._final_states: set[State] = set()
 
     def __str__(self) -> str:
         """Return a string representation of the NFA."""
@@ -58,7 +58,7 @@ class NFA:
         return f"NFA({self})"
 
     @property
-    def states(self) -> set[NFAStateT]:
+    def states(self) -> set[State]:
         return self._states
 
     @property
@@ -70,17 +70,17 @@ class NFA:
         return self._transitions
 
     @property
-    def initial_state(self) -> NFAStateT:
+    def initial_state(self) -> State:
         return self._initial_state
 
     @property
-    def final_states(self) -> set[NFAStateT]:
+    def final_states(self) -> set[State]:
         return self._final_states
 
-    def add_state(self, new_state: NFAStateT) -> None:
+    def add_state(self, new_state: State) -> None:
         self._states.add(new_state)
 
-    def add_states(self, states: set[NFAStateT]) -> None:
+    def add_states(self, states: set[State]) -> None:
         self._states.update(states)
 
     def add_input_symbol(self, new_input_symbol: InputSymbol) -> None:
@@ -91,10 +91,10 @@ class NFA:
 
     def _set_initial_state(self) -> None:
         initial_state_name = "q0"
-        self._initial_state = initial_state_name
+        self._initial_state = State(value=initial_state_name)
         self._states.add(self._initial_state)
 
-    def _set_custom_initial_state(self, initial_state: NFAStateT) -> None:
+    def _set_custom_initial_state(self, initial_state: State) -> None:
         """Set a custom initial state for the NFA. Only used in intersection."""
         self._states.remove(self._initial_state)
         self._initial_state = initial_state
@@ -102,24 +102,24 @@ class NFA:
 
     def add_transition(
         self,
-        start_state: NFAStateT,
+        start_state: State,
         symbol: InputSymbol,
-        end_state: NFAStateT,
+        end_state: State,
     ) -> None:
         self._transitions[start_state][symbol].add(end_state)
 
     def set_transitions(self, transitions: NFATransitionsT) -> None:
         self._transitions = transitions
 
-    def add_final_state(self, new_final_state: NFAStateT) -> None:
+    def add_final_state(self, new_final_state: State) -> None:
         self._final_states.add(new_final_state)
 
-    def set_final_states(self, final_states: set[NFAStateT]) -> None:
+    def set_final_states(self, final_states: set[State]) -> None:
         self._final_states = final_states
 
     def get_next_states(
-        self, current_state: NFAStateT, input_symbol: InputSymbol
-    ) -> set[NFAStateT]:
+        self, current_state: State, input_symbol: InputSymbol
+    ) -> set[State]:
         """Get states reachable from current_state via input_symbol with wildcards.
 
         Args:
@@ -127,7 +127,7 @@ class NFA:
             input_symbol: Input symbol to process (may contain wildcards).
 
         Returns:
-            set[NFAStateT]: Set of states reachable via the input symbol.
+            set[State]: Set of states reachable via the input symbol.
 
         """
         # Get all transitions from the current state
@@ -144,7 +144,7 @@ class NFA:
 
         return result
 
-    def contains_state(self, state: NFAStateT) -> bool:
+    def contains_state(self, state: State) -> bool:
         return state in self.states
 
     def accepts_input(self, input_str: list[InputSymbol]) -> bool:
@@ -197,7 +197,7 @@ class NFA:
             )
         return False
 
-    def _follow_epsilon_transitions(self, states: set[NFAStateT]) -> set[NFAStateT]:
+    def _follow_epsilon_transitions(self, states: set[State]) -> set[State]:
         """Follow all epsilon transitions from given states."""
         result = set(states)
         stack = list(states)
@@ -260,64 +260,69 @@ class NFA:
 
     def intersection(self, other: "NFA") -> "NFA":  # noqa: C901, PLR0912
         result = self.__class__()
-        new_states: set[NFAStateT] = set()
+        new_states: set[State] = set()
         new_input_symbols: set[InputSymbol] = self._input_symbol_intersection(
             self.input_symbols, other.input_symbols
         )
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
 
-        new_initial_state: tuple[NFAStateT, NFAStateT] = (
-            self.initial_state,
-            other.initial_state,
+        new_initial_state_value: tuple[NFAStateT, NFAStateT] = (
+            self.initial_state.value,
+            other.initial_state.value,
         )
-        result._set_custom_initial_state(new_initial_state)  # noqa: SLF001
+
+        result._set_custom_initial_state(State(new_initial_state_value))  # noqa: SLF001
 
         queue: deque[tuple[NFAStateT, NFAStateT]] = deque()
-        queue.append(new_initial_state)
+        queue.append(new_initial_state_value)
 
         while queue:
-            curr_state = queue.popleft()
-            q_a, q_b = curr_state
+            curr_state_value = queue.popleft()
+            q_a, q_b = curr_state_value
             # States we will consider adding to the queue
-            next_states_iterables: list[Iterable[tuple[NFAStateT, NFAStateT]]] = []
+            next_states_iterables: list[Iterable[State]] = []
 
             # Get transition dict for states in self
-            transitions_a = self.transitions.get(q_a, {})
+            transitions_a = self.transitions.get(State(q_a), {})
             # Add epsilon transitions for first set of transitions
             epsilon_transitions_a = transitions_a.get(EPSILON)
             if epsilon_transitions_a is not None:
-                state_dict = new_transitions[curr_state]
-                new_states_a = [(state_a, q_b) for state_a in epsilon_transitions_a]
+                state_dict = new_transitions[State(curr_state_value)]
+                new_states_a = [
+                    State((state_a.value, q_b)) for state_a in epsilon_transitions_a
+                ]
                 state_dict[EPSILON].update(new_states_a)
                 next_states_iterables.append(new_states_a)
 
             # Get transition dict for states in other
-            transitions_b = other.transitions.get(q_b, {})
+            transitions_b = other.transitions.get(State(q_b), {})
             # Add epsilon transitions for second set of transitions
             epsilon_transitions_b = transitions_b.get(EPSILON)
             if epsilon_transitions_b is not None:
-                state_dict = new_transitions[curr_state]
-                new_states_b = [(q_a, state_b) for state_b in epsilon_transitions_b]
+                state_dict = new_transitions[State(curr_state_value)]
+                new_states_b = [
+                    State((q_a, state_b.value)) for state_b in epsilon_transitions_b
+                ]
                 state_dict[EPSILON].update(new_states_b)
                 next_states_iterables.append(new_states_b)
 
             # Add all transitions moving over same input symbols
             for symbol in new_input_symbols:
                 # Get end states considering the wildcards.
-                end_states_a = set()
+                end_states_a: set[State] = set()
                 for key, dests in transitions_a.items():
                     if symbol == key:
                         end_states_a.update(dests)
 
-                end_states_b = set()
+                end_states_b: set[State] = set()
                 for key, dests in transitions_b.items():
                     if symbol == key:
                         end_states_b.update(dests)
 
                 if end_states_a and end_states_b:
-                    state_dict = new_transitions[curr_state]
+                    state_dict = new_transitions[State(curr_state_value)]
                     product_states = [
-                        (state_a, state_b)
+                        State((state_a.value, state_b.value))
                         for state_a in end_states_a
                         for state_b in end_states_b
                     ]
@@ -328,11 +333,17 @@ class NFA:
             for product_state in chain.from_iterable(next_states_iterables):
                 if product_state not in new_states:
                     new_states.add(product_state)
-                    queue.append(product_state)
+                    if (
+                        isinstance(product_state.value, tuple)
+                        and len(product_state.value) == 2  # noqa: PLR2004
+                    ):
+                        queue.append(product_state.value)
 
-        new_final_states: set[NFAStateT] = set()
+        new_final_states: set[State] = set()
         possible_final_states = {
-            (q_a, q_b) for q_a in self.final_states for q_b in other.final_states
+            State((q_a.value, q_b.value))
+            for q_a in self.final_states
+            for q_b in other.final_states
         }
         for possible_final_state in possible_final_states:
             if possible_final_state in new_states:

@@ -5,6 +5,7 @@ from pysmt.fnode import FNode
 
 from automata_based_smt_solver.automata.input_symbol import InputSymbol
 from automata_based_smt_solver.automata.nfa import NFA
+from automata_based_smt_solver.automata.state import State
 from automata_based_smt_solver.build_status import BuildStatus
 from automata_based_smt_solver.formula.type import FormulaData, FormulaType
 
@@ -24,9 +25,9 @@ class AutomataBuilder:
 
         self.nfa = NFA()
         # initialize nfa
-        self.nfa.add_state(self.formula_data.const)
+        self.nfa.add_state(State(self.formula_data.const))
         self.nfa.set_input_symbols(self._generate_input_symbols(all_vars))
-        self.nfa.add_final_state(self.formula_data.const)
+        self.nfa.add_final_state(State(self.formula_data.const))
 
         self.dots: dict[InputSymbol, int] = self._calc_dots(all_var_index_map)
         self.work_list = [self.formula_data.const]
@@ -88,15 +89,15 @@ class AutomataBuilder:
                 dot = self.dots[symbol]
                 if (current_state_val - dot) & 1 == 0:
                     previous_state_val = (current_state_val - dot) // 2
-                    if not self.nfa.contains_state(previous_state_val):
-                        self.nfa.add_state(previous_state_val)
+                    if not self.nfa.contains_state(State(previous_state_val)):
+                        self.nfa.add_state(State(previous_state_val))
                         self.work_list.append(previous_state_val)
                     self.nfa.add_transition(
-                        previous_state_val, symbol, current_state_val
+                        State(previous_state_val), symbol, State(current_state_val)
                     )
                 if current_state_val == -dot:
                     self.nfa.add_transition(
-                        self.nfa.initial_state, symbol, current_state_val
+                        self.nfa.initial_state, symbol, State(current_state_val)
                     )
                     partial_sat = True
 
@@ -111,14 +112,16 @@ class AutomataBuilder:
             for symbol in self.nfa.input_symbols:
                 dot = self.dots[symbol]
                 previous_state_val = (current_state_val - dot) // 2
-                if not self.nfa.contains_state(previous_state_val):
-                    self.nfa.add_state(previous_state_val)
+                if not self.nfa.contains_state(State(previous_state_val)):
+                    self.nfa.add_state(State(previous_state_val))
                     self.work_list.append(previous_state_val)
-                self.nfa.add_transition(previous_state_val, symbol, current_state_val)
+                self.nfa.add_transition(
+                    State(previous_state_val), symbol, State(current_state_val)
+                )
 
                 if current_state_val + dot >= 0:
                     self.nfa.add_transition(
-                        self.nfa.initial_state, symbol, current_state_val
+                        self.nfa.initial_state, symbol, State(current_state_val)
                     )
                     partial_sat = True
             if partial_sat and not self.create_all:
@@ -127,41 +130,49 @@ class AutomataBuilder:
     def false_to_nfa(self) -> Generator[None]:
         # add dead state
         dead_state = -1
-        self.nfa.add_state(dead_state)
+        self.nfa.add_state(State(dead_state))
         # add final state
         final_state = self.formula_data.const
-        self.nfa.add_state(final_state)
+        self.nfa.add_state(State(final_state))
 
         # length of input_symbols is always 2 for boolean formulas
         for symbol in self.nfa.input_symbols:
             dot_value = self.dots[symbol]
             if dot_value == 1:
-                self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
+                self.nfa.add_transition(
+                    self.nfa.initial_state, symbol, State(final_state)
+                )
             else:
-                self.nfa.add_transition(self.nfa.initial_state, symbol, dead_state)
+                self.nfa.add_transition(
+                    self.nfa.initial_state, symbol, State(dead_state)
+                )
 
             # add loop to dead state and final state
-            self.nfa.add_transition(final_state, symbol, final_state)
-            self.nfa.add_transition(dead_state, symbol, dead_state)
+            self.nfa.add_transition(State(final_state), symbol, State(final_state))
+            self.nfa.add_transition(State(dead_state), symbol, State(dead_state))
         yield
 
     def true_to_nfa(self) -> Generator[None]:
         # add dead state
         dead_state = -1
-        self.nfa.add_state(dead_state)
+        self.nfa.add_state(State(dead_state))
         # add final state
         final_state = self.formula_data.const
-        self.nfa.add_state(final_state)
+        self.nfa.add_state(State(final_state))
 
         # length of input_symbols is always 2 for boolean formulas
         for symbol in self.nfa.input_symbols:
             dot_value = self.dots[symbol]
             if dot_value == 0:
-                self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
+                self.nfa.add_transition(
+                    self.nfa.initial_state, symbol, State(final_state)
+                )
             else:
-                self.nfa.add_transition(self.nfa.initial_state, symbol, dead_state)
+                self.nfa.add_transition(
+                    self.nfa.initial_state, symbol, State(dead_state)
+                )
 
             # add loop to dead state and final state
-            self.nfa.add_transition(final_state, symbol, final_state)
-            self.nfa.add_transition(dead_state, symbol, dead_state)
+            self.nfa.add_transition(State(final_state), symbol, State(final_state))
+            self.nfa.add_transition(State(dead_state), symbol, State(dead_state))
         yield
