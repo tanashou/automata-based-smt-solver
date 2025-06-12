@@ -352,3 +352,38 @@ class TestNFA:
         nfa5.add_final_state(State("q1"))
         nfa5.add_transition(nfa5.initial_state, EPSILON, State("q1"))
         assert nfa5.is_acceptable() is True
+
+    def test_merge_from_transition_dict(self):
+        """Test merging transitions from a dictionary into an existing NFA."""
+        # 1. Create an initial NFA
+        nfa = NFA()
+        q0 = nfa.initial_state
+        q1 = State("q1")
+        sym_0 = InputSymbol("0", "1")
+        nfa.add_state(q1)
+        nfa.add_input_symbol(sym_0)
+        nfa.add_transition(q0, sym_0, q1)
+
+        # 2. Define a new set of transitions to merge
+        q2 = State("q2")
+        q3 = State("q3")
+        sym_1 = InputSymbol("1", "1")
+        incoming_transitions = {
+            q1: {sym_1: {q2}},  # From existing state to new state
+            q2: {sym_0: {q3}},  # From new state to new state
+        }
+
+        # 3. Merge the new transitions
+        nfa.merge(incoming_transitions)
+
+        # 4. Assert that the NFA is updated correctly
+        # Check states
+        assert {q0, q1, q2, q3}.issubset(nfa.states)
+        # Check symbols
+        assert {sym_0, sym_1}.issubset(nfa.input_symbols)
+
+        # Check original transition
+        assert nfa.transitions[q0][sym_0] == {q1}
+        # Check merged transitions
+        assert nfa.transitions[q1][sym_1] == {q2}
+        assert nfa.transitions[q2][sym_0] == {q3}
