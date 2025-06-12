@@ -258,7 +258,7 @@ class NFA:
         symbols = {"".join(bits) for bits in product(*choices)}
         return {InputSymbol(symbol, mask_str) for symbol in symbols}
 
-    def intersection(self, other: "NFA") -> "NFA":  # noqa: C901, PLR0912
+    def intersection(self, other: "NFA") -> "NFA":  # noqa: C901
         result = self.__class__()
         new_states: set[State] = set()
         new_input_symbols: set[InputSymbol] = self._input_symbol_intersection(
@@ -339,15 +339,11 @@ class NFA:
                     ):
                         queue.append(product_state.value)
 
-        new_final_states: set[State] = set()
-        possible_final_states = {
+        new_final_states: set[State] = {
             State((q_a.value, q_b.value))
             for q_a in self.final_states
             for q_b in other.final_states
         }
-        for possible_final_state in possible_final_states:
-            if possible_final_state in new_states:
-                new_final_states.add(possible_final_state)
 
         result.set_input_symbols(new_input_symbols)
         result.set_transitions(new_transitions)
