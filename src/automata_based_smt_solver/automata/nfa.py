@@ -2,6 +2,7 @@
 # This file is part of automata, licensed under the MIT License.
 # See licenses/automata/LICENSE for full license information.
 import contextlib
+import copy
 import os
 from collections import defaultdict, deque
 from itertools import chain, product
@@ -244,8 +245,9 @@ class NFA:
             for combo in product(*options)
         }
 
-    def _input_symbol_intersection(
-        self, s1: set[InputSymbol], s2: set[InputSymbol]
+    @staticmethod
+    def input_symbol_intersection(
+        s1: set[InputSymbol], s2: set[InputSymbol]
     ) -> set[InputSymbol]:
         tmp = s1 | s2
         mask = 0
@@ -261,7 +263,7 @@ class NFA:
     def intersection(self, other: "NFA") -> "NFA":  # noqa: C901
         result = self.__class__()
         new_states: set[State] = set()
-        new_input_symbols: set[InputSymbol] = self._input_symbol_intersection(
+        new_input_symbols: set[InputSymbol] = NFA.input_symbol_intersection(
             self.input_symbols, other.input_symbols
         )
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
@@ -352,31 +354,117 @@ class NFA:
 
         return result
 
-    def merge(self, incoming_trans: NFATransitionsT) -> None:
-        """Merge a transition dictionary into the current NFA in-place.
+    @staticmethod
+    def incremental_intersection(  # noqa: C901, PLR0912
+        intersected_nfa_old: "NFA",
+        n1_new: "NFA",
+        n2_new: "NFA",
+        delta_1_changes: NFATransitionsT,
+        delta_2_changes: NFATransitionsT,
+    ) -> "NFA":
+        """Perform incremental intersection of two NFAs with changes."""
+        intersected_nfa_new = copy.deepcopy(intersected_nfa_old)
+        work_list: deque[tuple[State, InputSymbol, State]] = deque()
 
-        This method takes a transition dictionary and integrates its
-        structure into the current NFA. It does not perform any state
-        renaming. If a state in the incoming transitions already exists,
-        the new transitions are added to it. If a state does not exist,
-        it is automatically created and added to the NFA's set of states.
+        # seed N1 changes
+        for q1_from, transitions_from_q1 in delta_1_changes.items():
+            for symbol, to_states_set in transitions_from_q1.items():
+                for q1_to in to_states_set:
+                    for q2 in n2_new.states:
+                        if (
+                            q2 in n2_new.transitions
+                            and symbol in n2_new.transitions[q2]
+                        ):
+                            for q2_to in n2_new.transitions[q2][symbol]:
+                                intersected_state_from = State(
+                                    (q1_from.value, q2.value)
+                                )
+                                intersected_state_to = State((q1_to.value, q2_to.value))
+                                work_list.append(
+                                    (
+                                        intersected_state_from,
+                                        symbol,
+                                        intersected_state_to,
+                                    )
+                                )
 
-        This is a low-level operation that directly manipulates the NFA's
-        graph. It does not update final states; they must be managed
-        separately. Input symbols referenced in the new transitions are
-        added to the NFA's symbol set.
+        # seed N2 changes
+        # N2の変更をシード
+        for q2_from, transitions_from_q2 in delta_2_changes.items():
+            for symbol, to_states_set in transitions_from_q2.items():
+                for q2_to in to_states_set:
+                    for q1 in n1_new.states:
+                        if (
+                            q1 in n1_new.transitions
+                            and symbol in n1_new.transitions[q1]
+                        ):
+                            for q1_to in n1_new.transitions[q1][symbol]:
+                                intersected_state_from = State(
+                                    (q1_to.value, q2_from.value)
+                                )
+                                intersected_state_to = State((q1_to.value, q2_to.value))
+                                work_list.append(
+                                    (
+                                        intersected_state_from,
+                                        symbol,
+                                        intersected_state_to,
+                                    )
+                                )
 
-        Args:
-            incoming_trans: A dictionary representing the transitions to merge.
-                            The format is {State: {InputSymbol: {State, ...}}}.
+        # --- ステップ3: 処理ループ (フロンティアの探索) ---
+        while work_list:
+            intersected_state_from, symbol, intersected_state_to = work_list.popleft()
 
-        """
-        for start_state, transitions in incoming_trans.items():
-            self.add_state(start_state)
-            for symbol, end_states in transitions.items():
-                self.add_input_symbol(symbol)
-                for end_state in end_states:
-                    # Ensure end state exists
-                    self.add_state(end_state)
-                    # Add the transition
-                    self.add_transition(start_state, symbol, end_state)
+            # 既に存在する遷移ならスキップ
+            if (
+                intersected_state_from in intersected_nfa_new.transitions
+                and symbol in intersected_nfa_new.transitions[intersected_state_from]
+                and intersected_state_to
+                in intersected_nfa_new.transitions[intersected_state_from][symbol]
+            ):
+                continue
+
+            # 新しい遷移を積オートマトンに追加
+            if intersected_state_from not in intersected_nfa_new.transitions:
+                intersected_nfa_new.transitions[intersected_state_from] = {}
+            if symbol not in intersected_nfa_new.transitions[intersected_state_from]:
+                intersected_nfa_new.transitions[intersected_state_from][symbol] = set()
+            intersected_nfa_new.transitions[intersected_state_from][symbol].add(
+                intersected_state_to
+            )
+
+            # もし遷移先が新しい状態ならば、その状態から派生する遷移をWorklistに追加
+            if intersected_state_to not in intersected_nfa_new.states:
+                intersected_nfa_new.states.add(intersected_state_to)
+
+                # 受理状態かどうかを判定
+                value = intersected_state_to.value
+                if isinstance(value, tuple) and len(value) == 2:  # noqa: PLR2004
+                    r1, r2 = value
+                else:
+                    msg = f"Invalid intersected state value: {value!r}"
+                    raise ValueError(msg)
+
+                if r1 in n1_new.final_states and r2 in n2_new.final_states:
+                    intersected_nfa_new.final_states.add(intersected_state_to)
+
+                # 変更の伝播
+                for next_symbol in n1_new.input_symbols:
+                    if (
+                        State(r1) in n1_new.transitions
+                        and next_symbol in n1_new.transitions[State(r1)]
+                        and State(r2) in n2_new.transitions
+                        and next_symbol in n2_new.transitions[State(r2)]
+                    ):
+                        for s1 in n1_new.transitions[State(r1)][next_symbol]:
+                            for s2 in n2_new.transitions[State(r2)][next_symbol]:
+                                next_intersected_state = State((s1.value, s2.value))
+                                work_list.append(
+                                    (
+                                        intersected_state_to,
+                                        next_symbol,
+                                        next_intersected_state,
+                                    )
+                                )
+
+        return intersected_nfa_new
