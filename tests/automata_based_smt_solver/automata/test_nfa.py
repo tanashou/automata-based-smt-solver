@@ -219,6 +219,54 @@ class TestNFA:
 
         return nfa
 
+    @pytest.fixture
+    def str_starts_with_01(self) -> set[str]:
+        """Create a set of strings that start with '01' up to 5 digits."""
+        alphabet = "01"
+        max_length = 5
+        result = set()
+        for length in range(2, max_length + 1):
+            for tail in product(alphabet, repeat=length - 2):
+                s = "01" + "".join(tail)
+                result.add(s)
+        return result
+
+    @pytest.fixture
+    def str_ends_with_01(self) -> set[str]:
+        """Create a set of strings that end with '01' up to 5 digits."""
+        alphabet = "01"
+        max_length = 5
+        result = set()
+        for length in range(2, max_length + 1):
+            for head in product(alphabet, repeat=length - 2):
+                s = "".join(head) + "01"
+                result.add(s)
+        return result
+
+    @pytest.fixture
+    def str_ends_with_01_or_00(self) -> set[str]:
+        """Create a set of strings that end with '01' or '00' up to 5 digits."""
+        alphabet = "01"
+        max_length = 5
+        result = set()
+        for length in range(2, max_length + 1):
+            for head in product(alphabet, repeat=length - 2):
+                for suffix in ("01", "00"):
+                    s = "".join(head) + suffix
+                    result.add(s)
+        return result
+
+    @pytest.fixture
+    def str_all_binary_up_to_5(self) -> set[str]:
+        """Return all binary strings with length up to 5 (empty string included)."""
+        alphabet = "01"
+        max_length = 5
+        result = set()
+        for length in range(max_length + 1):
+            for s in product(alphabet, repeat=length):
+                result.add("".join(s))
+        return result
+
     def test_transitions(self, nfa_ends_with_01):
         """Test that transitions work as expected."""
         # Get states
@@ -398,83 +446,30 @@ class TestNFA:
         nfa5.add_transition(nfa5.initial_state, EPSILON, State("q1"))
         assert nfa5.is_acceptable() is True
 
-    def _build_n1_n2_for_incremental(self) -> tuple:
-        s0 = State("s0")
-        s1 = State("s1")
-        t0 = State("t0")
-        t1 = State("t1")
-        zero = InputSymbol("0", "1")
-        one = InputSymbol("1", "1")
-        # N1: (0|1)*0
-        n1 = NFA()
-        n1.add_state(s0)
-        n1.add_state(s1)
-        n1.add_input_symbol(zero)
-        n1.add_input_symbol(one)
-        n1._set_custom_initial_state(s0)
-        n1.add_final_state(s1)
-        n1.add_transition(s0, zero, s1)
-        n1.add_transition(s0, one, s0)
-        n1.add_transition(s1, zero, s1)
-        n1.add_transition(s1, one, s0)
-        # N2: 1(0|1)*
-        n2 = NFA()
-        n2.add_state(t0)
-        n2.add_state(t1)
-        n2.add_input_symbol(zero)
-        n2.add_input_symbol(one)
-        n2._set_custom_initial_state(t0)
-        n2.add_final_state(t1)
-        n2.add_transition(t0, one, t1)
-        n2.add_transition(t1, zero, t1)
-        n2.add_transition(t1, one, t1)
-        return n1, n2, s0, s1, t0, t1, zero, one
+    def test_incremental_intersection_specific_example(
+        self,
+        nfa_ends_with_01,
+        nfa_ends_with_01_or_00,
+        nfa_starts_with_01,
+        str_starts_with_01,
+        str_ends_with_01_or_00,
+        str_all_binary_up_to_5,
+    ):
+        intersected_nfa_old = nfa_ends_with_01.intersection(nfa_starts_with_01)
 
-    def test_incremental_intersection_specific_example(self):
-        """Test incremental_intersection with the concrete example from the spec."""
-        n1, n2, s0, s1, t0, t1, zero, one = self._build_n1_n2_for_incremental()
-        # Intersection (P_old)
-        p_old = n1.intersection(n2)
-        # Delta: add s1 --one--> s1 to N1
-        # This will accept (0|1)*01
-        n1_new = NFA()
-        n1_new.add_state(s0)
-        n1_new.add_state(s1)
-        n1_new.add_input_symbol(zero)
-        n1_new.add_input_symbol(one)
-        n1_new._set_custom_initial_state(s0)
-        n1_new.add_final_state(s1)
-        n1_new.add_transition(s0, zero, s1)
-        n1_new.add_transition(s0, one, s0)
-        n1_new.add_transition(s1, zero, s1)
-        n1_new.add_transition(s1, one, s0)
-        n1_new.add_transition(s1, one, s1)  # new transition
-        n2_new = n2
-        delta_1_changes = {s1: {one: {s1}}}
+        delta_1_changes = {State("q1"): {InputSymbol("0", "1"): {State("q2")}}}
         delta_2_changes = {}
-        p_new = NFA.incremental_intersection(
-            p_old, n1_new, n2_new, delta_1_changes, delta_2_changes
-        )
-        from_state = State((s1.value, t1.value))
-        to_state = State((s1.value, t1.value))
-        assert from_state in p_new.transitions
-        assert one in p_new.transitions[from_state]
-        assert to_state in p_new.transitions[from_state][one]
-        assert not (
-            from_state in p_old.transitions
-            and one in p_old.transitions[from_state]
-            and to_state in p_old.transitions[from_state][one]
+        intersected_nfa_new = NFA.incremental_intersection(
+            intersected_nfa_old,
+            nfa_ends_with_01_or_00,
+            nfa_starts_with_01,
+            delta_1_changes,
+            delta_2_changes,
         )
 
-        def transitions_set(nfa) -> set[tuple[str, str, str]]:
-            return {
-                (str(f), str(sym), str(t))
-                for f, d in nfa.transitions.items()
-                for sym, ts in d.items()
-                for t in ts
-            }
+        accepted_strings = list(str_ends_with_01_or_00 & str_starts_with_01)
+        rejected_strings = list(str_all_binary_up_to_5 - set(accepted_strings))
 
-        diff = transitions_set(p_new) - transitions_set(p_old)
-        assert diff == {(str(from_state), str(one), str(to_state))}, (
-            f"Unexpected new transitions: {diff}"
+        TestNFA.assert_nfa_accepts_rejects(
+            intersected_nfa_new, accepted_strings, rejected_strings, "1"
         )
