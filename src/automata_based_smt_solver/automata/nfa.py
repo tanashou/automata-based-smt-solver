@@ -400,7 +400,7 @@ class NFA:
                         ):
                             for q1_to in n1_new.transitions[q1][symbol]:
                                 intersected_state_from = State(
-                                    (q1_to.value, q2_from.value)
+                                    (q1.value, q2_from.value)
                                 )
                                 intersected_state_to = State((q1_to.value, q2_to.value))
                                 work_list.append(
