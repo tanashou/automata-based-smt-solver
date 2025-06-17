@@ -1,4 +1,8 @@
-class InputSymbol(str):
+from dataclasses import dataclass
+
+
+@dataclass(slots=True)
+class InputSymbol:
     """InputSymbol represents an input symbol with an optional mask.
 
     TODO: More details about the class.
@@ -11,9 +15,13 @@ class InputSymbol(str):
 
     """
 
-    __slots__ = ("bin_length", "mask", "value")
+    bin_value: str
+    bin_mask: str
+    value: int | None = None
+    mask: int | None = None
+    bin_length: int = 0
 
-    def __new__(cls, bin_value: str, bin_mask: str) -> "InputSymbol":
+    def __init__(self, bin_value: str, bin_mask: str) -> None:
         """Create a new InputSymbol instance.
 
         Args:
@@ -38,12 +46,11 @@ class InputSymbol(str):
         if len(bin_value) != len(bin_mask):
             msg = "Value and mask must have the same length"
             raise ValueError(msg)
-
-        obj = str.__new__(cls, bin_value)
-        obj.value = int(bin_value, 2) if bin_value else None
-        obj.mask = int(bin_mask, 2) if bin_mask else None
-        obj.bin_length = len(bin_value)
-        return obj
+        self.bin_value = bin_value
+        self.bin_mask = bin_mask
+        self.value = int(bin_value, 2) if bin_value else None
+        self.mask = int(bin_mask, 2) if bin_mask else None
+        self.bin_length = len(bin_value)
 
     def __hash__(self) -> int:
         """Calculate the hash of this InputSymbol."""
@@ -71,6 +78,14 @@ class InputSymbol(str):
         if self.bin_length != other.bin_length:
             return False
 
+        # Both self.mask and other.mask are not None here
+        if (
+            self.mask is None
+            or other.mask is None
+            or self.value is None
+            or other.value is None
+        ):
+            return False
         combined_mask = self.mask & other.mask
         return (self.value & combined_mask) == (other.value & combined_mask)
 
@@ -100,6 +115,9 @@ class InputSymbol(str):
         """Return a string representation of the InputSymbol."""
         return self.__str__()
 
+    def __reduce__(self) -> tuple[type, tuple[str, str]]:
+        return (self.__class__, (self.bin_value, self.bin_mask))
+
     def is_epsilon(self) -> bool:
         """Check if this symbol is an epsilon symbol."""
         return self.value is None
@@ -108,6 +126,9 @@ class InputSymbol(str):
         """Apply the mask to the symbol's value."""
         if self.is_epsilon():
             msg = "Cannot apply mask to epsilon symbol"
+            raise ValueError(msg)
+        if self.value is None or self.mask is None:
+            msg = "Cannot apply mask if value or mask is None"
             raise ValueError(msg)
         return self.value & self.mask
 
