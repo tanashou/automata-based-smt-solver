@@ -121,6 +121,29 @@ class TestNFA:
         return nfa
 
     @pytest.fixture
+    def nfa_ends_with_01_or_00(self):
+        """Create a NFA that accepts the regular expression (0|1)*01."""
+        mask = "1"
+        nfa = NFA()
+
+        # Add states
+        for state in ["q1", "q2"]:
+            nfa.add_state(State(state))
+
+        nfa.add_input_symbol(InputSymbol("0", mask))
+        nfa.add_input_symbol(InputSymbol("1", mask))
+
+        nfa.add_final_state(State("q2"))
+
+        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), nfa.initial_state)
+        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), State("q1"))
+        nfa.add_transition(nfa.initial_state, InputSymbol("1", mask), nfa.initial_state)
+        nfa.add_transition(State("q1"), InputSymbol("1", mask), State("q2"))
+        nfa.add_transition(State("q1"), InputSymbol("0", mask), State("q2"))  # 追加分
+
+        return nfa
+
+    @pytest.fixture
     def nfa_ends_with_01_epsilon(self):
         """Create a NFA that accepts the regular expression (0|1)*01 with epsilon."""
         mask = "1"
@@ -145,6 +168,28 @@ class TestNFA:
         nfa.add_transition(State("q2"), InputSymbol("0", mask), State("q3"))
         nfa.add_transition(State("q3"), InputSymbol("1", mask), State("q4"))
         nfa.add_transition(State("q4"), EPSILON, State("q5"))
+
+        return nfa
+
+    @pytest.fixture
+    def nfa_starts_with_01(self):
+        """Create a NFA that accepts the regular expression 01(0|1)*."""
+        mask = "1"
+        nfa = NFA()
+
+        # Add states
+        for state in ["q1", "q2"]:
+            nfa.add_state(State(state))
+
+        nfa.add_input_symbol(InputSymbol("0", mask))
+        nfa.add_input_symbol(InputSymbol("1", mask))
+
+        nfa.add_final_state(State("q2"))
+
+        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), State("q1"))
+        nfa.add_transition(State("q1"), InputSymbol("1", mask), State("q2"))
+        nfa.add_transition(State("q2"), InputSymbol("0", mask), State("q2"))
+        nfa.add_transition(State("q2"), InputSymbol("1", mask), State("q2"))
 
         return nfa
 
@@ -391,6 +436,7 @@ class TestNFA:
         # Intersection (P_old)
         p_old = n1.intersection(n2)
         # Delta: add s1 --one--> s1 to N1
+        # This will accept (0|1)*01
         n1_new = NFA()
         n1_new.add_state(s0)
         n1_new.add_state(s1)
