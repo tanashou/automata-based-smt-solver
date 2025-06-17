@@ -353,37 +353,82 @@ class TestNFA:
         nfa5.add_transition(nfa5.initial_state, EPSILON, State("q1"))
         assert nfa5.is_acceptable() is True
 
-    def test_merge_from_transition_dict(self):
-        """Test merging transitions from a dictionary into an existing NFA."""
-        # 1. Create an initial NFA
-        nfa = NFA()
-        q0 = nfa.initial_state
-        q1 = State("q1")
-        sym_0 = InputSymbol("0", "1")
-        nfa.add_state(q1)
-        nfa.add_input_symbol(sym_0)
-        nfa.add_transition(q0, sym_0, q1)
+    def _build_n1_n2_for_incremental(self) -> tuple:
+        s0 = State("s0")
+        s1 = State("s1")
+        t0 = State("t0")
+        t1 = State("t1")
+        zero = InputSymbol("0", "1")
+        one = InputSymbol("1", "1")
+        # N1: (0|1)*0
+        n1 = NFA()
+        n1.add_state(s0)
+        n1.add_state(s1)
+        n1.add_input_symbol(zero)
+        n1.add_input_symbol(one)
+        n1._set_custom_initial_state(s0)
+        n1.add_final_state(s1)
+        n1.add_transition(s0, zero, s1)
+        n1.add_transition(s0, one, s0)
+        n1.add_transition(s1, zero, s1)
+        n1.add_transition(s1, one, s0)
+        # N2: 1(0|1)*
+        n2 = NFA()
+        n2.add_state(t0)
+        n2.add_state(t1)
+        n2.add_input_symbol(zero)
+        n2.add_input_symbol(one)
+        n2._set_custom_initial_state(t0)
+        n2.add_final_state(t1)
+        n2.add_transition(t0, one, t1)
+        n2.add_transition(t1, zero, t1)
+        n2.add_transition(t1, one, t1)
+        return n1, n2, s0, s1, t0, t1, zero, one
 
-        # 2. Define a new set of transitions to merge
-        q2 = State("q2")
-        q3 = State("q3")
-        sym_1 = InputSymbol("1", "1")
-        incoming_transitions = {
-            q1: {sym_1: {q2}},  # From existing state to new state
-            q2: {sym_0: {q3}},  # From new state to new state
-        }
+    def test_incremental_intersection_specific_example(self):
+        """Test incremental_intersection with the concrete example from the spec."""
+        n1, n2, s0, s1, t0, t1, zero, one = self._build_n1_n2_for_incremental()
+        # Intersection (P_old)
+        p_old = n1.intersection(n2)
+        # Delta: add s1 --one--> s1 to N1
+        n1_new = NFA()
+        n1_new.add_state(s0)
+        n1_new.add_state(s1)
+        n1_new.add_input_symbol(zero)
+        n1_new.add_input_symbol(one)
+        n1_new._set_custom_initial_state(s0)
+        n1_new.add_final_state(s1)
+        n1_new.add_transition(s0, zero, s1)
+        n1_new.add_transition(s0, one, s0)
+        n1_new.add_transition(s1, zero, s1)
+        n1_new.add_transition(s1, one, s0)
+        n1_new.add_transition(s1, one, s1)  # new transition
+        n2_new = n2
+        delta_1_changes = {s1: {one: {s1}}}
+        delta_2_changes = {}
+        p_new = NFA.incremental_intersection(
+            p_old, n1_new, n2_new, delta_1_changes, delta_2_changes
+        )
+        from_state = State((s1.value, t1.value))
+        to_state = State((s1.value, t1.value))
+        assert from_state in p_new.transitions
+        assert one in p_new.transitions[from_state]
+        assert to_state in p_new.transitions[from_state][one]
+        assert not (
+            from_state in p_old.transitions
+            and one in p_old.transitions[from_state]
+            and to_state in p_old.transitions[from_state][one]
+        )
 
-        # 3. Merge the new transitions
-        nfa.merge(incoming_transitions)
+        def transitions_set(nfa) -> set[tuple[str, str, str]]:
+            return {
+                (str(f), str(sym), str(t))
+                for f, d in nfa.transitions.items()
+                for sym, ts in d.items()
+                for t in ts
+            }
 
-        # 4. Assert that the NFA is updated correctly
-        # Check states
-        assert {q0, q1, q2, q3}.issubset(nfa.states)
-        # Check symbols
-        assert {sym_0, sym_1}.issubset(nfa.input_symbols)
-
-        # Check original transition
-        assert nfa.transitions[q0][sym_0] == {q1}
-        # Check merged transitions
-        assert nfa.transitions[q1][sym_1] == {q2}
-        assert nfa.transitions[q2][sym_0] == {q3}
+        diff = transitions_set(p_new) - transitions_set(p_old)
+        assert diff == {(str(from_state), str(one), str(to_state))}, (
+            f"Unexpected new transitions: {diff}"
+        )
