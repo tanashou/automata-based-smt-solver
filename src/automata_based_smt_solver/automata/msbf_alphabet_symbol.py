@@ -2,8 +2,8 @@ from dataclasses import dataclass
 
 
 @dataclass(slots=True)
-class InputSymbol:
-    """InputSymbol represents an input symbol with an optional mask.
+class MSBFAlphabetSymbol:
+    """MSBFAlphabetSymbol represents an input symbol with an optional mask.
 
     TODO: More details about the class.
     needed to inherit str class to make image of automata using automata-lib
@@ -22,7 +22,7 @@ class InputSymbol:
     bin_length: int = 0
 
     def __init__(self, bin_value: str, bin_mask: str) -> None:
-        """Create a new InputSymbol instance.
+        """Create a new MSBFAlphabetSymbol instance.
 
         Args:
             bin_value (str): Binary value string (empty for epsilon).
@@ -34,7 +34,7 @@ class InputSymbol:
             ValueError: If bin_value and bin_mask have different lengths.
 
         Returns:
-            InputSymbol: A new InputSymbol instance.
+            MSBFAlphabetSymbol: A new MSBFAlphabetSymbol instance.
 
         """
         if bin_value and not bin_mask:
@@ -53,13 +53,13 @@ class InputSymbol:
         self.bin_length = len(bin_value)
 
     def __hash__(self) -> int:
-        """Calculate the hash of this InputSymbol."""
+        """Calculate the hash of this MSBFAlphabetSymbol."""
         if self.is_epsilon():
             return hash(None)
         return hash((self.value, self.mask))
 
     def __eq__(self, other: object) -> bool:
-        """Compare this InputSymbol with another for equality.
+        """Compare this MSBFAlphabetSymbol with another for equality.
 
         Args:
             other (object): Another object to compare against.
@@ -68,7 +68,7 @@ class InputSymbol:
             bool: True if both symbols are equal (including masks), False otherwise.
 
         """
-        if not isinstance(other, InputSymbol):
+        if not isinstance(other, MSBFAlphabetSymbol):
             return False
 
         # Handle epsilon symbols
@@ -112,7 +112,7 @@ class InputSymbol:
         )
 
     def __repr__(self) -> str:
-        """Return a string representation of the InputSymbol."""
+        """Return a string representation of the MSBFAlphabetSymbol."""
         return self.__str__()
 
     def __reduce__(self) -> tuple[type, tuple[str, str]]:
@@ -154,4 +154,4 @@ class InputSymbol:
 
 
 # create epsilon as a singleton
-EPSILON = InputSymbol(bin_value="", bin_mask="")
+EPSILON = MSBFAlphabetSymbol(bin_value="", bin_mask="")

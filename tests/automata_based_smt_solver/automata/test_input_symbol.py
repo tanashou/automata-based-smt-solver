@@ -1,6 +1,9 @@
 import pytest
 
-from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
+from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
+    EPSILON,
+    MSBFAlphabetSymbol,
+)
 
 
 class TestInputSymbol:
@@ -8,7 +11,7 @@ class TestInputSymbol:
         """Test that epsilon is correctly created."""
         assert EPSILON.is_epsilon()
         assert str(EPSILON) == "ε"
-        assert hash(EPSILON) == hash(InputSymbol("", ""))
+        assert hash(EPSILON) == hash(MSBFAlphabetSymbol("", ""))
 
     @pytest.mark.parametrize(
         ("bin_value", "bin_mask", "error_msg"),
@@ -34,7 +37,7 @@ class TestInputSymbol:
     def test_invalid_creation(self, bin_value, bin_mask, error_msg):
         """Test that invalid combinations raise ValueError."""
         with pytest.raises(ValueError, match=error_msg):
-            InputSymbol(bin_value, bin_mask)
+            MSBFAlphabetSymbol(bin_value, bin_mask)
 
     @pytest.mark.parametrize(
         ("v1", "m1", "v2", "m2", "expected"),
@@ -49,8 +52,8 @@ class TestInputSymbol:
     )
     def test_equality(self, v1, m1, v2, m2, expected):
         """Test equality comparisons between symbols."""
-        s1 = InputSymbol(v1, m1)
-        s2 = InputSymbol(v2, m2)
+        s1 = MSBFAlphabetSymbol(v1, m1)
+        s2 = MSBFAlphabetSymbol(v2, m2)
         assert (s1 == s2) == expected
 
     @pytest.mark.parametrize(
@@ -66,13 +69,13 @@ class TestInputSymbol:
     )
     def test_string_representation(self, value, mask, expected_str):
         """Test that string conversion shows masked bits correctly."""
-        s = InputSymbol(value, mask)
+        s = MSBFAlphabetSymbol(value, mask)
         assert str(s) == expected_str
 
     def test_hash_consistency(self):
         """Test that identical instance of symbols have the same hash."""
-        s1 = InputSymbol("1010", "1111")
-        s2 = InputSymbol("1010", "1111")
+        s1 = MSBFAlphabetSymbol("1010", "1111")
+        s2 = MSBFAlphabetSymbol("1010", "1111")
         assert hash(s1) == hash(s2)
 
     @pytest.mark.parametrize(
@@ -86,12 +89,12 @@ class TestInputSymbol:
     )
     def test_dot_product(self, value, mask, coef_index_pairs, expected):
         """Test dot product calculation with various cases."""
-        s = InputSymbol(value, mask)
+        s = MSBFAlphabetSymbol(value, mask)
         assert s.dot(coef_index_pairs) == expected
 
     def test_dot_product_empty(self):
         """Test that dot product with an empty list returns 0."""
-        s = InputSymbol("1010", "1111")
+        s = MSBFAlphabetSymbol("1010", "1111")
         assert s.dot([]) == 0
 
     def test_dot_product_epsilon_error(self):
