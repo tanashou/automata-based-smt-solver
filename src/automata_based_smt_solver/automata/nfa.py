@@ -9,10 +9,8 @@ from itertools import chain, product
 from typing import TYPE_CHECKING, TypeAlias, cast
 
 import pygraphviz as pgv
-from automata.fa.nfa import NFA as BaseNFA  # noqa: N811
 
 from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
-    EPSILON,
     MSBFAlphabetSymbol,
 )
 from automata_based_smt_solver.automata.state import NFAStateT, State
@@ -161,8 +159,8 @@ class NFA:
             bool: True if the NFA accepts the sequence, False otherwise.
 
         """
-        # Start with initial state and follow epsilon transitions
-        current_states = self._follow_epsilon_transitions({self.initial_state})
+        # Start with initial state (no epsilon transitions)
+        current_states = {self.initial_state}
 
         # Process each input symbol
         for symbol in input_str:
@@ -171,8 +169,7 @@ class NFA:
                 with contextlib.suppress(KeyError):
                     next_states.update(self.get_next_states(state, symbol))
 
-            # Follow epsilon transitions from new states
-            current_states = self._follow_epsilon_transitions(next_states)
+            current_states = next_states
 
             # Early rejection if dead end
             if not current_states:
@@ -201,39 +198,12 @@ class NFA:
             )
         return False
 
-    def _follow_epsilon_transitions(self, states: set[State]) -> set[State]:
-        """Follow all epsilon transitions from given states."""
-        result = set(states)
-        stack = list(states)
-        visited = set(stack)
-
-        while stack:
-            state = stack.pop()
-            try:
-                epsilon_states = self.get_next_states(state, EPSILON)
-                for eps_state in epsilon_states:
-                    if eps_state not in visited:
-                        visited.add(eps_state)
-                        stack.append(eps_state)
-                        result.add(eps_state)
-            except KeyError:
-                continue
-
-        return result
-
     def show_diagram(
         self,
         input_str: str | None = None,
         path: str | os.PathLike | None = None,
     ) -> pgv.AGraph:
-        base_nfa = BaseNFA(
-            states=self.states,
-            input_symbols=self.input_symbols,
-            transitions=self.transitions,  # type: ignore[assignment]
-            initial_state=self.initial_state,
-            final_states=self.final_states,
-        )
-        return base_nfa.show_diagram(input_str=input_str, path=path)
+        raise NotImplementedError
 
     @staticmethod
     def create_input_symbols_from_mask(mask: str) -> set[MSBFAlphabetSymbol]:
@@ -256,8 +226,9 @@ class NFA:
         mask = 0
         # 全ての input symbol でワイルドカードの桁を探す
         for symbol in tmp:
-            mask |= symbol.mask
-        bin_length = tmp.pop().bin_length
+            if symbol.mask is not None:
+                mask |= symbol.mask
+        bin_length = next(iter(tmp)).bin_length if tmp else 0
         mask_str = bin(mask)[2:].zfill(bin_length)
         choices = [("0", "1") if ch == "1" else ("0",) for ch in mask_str]
         symbols = {"".join(bits) for bits in product(*choices)}
@@ -281,39 +252,19 @@ class NFA:
         queue: deque[tuple[NFAStateT, NFAStateT]] = deque()
         queue.append(new_initial_state_value)
 
+        # Use a named constant for tuple length
+        intersection_tuple_len = 2
+
         while queue:
             curr_state_value = queue.popleft()
             q_a, q_b = curr_state_value
-            # States we will consider adding to the queue
             next_states_iterables: list[Iterable[State]] = []
 
-            # Get transition dict for states in self
             transitions_a = self.transitions.get(State(q_a), {})
-            # Add epsilon transitions for first set of transitions
-            epsilon_transitions_a = transitions_a.get(EPSILON)
-            if epsilon_transitions_a is not None:
-                state_dict = new_transitions[State(curr_state_value)]
-                new_states_a = [
-                    State((state_a.value, q_b)) for state_a in epsilon_transitions_a
-                ]
-                state_dict[EPSILON].update(new_states_a)
-                next_states_iterables.append(new_states_a)
-
-            # Get transition dict for states in other
             transitions_b = other.transitions.get(State(q_b), {})
-            # Add epsilon transitions for second set of transitions
-            epsilon_transitions_b = transitions_b.get(EPSILON)
-            if epsilon_transitions_b is not None:
-                state_dict = new_transitions[State(curr_state_value)]
-                new_states_b = [
-                    State((q_a, state_b.value)) for state_b in epsilon_transitions_b
-                ]
-                state_dict[EPSILON].update(new_states_b)
-                next_states_iterables.append(new_states_b)
 
             # Add all transitions moving over same input symbols
             for symbol in new_input_symbols:
-                # Get end states considering the wildcards.
                 end_states_a: set[State] = set()
                 for key, dests in transitions_a.items():
                     if symbol == key:
@@ -334,13 +285,12 @@ class NFA:
                     state_dict[symbol].update(product_states)
                     next_states_iterables.append(product_states)
 
-            # Finally, try visiting every state we found.
             for product_state in chain.from_iterable(next_states_iterables):
                 if product_state not in new_states:
                     new_states.add(product_state)
                     if (
                         isinstance(product_state.value, tuple)
-                        and len(product_state.value) == 2  # noqa: PLR2004
+                        and len(product_state.value) == intersection_tuple_len
                     ):
                         queue.append(product_state.value)
 
@@ -366,6 +316,7 @@ class NFA:
         delta_2_changes: NFATransitionsT,
     ) -> "NFA":
         """Perform incremental intersection of two NFAs with changes."""
+        intersection_tuple_len = 2
         intersected_nfa_new = copy.deepcopy(intersected_nfa_old)
         work_list: deque[tuple[State, MSBFAlphabetSymbol, State]] = deque()
 
@@ -392,7 +343,6 @@ class NFA:
                                 )
 
         # seed N2 changes
-        # N2の変更をシード
         for q2_from, transitions_from_q2 in delta_2_changes.items():
             for symbol, to_states_set in transitions_from_q2.items():
                 for q2_to in to_states_set:
@@ -414,11 +364,11 @@ class NFA:
                                     )
                                 )
 
-        # --- ステップ3: 処理ループ (フロンティアの探索) ---
+        # --- Step 3: Processing loop (frontier exploration) ---
         while work_list:
             intersected_state_from, symbol, intersected_state_to = work_list.popleft()
 
-            # 既に存在する遷移ならスキップ
+            # Skip if transition already exists
             if (
                 intersected_state_from in intersected_nfa_new.transitions
                 and symbol in intersected_nfa_new.transitions[intersected_state_from]
@@ -427,7 +377,7 @@ class NFA:
             ):
                 continue
 
-            # 新しい遷移を積オートマトンに追加
+            # Add new transition to the product automaton
             if intersected_state_from not in intersected_nfa_new.transitions:
                 intersected_nfa_new.transitions[intersected_state_from] = {}
             if symbol not in intersected_nfa_new.transitions[intersected_state_from]:
@@ -436,13 +386,13 @@ class NFA:
                 intersected_state_to
             )
 
-            # もし遷移先が新しい状態ならば、その状態から派生する遷移をWorklistに追加
+            # If the destination state is new, add its transitions to the worklist
             if intersected_state_to not in intersected_nfa_new.states:
                 intersected_nfa_new.states.add(intersected_state_to)
 
-                # 受理状態かどうかを判定
+                # Check if it's an accepting state
                 value = intersected_state_to.value
-                if isinstance(value, tuple) and len(value) == 2:  # noqa: PLR2004
+                if isinstance(value, tuple) and len(value) == intersection_tuple_len:
                     r1, r2 = value
                 else:
                     msg = f"Invalid intersected state value: {value!r}"
@@ -451,7 +401,7 @@ class NFA:
                 if r1 in n1_new.final_states and r2 in n2_new.final_states:
                     intersected_nfa_new.final_states.add(intersected_state_to)
 
-                # 変更の伝播
+                # Propagate changes
                 for next_symbol in n1_new.input_symbols:
                     if (
                         State(r1) in n1_new.transitions
