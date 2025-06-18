@@ -11,13 +11,16 @@ from typing import TYPE_CHECKING, TypeAlias, cast
 import pygraphviz as pgv
 from automata.fa.nfa import NFA as BaseNFA  # noqa: N811
 
-from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
+from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
+    EPSILON,
+    MSBFAlphabetSymbol,
+)
 from automata_based_smt_solver.automata.state import NFAStateT, State
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-NFATransitionsT: TypeAlias = dict[State, dict[InputSymbol, set[State]]]
+NFATransitionsT: TypeAlias = dict[State, dict[MSBFAlphabetSymbol, set[State]]]
 
 
 class NFA:
@@ -26,7 +29,7 @@ class NFA:
     Attributes:
         _id (int): Unique identifier for the NFA.
         _states (set[State]): Set of all states.
-        _input_symbols (set[InputSymbol]): Set of input symbols.
+        _input_symbols (set[MSBFAlphabetSymbol]): Set of input symbols.
         _transitions (NFATransitionsT): Transition mapping.
         _initial_state (State): Starting state.
         _final_states (set[State]): Set of accepting states.
@@ -36,7 +39,7 @@ class NFA:
     def __init__(self) -> None:
         """Initialize a NFA."""
         self._states: set[State] = set()
-        self._input_symbols: set[InputSymbol] = set()
+        self._input_symbols: set[MSBFAlphabetSymbol] = set()
         self._transitions: NFATransitionsT = cast(
             NFATransitionsT, defaultdict(lambda: defaultdict(set))
         )
@@ -63,7 +66,7 @@ class NFA:
         return self._states
 
     @property
-    def input_symbols(self) -> set[InputSymbol]:
+    def input_symbols(self) -> set[MSBFAlphabetSymbol]:
         return self._input_symbols
 
     @property
@@ -84,10 +87,10 @@ class NFA:
     def add_states(self, states: set[State]) -> None:
         self._states.update(states)
 
-    def add_input_symbol(self, new_input_symbol: InputSymbol) -> None:
+    def add_input_symbol(self, new_input_symbol: MSBFAlphabetSymbol) -> None:
         self._input_symbols.add(new_input_symbol)
 
-    def set_input_symbols(self, input_symbols: set[InputSymbol]) -> None:
+    def set_input_symbols(self, input_symbols: set[MSBFAlphabetSymbol]) -> None:
         self._input_symbols = input_symbols
 
     def _set_initial_state(self) -> None:
@@ -104,7 +107,7 @@ class NFA:
     def add_transition(
         self,
         start_state: State,
-        symbol: InputSymbol,
+        symbol: MSBFAlphabetSymbol,
         end_state: State,
     ) -> None:
         self._transitions[start_state][symbol].add(end_state)
@@ -119,7 +122,7 @@ class NFA:
         self._final_states = final_states
 
     def get_next_states(
-        self, current_state: State, input_symbol: InputSymbol
+        self, current_state: State, input_symbol: MSBFAlphabetSymbol
     ) -> set[State]:
         """Get states reachable from current_state via input_symbol with wildcards.
 
@@ -139,7 +142,7 @@ class NFA:
         # Find all matching transitions
         result = set()
         for symbol, next_states in state_transitions.items():
-            # Use InputSymbol's __eq__ method which already handles wildcards
+            # Use MSBFAlphabetSymbol's __eq__ method which already handles wildcards
             if input_symbol == symbol:
                 result.update(next_states)
 
@@ -148,11 +151,11 @@ class NFA:
     def contains_state(self, state: State) -> bool:
         return state in self.states
 
-    def accepts_input(self, input_str: list[InputSymbol]) -> bool:
+    def accepts_input(self, input_str: list[MSBFAlphabetSymbol]) -> bool:
         """Check if the NFA accepts the given input sequence.
 
         Args:
-            input_str: A list of InputSymbol objects to process.
+            input_str: A list of MSBFAlphabetSymbol objects to process.
 
         Returns:
             bool: True if the NFA accepts the sequence, False otherwise.
@@ -233,7 +236,7 @@ class NFA:
         return base_nfa.show_diagram(input_str=input_str, path=path)
 
     @staticmethod
-    def create_input_symbols_from_mask(mask: str) -> set[InputSymbol]:
+    def create_input_symbols_from_mask(mask: str) -> set[MSBFAlphabetSymbol]:
         if not mask:
             return set()
         # Create options list based on mask bits: ["0","1"] or ["0"]
@@ -241,14 +244,14 @@ class NFA:
 
         # Generate all combinations as strings
         return {
-            InputSymbol(bin_value="".join(combo), bin_mask=mask)
+            MSBFAlphabetSymbol(bin_value="".join(combo), bin_mask=mask)
             for combo in product(*options)
         }
 
     @staticmethod
     def input_symbol_intersection(
-        s1: set[InputSymbol], s2: set[InputSymbol]
-    ) -> set[InputSymbol]:
+        s1: set[MSBFAlphabetSymbol], s2: set[MSBFAlphabetSymbol]
+    ) -> set[MSBFAlphabetSymbol]:
         tmp = s1 | s2
         mask = 0
         # 全ての input symbol でワイルドカードの桁を探す
@@ -258,12 +261,12 @@ class NFA:
         mask_str = bin(mask)[2:].zfill(bin_length)
         choices = [("0", "1") if ch == "1" else ("0",) for ch in mask_str]
         symbols = {"".join(bits) for bits in product(*choices)}
-        return {InputSymbol(symbol, mask_str) for symbol in symbols}
+        return {MSBFAlphabetSymbol(symbol, mask_str) for symbol in symbols}
 
     def intersection(self, other: "NFA") -> "NFA":  # noqa: C901
         result = self.__class__()
         new_states: set[State] = set()
-        new_input_symbols: set[InputSymbol] = NFA.input_symbol_intersection(
+        new_input_symbols: set[MSBFAlphabetSymbol] = NFA.input_symbol_intersection(
             self.input_symbols, other.input_symbols
         )
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
@@ -364,7 +367,7 @@ class NFA:
     ) -> "NFA":
         """Perform incremental intersection of two NFAs with changes."""
         intersected_nfa_new = copy.deepcopy(intersected_nfa_old)
-        work_list: deque[tuple[State, InputSymbol, State]] = deque()
+        work_list: deque[tuple[State, MSBFAlphabetSymbol, State]] = deque()
 
         # seed N1 changes
         for q1_from, transitions_from_q1 in delta_1_changes.items():

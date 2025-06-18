@@ -2,7 +2,7 @@ import pytest
 from pysmt.shortcuts import Symbol
 from pysmt.typing import INT
 
-from automata_based_smt_solver.automata.input_symbol import InputSymbol
+from automata_based_smt_solver.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
 from automata_based_smt_solver.automata_builder import AutomataBuilder
 from automata_based_smt_solver.formula.type import FormulaData, FormulaType
 
@@ -63,7 +63,7 @@ class TestAutomataBuilder:
         )
         builder = AutomataBuilder(formula_data, self.all_vars, self.all_var_index_map)
         input_symbols = builder._generate_input_symbols(self.all_vars)
-        expected = {InputSymbol(bits, mask) for bits in expected_symbols}
+        expected = {MSBFAlphabetSymbol(bits, mask) for bits in expected_symbols}
         assert input_symbols == expected
 
     @pytest.mark.parametrize(
@@ -150,7 +150,7 @@ class TestAutomataBuilder:
         builder = AutomataBuilder(formula_data, self.all_vars, self.all_var_index_map)
         dots = builder._calc_dots(self.all_var_index_map)
         for bits, expected in expected_dots.items():
-            assert dots[InputSymbol(bits, mask)] == expected
+            assert dots[MSBFAlphabetSymbol(bits, mask)] == expected
 
     # x = 0 and y = 0 and x + y = 1 で unsat になるか
     def test_unsat(self):
