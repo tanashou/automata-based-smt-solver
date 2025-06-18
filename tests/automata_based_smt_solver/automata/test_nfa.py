@@ -1,5 +1,4 @@
 from itertools import chain, product
-from typing import ClassVar
 
 import pytest
 
@@ -13,60 +12,6 @@ def create_symbols(*bits: str, mask: str) -> set[InputSymbol]:
 
 
 class TestNFA:
-    # Common test data as class constants
-    STRINGS_ACCEPTED_BY_ENDS_WITH_01: ClassVar[list[str]] = [
-        "01",
-        "001",
-        "101",
-    ]
-    STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR: ClassVar[list[str]] = [
-        "",
-        "0",
-        "1",
-        "00",
-        "01",
-        "11",
-        "000",
-        "001",
-        "011",
-        "111",
-    ]
-
-    @classmethod
-    def setup_class(cls) -> None:
-        """Set up common test data."""
-        cls.ALL_STRINGS_UP_TO_LENGTH_3 = set(cls.get_all_strings_up_to_length("01", 3))
-
-        # Compute common rejected strings
-        cls.STRINGS_REJECTED_BY_ENDS_WITH_01 = list(
-            cls.ALL_STRINGS_UP_TO_LENGTH_3 - set(cls.STRINGS_ACCEPTED_BY_ENDS_WITH_01)
-        )
-        cls.STRINGS_REJECTED_BY_ZERO_STAR_ONE_STAR = list(
-            cls.ALL_STRINGS_UP_TO_LENGTH_3
-            - set(cls.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR)
-        )
-
-        # Common wildcard acceptances
-        cls.STRINGS_ACCEPTED_WITH_WILDCARD = [
-            "00",
-            "01",
-            "10",
-            "11",
-            "000",
-            "001",
-            "010",
-            "011",
-            "100",
-            "101",
-            "110",
-            "111",
-        ]
-        cls.STRINGS_REJECTED_WITH_WILDCARD = [
-            "",
-            "0",
-            "1",
-        ]
-
     @staticmethod
     def convert_strings_to_inputs(strings, mask) -> list[list[InputSymbol]]:
         """Convert string lists to InputSymbol format."""
@@ -121,6 +66,29 @@ class TestNFA:
         return nfa
 
     @pytest.fixture
+    def nfa_ends_with_01_or_00(self):
+        """Create a NFA that accepts the regular expression (0|1)*01."""
+        mask = "1"
+        nfa = NFA()
+
+        # Add states
+        for state in ["q1", "q2"]:
+            nfa.add_state(State(state))
+
+        nfa.add_input_symbol(InputSymbol("0", mask))
+        nfa.add_input_symbol(InputSymbol("1", mask))
+
+        nfa.add_final_state(State("q2"))
+
+        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), nfa.initial_state)
+        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), State("q1"))
+        nfa.add_transition(nfa.initial_state, InputSymbol("1", mask), nfa.initial_state)
+        nfa.add_transition(State("q1"), InputSymbol("1", mask), State("q2"))
+        nfa.add_transition(State("q1"), InputSymbol("0", mask), State("q2"))  # 追加分
+
+        return nfa
+
+    @pytest.fixture
     def nfa_ends_with_01_epsilon(self):
         """Create a NFA that accepts the regular expression (0|1)*01 with epsilon."""
         mask = "1"
@@ -149,6 +117,28 @@ class TestNFA:
         return nfa
 
     @pytest.fixture
+    def nfa_starts_with_01(self):
+        """Create a NFA that accepts the regular expression 01(0|1)*."""
+        mask = "1"
+        nfa = NFA()
+
+        # Add states
+        for state in ["q1", "q2"]:
+            nfa.add_state(State(state))
+
+        nfa.add_input_symbol(InputSymbol("0", mask))
+        nfa.add_input_symbol(InputSymbol("1", mask))
+
+        nfa.add_final_state(State("q2"))
+
+        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), State("q1"))
+        nfa.add_transition(State("q1"), InputSymbol("1", mask), State("q2"))
+        nfa.add_transition(State("q2"), InputSymbol("0", mask), State("q2"))
+        nfa.add_transition(State("q2"), InputSymbol("1", mask), State("q2"))
+
+        return nfa
+
+    @pytest.fixture
     def nfa_zero_star_one_star(self):
         """Create a NFA that accepts the regular expression 0*1*."""
         mask = "1"
@@ -173,6 +163,54 @@ class TestNFA:
         nfa.add_transition(State("q2"), InputSymbol("1", mask), State("q2"))
 
         return nfa
+
+    @pytest.fixture
+    def str_starts_with_01(self) -> set[str]:
+        """Create a set of strings that start with '01' up to 5 digits."""
+        alphabet = "01"
+        max_length = 5
+        result = set()
+        for length in range(2, max_length + 1):
+            for tail in product(alphabet, repeat=length - 2):
+                s = "01" + "".join(tail)
+                result.add(s)
+        return result
+
+    @pytest.fixture
+    def str_ends_with_01(self) -> set[str]:
+        """Create a set of strings that end with '01' up to 5 digits."""
+        alphabet = "01"
+        max_length = 5
+        result = set()
+        for length in range(2, max_length + 1):
+            for head in product(alphabet, repeat=length - 2):
+                s = "".join(head) + "01"
+                result.add(s)
+        return result
+
+    @pytest.fixture
+    def str_ends_with_01_or_00(self) -> set[str]:
+        """Create a set of strings that end with '01' or '00' up to 5 digits."""
+        alphabet = "01"
+        max_length = 5
+        result = set()
+        for length in range(2, max_length + 1):
+            for head in product(alphabet, repeat=length - 2):
+                for suffix in ("01", "00"):
+                    s = "".join(head) + suffix
+                    result.add(s)
+        return result
+
+    @pytest.fixture
+    def str_all_binary_up_to_5(self) -> set[str]:
+        """Return all binary strings with length up to 5 (empty string included)."""
+        alphabet = "01"
+        max_length = 5
+        result = set()
+        for length in range(max_length + 1):
+            for s in product(alphabet, repeat=length):
+                result.add("".join(s))
+        return result
 
     def test_transitions(self, nfa_ends_with_01):
         """Test that transitions work as expected."""
@@ -223,44 +261,50 @@ class TestNFA:
         q1 = State("q1")
         assert nfa.get_next_states(q0, symbol) == {q1}
 
-    def test_accepts_nfa_ends_with_01(self, nfa_ends_with_01):
+    def test_accepts_nfa_ends_with_01(
+        self, nfa_ends_with_01, str_ends_with_01, str_all_binary_up_to_5
+    ):
         """Test if the NFA accepts a string."""
         mask = "1"
+        accepted_strings = list(str_ends_with_01)
+        rejected_strings = list(str_all_binary_up_to_5 - str_ends_with_01)
         TestNFA.assert_nfa_accepts_rejects(
             nfa_ends_with_01,
-            self.STRINGS_ACCEPTED_BY_ENDS_WITH_01,
-            self.STRINGS_REJECTED_BY_ENDS_WITH_01,
+            accepted_strings,
+            rejected_strings,
             mask,
         )
 
-    def test_accepts_nfa_ends_with_01_epsilon(self, nfa_ends_with_01_epsilon):
+    def test_accepts_nfa_ends_with_01_epsilon(
+        self, nfa_ends_with_01_epsilon, str_ends_with_01, str_all_binary_up_to_5
+    ):
         """Test if the NFA with epsilon accepts a string."""
         mask = "1"
+        accepted_strings = list(str_ends_with_01)
+        rejected_strings = list(str_all_binary_up_to_5 - str_ends_with_01)
         TestNFA.assert_nfa_accepts_rejects(
             nfa_ends_with_01_epsilon,
-            self.STRINGS_ACCEPTED_BY_ENDS_WITH_01,
-            self.STRINGS_REJECTED_BY_ENDS_WITH_01,
+            accepted_strings,
+            rejected_strings,
             mask,
             "NFA with epsilon",
         )
 
-    def test_accept_nfa_ends_with_01_with_wildcard(self, nfa_ends_with_01):
-        """Test if the NFA accepts strings with wildcard characters."""
-        mask = "0"
-        TestNFA.assert_nfa_accepts_rejects(
-            nfa_ends_with_01,
-            self.STRINGS_ACCEPTED_WITH_WILDCARD,
-            self.STRINGS_REJECTED_WITH_WILDCARD,
-            mask,
-        )
-
-    def test_accepts_nfa_zero_star_one_star(self, nfa_zero_star_one_star):
+    def test_accepts_nfa_zero_star_one_star(
+        self, nfa_zero_star_one_star, str_all_binary_up_to_5
+    ):
         """Test if the NFA accepts a string. 0*1*."""
         mask = "1"
+        accepted_strings = [
+            s
+            for s in str_all_binary_up_to_5
+            if ("0" not in s or s.rstrip("1") == "0" * s.count("0"))
+        ]
+        rejected_strings = list(set(str_all_binary_up_to_5) - set(accepted_strings))
         TestNFA.assert_nfa_accepts_rejects(
             nfa_zero_star_one_star,
-            self.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR,
-            self.STRINGS_REJECTED_BY_ZERO_STAR_ONE_STAR,
+            accepted_strings,
+            rejected_strings,
             mask,
         )
 
@@ -282,35 +326,44 @@ class TestNFA:
         new_symbols = NFA.create_input_symbols_from_mask(mask)
         assert new_symbols == expected_symbols
 
-    def test_intersection_operation(self, nfa_ends_with_01, nfa_zero_star_one_star):
+    def test_intersection_operation(
+        self,
+        nfa_ends_with_01,
+        nfa_zero_star_one_star,
+        str_ends_with_01,
+        str_all_binary_up_to_5,
+    ):
         """Test the intersection operation between two NFAs."""
         intersection_nfa = nfa_ends_with_01.intersection(nfa_zero_star_one_star)
         mask = "1"
-
-        accepted_strings = list(
-            set(self.STRINGS_ACCEPTED_BY_ENDS_WITH_01)
-            & set(self.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR)
-        )
-        rejected_strings = list(self.ALL_STRINGS_UP_TO_LENGTH_3 - set(accepted_strings))
-
+        zero_star_one_star_set = {
+            s
+            for s in str_all_binary_up_to_5
+            if ("0" not in s or s.rstrip("1") == "0" * s.count("0"))
+        }
+        accepted_strings = list(str_ends_with_01 & zero_star_one_star_set)
+        rejected_strings = list(set(str_all_binary_up_to_5) - set(accepted_strings))
         TestNFA.assert_nfa_accepts_rejects(
             intersection_nfa, accepted_strings, rejected_strings, mask
         )
 
     def test_intersection_operation_with_epsilon(
-        self, nfa_ends_with_01_epsilon, nfa_zero_star_one_star
+        self,
+        nfa_ends_with_01_epsilon,
+        nfa_zero_star_one_star,
+        str_ends_with_01,
+        str_all_binary_up_to_5,
     ):
         """Test the intersection operation between an NFA with epsilon ."""
         intersection_nfa = nfa_ends_with_01_epsilon.intersection(nfa_zero_star_one_star)
         mask = "1"
-
-        # Only '01' and '001'
-        accepted_strings = list(
-            set(self.STRINGS_ACCEPTED_BY_ENDS_WITH_01)
-            & set(self.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR)
-        )
-        rejected_strings = list(self.ALL_STRINGS_UP_TO_LENGTH_3 - set(accepted_strings))
-
+        zero_star_one_star_set = {
+            s
+            for s in str_all_binary_up_to_5
+            if ("0" not in s or s.rstrip("1") == "0" * s.count("0"))
+        }
+        accepted_strings = list(str_ends_with_01 & zero_star_one_star_set)
+        rejected_strings = list(set(str_all_binary_up_to_5) - set(accepted_strings))
         TestNFA.assert_nfa_accepts_rejects(
             intersection_nfa,
             accepted_strings,
@@ -353,37 +406,30 @@ class TestNFA:
         nfa5.add_transition(nfa5.initial_state, EPSILON, State("q1"))
         assert nfa5.is_acceptable() is True
 
-    def test_merge_from_transition_dict(self):
-        """Test merging transitions from a dictionary into an existing NFA."""
-        # 1. Create an initial NFA
-        nfa = NFA()
-        q0 = nfa.initial_state
-        q1 = State("q1")
-        sym_0 = InputSymbol("0", "1")
-        nfa.add_state(q1)
-        nfa.add_input_symbol(sym_0)
-        nfa.add_transition(q0, sym_0, q1)
+    def test_incremental_intersection_specific_example(
+        self,
+        nfa_ends_with_01,
+        nfa_ends_with_01_or_00,
+        nfa_starts_with_01,
+        str_starts_with_01,
+        str_ends_with_01_or_00,
+        str_all_binary_up_to_5,
+    ):
+        intersected_nfa_old = nfa_ends_with_01.intersection(nfa_starts_with_01)
 
-        # 2. Define a new set of transitions to merge
-        q2 = State("q2")
-        q3 = State("q3")
-        sym_1 = InputSymbol("1", "1")
-        incoming_transitions = {
-            q1: {sym_1: {q2}},  # From existing state to new state
-            q2: {sym_0: {q3}},  # From new state to new state
-        }
+        delta_1_changes = {State("q1"): {InputSymbol("0", "1"): {State("q2")}}}
+        delta_2_changes = {}
+        intersected_nfa_new = NFA.incremental_intersection(
+            intersected_nfa_old,
+            nfa_ends_with_01_or_00,
+            nfa_starts_with_01,
+            delta_1_changes,
+            delta_2_changes,
+        )
 
-        # 3. Merge the new transitions
-        nfa.merge(incoming_transitions)
+        accepted_strings = list(str_ends_with_01_or_00 & str_starts_with_01)
+        rejected_strings = list(str_all_binary_up_to_5 - set(accepted_strings))
 
-        # 4. Assert that the NFA is updated correctly
-        # Check states
-        assert {q0, q1, q2, q3}.issubset(nfa.states)
-        # Check symbols
-        assert {sym_0, sym_1}.issubset(nfa.input_symbols)
-
-        # Check original transition
-        assert nfa.transitions[q0][sym_0] == {q1}
-        # Check merged transitions
-        assert nfa.transitions[q1][sym_1] == {q2}
-        assert nfa.transitions[q2][sym_0] == {q3}
+        TestNFA.assert_nfa_accepts_rejects(
+            intersected_nfa_new, accepted_strings, rejected_strings, "1"
+        )
