@@ -1,18 +1,11 @@
 import pytest
 
 from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
-    EPSILON,
     MSBFAlphabetSymbol,
 )
 
 
-class TestInputSymbol:
-    def test_epsilon_creation(self):
-        """Test that epsilon is correctly created."""
-        assert EPSILON.is_epsilon()
-        assert str(EPSILON) == "ε"
-        assert hash(EPSILON) == hash(MSBFAlphabetSymbol("", ""))
-
+class TestMSBFAlphabetSymbol:
     @pytest.mark.parametrize(
         ("bin_value", "bin_mask", "error_msg"),
         [
@@ -46,7 +39,6 @@ class TestInputSymbol:
             ("1010", "1111", "1011", "1111", False),  # 1010 == 1011
             ("0110", "1110", "0111", "1110", True),  # 011* == 011*
             ("01011", "11111", "00010", "10110", True),  # 01011 == 0*01*
-            ("", "", "", "", True),  # epsilon comparison
             ("1100", "1111", "1100", "1011", True),  # 1*00 == 1*00
         ],
     )
@@ -63,7 +55,6 @@ class TestInputSymbol:
             ("1111", "1111", "1111"),
             ("0000", "0000", "****"),
             ("1010", "1010", "1*1*"),
-            ("", "", "ε"),
             ("1100", "1011", "1*00"),
         ],
     )
@@ -96,13 +87,3 @@ class TestInputSymbol:
         """Test that dot product with an empty list returns 0."""
         s = MSBFAlphabetSymbol("1010", "1111")
         assert s.dot([]) == 0
-
-    def test_dot_product_epsilon_error(self):
-        """Test that dot product on epsilon raises ValueError."""
-        with pytest.raises(ValueError, match="Cannot apply mask to epsilon symbol"):
-            EPSILON.dot([(1, 0), (2, 1)])
-
-    def test_apply_mask_on_epsilon(self):
-        """Test that applying mask on epsilon raises ValueError."""
-        with pytest.raises(ValueError, match="Cannot apply mask to epsilon symbol"):
-            EPSILON.apply_mask()

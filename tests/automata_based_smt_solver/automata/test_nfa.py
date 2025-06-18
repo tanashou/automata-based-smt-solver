@@ -3,7 +3,6 @@ from itertools import chain, product
 import pytest
 
 from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
-    EPSILON,
     MSBFAlphabetSymbol,
 )
 from automata_based_smt_solver.automata.nfa import NFA
@@ -106,34 +105,6 @@ class TestNFA:
         return nfa
 
     @pytest.fixture
-    def nfa_ends_with_01_epsilon(self):
-        """Create a NFA that accepts the regular expression (0|1)*01 with epsilon."""
-        mask = "1"
-        nfa = NFA()
-
-        # Add states
-        for state in [nfa.initial_state, "q1", "q2", "q3", "q4", "q5"]:
-            if isinstance(state, str):
-                nfa.add_state(State(state))
-            else:
-                nfa.add_state(state)
-
-        nfa.add_input_symbol(MSBFAlphabetSymbol("0", mask))
-        nfa.add_input_symbol(MSBFAlphabetSymbol("1", mask))
-
-        nfa.add_final_state(State("q5"))
-
-        nfa.add_transition(nfa.initial_state, EPSILON, State("q1"))
-        nfa.add_transition(State("q1"), MSBFAlphabetSymbol("0", mask), State("q1"))
-        nfa.add_transition(State("q1"), MSBFAlphabetSymbol("1", mask), State("q1"))
-        nfa.add_transition(State("q1"), EPSILON, State("q2"))
-        nfa.add_transition(State("q2"), MSBFAlphabetSymbol("0", mask), State("q3"))
-        nfa.add_transition(State("q3"), MSBFAlphabetSymbol("1", mask), State("q4"))
-        nfa.add_transition(State("q4"), EPSILON, State("q5"))
-
-        return nfa
-
-    @pytest.fixture
     def nfa_starts_with_01(self):
         """Create a NFA that accepts the regular expression 01(0|1)*."""
         mask = "1"
@@ -153,32 +124,6 @@ class TestNFA:
         )
         nfa.add_transition(State("q1"), MSBFAlphabetSymbol("1", mask), State("q2"))
         nfa.add_transition(State("q2"), MSBFAlphabetSymbol("0", mask), State("q2"))
-        nfa.add_transition(State("q2"), MSBFAlphabetSymbol("1", mask), State("q2"))
-
-        return nfa
-
-    @pytest.fixture
-    def nfa_zero_star_one_star(self):
-        """Create a NFA that accepts the regular expression 0*1*."""
-        mask = "1"
-        nfa = NFA()
-
-        # Add states
-        for state in [nfa.initial_state, "q1", "q2"]:
-            if isinstance(state, str):
-                nfa.add_state(State(state))
-            else:
-                nfa.add_state(state)
-
-        nfa.add_input_symbol(MSBFAlphabetSymbol("0", mask))
-        nfa.add_input_symbol(MSBFAlphabetSymbol("1", mask))
-
-        # Set initial and final states
-        nfa.add_final_state(State("q2"))
-
-        nfa.add_transition(nfa.initial_state, EPSILON, State("q1"))
-        nfa.add_transition(State("q1"), MSBFAlphabetSymbol("0", mask), State("q1"))
-        nfa.add_transition(State("q1"), EPSILON, State("q2"))
         nfa.add_transition(State("q2"), MSBFAlphabetSymbol("1", mask), State("q2"))
 
         return nfa
@@ -305,39 +250,6 @@ class TestNFA:
             mask,
         )
 
-    def test_accepts_nfa_ends_with_01_epsilon(
-        self, nfa_ends_with_01_epsilon, str_ends_with_01, str_all_binary_up_to_5
-    ):
-        """Test if the NFA with epsilon accepts a string."""
-        mask = "1"
-        accepted_strings = list(str_ends_with_01)
-        rejected_strings = list(str_all_binary_up_to_5 - str_ends_with_01)
-        TestNFA.assert_nfa_accepts_rejects(
-            nfa_ends_with_01_epsilon,
-            accepted_strings,
-            rejected_strings,
-            mask,
-            "NFA with epsilon",
-        )
-
-    def test_accepts_nfa_zero_star_one_star(
-        self, nfa_zero_star_one_star, str_all_binary_up_to_5
-    ):
-        """Test if the NFA accepts a string. 0*1*."""
-        mask = "1"
-        accepted_strings = [
-            s
-            for s in str_all_binary_up_to_5
-            if ("0" not in s or s.rstrip("1") == "0" * s.count("0"))
-        ]
-        rejected_strings = list(set(str_all_binary_up_to_5) - set(accepted_strings))
-        TestNFA.assert_nfa_accepts_rejects(
-            nfa_zero_star_one_star,
-            accepted_strings,
-            rejected_strings,
-            mask,
-        )
-
     @pytest.mark.parametrize(
         ("mask", "expected_symbols"),
         [
@@ -359,47 +271,18 @@ class TestNFA:
     def test_intersection_operation(
         self,
         nfa_ends_with_01,
-        nfa_zero_star_one_star,
+        nfa_starts_with_01,
         str_ends_with_01,
+        str_starts_with_01,
         str_all_binary_up_to_5,
     ):
         """Test the intersection operation between two NFAs."""
-        intersection_nfa = nfa_ends_with_01.intersection(nfa_zero_star_one_star)
-        mask = "1"
-        zero_star_one_star_set = {
-            s
-            for s in str_all_binary_up_to_5
-            if ("0" not in s or s.rstrip("1") == "0" * s.count("0"))
-        }
-        accepted_strings = list(str_ends_with_01 & zero_star_one_star_set)
-        rejected_strings = list(set(str_all_binary_up_to_5) - set(accepted_strings))
-        TestNFA.assert_nfa_accepts_rejects(
-            intersection_nfa, accepted_strings, rejected_strings, mask
-        )
+        intersection_nfa = nfa_ends_with_01.intersection(nfa_starts_with_01)
 
-    def test_intersection_operation_with_epsilon(
-        self,
-        nfa_ends_with_01_epsilon,
-        nfa_zero_star_one_star,
-        str_ends_with_01,
-        str_all_binary_up_to_5,
-    ):
-        """Test the intersection operation between an NFA with epsilon ."""
-        intersection_nfa = nfa_ends_with_01_epsilon.intersection(nfa_zero_star_one_star)
-        mask = "1"
-        zero_star_one_star_set = {
-            s
-            for s in str_all_binary_up_to_5
-            if ("0" not in s or s.rstrip("1") == "0" * s.count("0"))
-        }
-        accepted_strings = list(str_ends_with_01 & zero_star_one_star_set)
+        accepted_strings = list(str_ends_with_01 & str_starts_with_01)
         rejected_strings = list(set(str_all_binary_up_to_5) - set(accepted_strings))
         TestNFA.assert_nfa_accepts_rejects(
-            intersection_nfa,
-            accepted_strings,
-            rejected_strings,
-            mask,
-            "Intersection NFA with epsilon",
+            intersection_nfa, accepted_strings, rejected_strings, mask="1"
         )
 
     def test_is_acceptable(self):
@@ -428,13 +311,6 @@ class TestNFA:
         nfa4.add_final_state(State("q1"))
         # No transition from q0 to q1
         assert nfa4.is_acceptable() is False
-
-        # Accepting NFA: epsilon transition to final state
-        nfa5 = NFA()
-        nfa5.add_state(State("q1"))
-        nfa5.add_final_state(State("q1"))
-        nfa5.add_transition(nfa5.initial_state, EPSILON, State("q1"))
-        assert nfa5.is_acceptable() is True
 
     def test_incremental_intersection_specific_example(
         self,
