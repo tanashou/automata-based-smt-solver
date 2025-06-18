@@ -3,7 +3,7 @@ from itertools import product
 
 from pysmt.fnode import FNode
 
-from automata_based_smt_solver.automata.input_symbol import InputSymbol
+from automata_based_smt_solver.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
 from automata_based_smt_solver.automata.nfa import NFA
 from automata_based_smt_solver.automata.state import State
 from automata_based_smt_solver.build_status import BuildStatus
@@ -29,7 +29,7 @@ class AutomataBuilder:
         self.nfa.set_input_symbols(self._generate_input_symbols(all_vars))
         self.nfa.add_final_state(State(self.formula_data.const))
 
-        self.dots: dict[InputSymbol, int] = self._calc_dots(all_var_index_map)
+        self.dots: dict[MSBFAlphabetSymbol, int] = self._calc_dots(all_var_index_map)
         self.work_list = [self.formula_data.const]
 
         self._build_status = BuildStatus.UNTOUCHED
@@ -39,15 +39,17 @@ class AutomataBuilder:
         return self._build_status
 
     # formula_data.vars と all_vars_index_map, all_vars を使う。
-    def _generate_input_symbols(self, all_vars: list[FNode]) -> set[InputSymbol]:
+    def _generate_input_symbols(self, all_vars: list[FNode]) -> set[MSBFAlphabetSymbol]:
         mask = "".join(
             "1" if var in self.formula_data.coeffs else "0" for var in all_vars
         )
         choices = [("0", "1") if ch == "1" else ("0",) for ch in mask]
         symbols = {"".join(bits) for bits in product(*choices)}
-        return {InputSymbol(symbol, mask) for symbol in symbols}
+        return {MSBFAlphabetSymbol(symbol, mask) for symbol in symbols}
 
-    def _calc_dots(self, all_var_index_map: dict[FNode, int]) -> dict[InputSymbol, int]:
+    def _calc_dots(
+        self, all_var_index_map: dict[FNode, int]
+    ) -> dict[MSBFAlphabetSymbol, int]:
         result = {}
         var_coef_index_pairs = [
             (coeff, all_var_index_map[var])
