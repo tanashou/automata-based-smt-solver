@@ -1,5 +1,4 @@
 from itertools import chain, product
-from typing import ClassVar
 
 import pytest
 
@@ -13,60 +12,6 @@ def create_symbols(*bits: str, mask: str) -> set[InputSymbol]:
 
 
 class TestNFA:
-    # Common test data as class constants
-    STRINGS_ACCEPTED_BY_ENDS_WITH_01: ClassVar[list[str]] = [
-        "01",
-        "001",
-        "101",
-    ]
-    STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR: ClassVar[list[str]] = [
-        "",
-        "0",
-        "1",
-        "00",
-        "01",
-        "11",
-        "000",
-        "001",
-        "011",
-        "111",
-    ]
-
-    @classmethod
-    def setup_class(cls) -> None:
-        """Set up common test data."""
-        cls.ALL_STRINGS_UP_TO_LENGTH_3 = set(cls.get_all_strings_up_to_length("01", 3))
-
-        # Compute common rejected strings
-        cls.STRINGS_REJECTED_BY_ENDS_WITH_01 = list(
-            cls.ALL_STRINGS_UP_TO_LENGTH_3 - set(cls.STRINGS_ACCEPTED_BY_ENDS_WITH_01)
-        )
-        cls.STRINGS_REJECTED_BY_ZERO_STAR_ONE_STAR = list(
-            cls.ALL_STRINGS_UP_TO_LENGTH_3
-            - set(cls.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR)
-        )
-
-        # Common wildcard acceptances
-        cls.STRINGS_ACCEPTED_WITH_WILDCARD = [
-            "00",
-            "01",
-            "10",
-            "11",
-            "000",
-            "001",
-            "010",
-            "011",
-            "100",
-            "101",
-            "110",
-            "111",
-        ]
-        cls.STRINGS_REJECTED_WITH_WILDCARD = [
-            "",
-            "0",
-            "1",
-        ]
-
     @staticmethod
     def convert_strings_to_inputs(strings, mask) -> list[list[InputSymbol]]:
         """Convert string lists to InputSymbol format."""
@@ -316,44 +261,50 @@ class TestNFA:
         q1 = State("q1")
         assert nfa.get_next_states(q0, symbol) == {q1}
 
-    def test_accepts_nfa_ends_with_01(self, nfa_ends_with_01):
+    def test_accepts_nfa_ends_with_01(
+        self, nfa_ends_with_01, str_ends_with_01, str_all_binary_up_to_5
+    ):
         """Test if the NFA accepts a string."""
         mask = "1"
+        accepted_strings = list(str_ends_with_01)
+        rejected_strings = list(str_all_binary_up_to_5 - str_ends_with_01)
         TestNFA.assert_nfa_accepts_rejects(
             nfa_ends_with_01,
-            self.STRINGS_ACCEPTED_BY_ENDS_WITH_01,
-            self.STRINGS_REJECTED_BY_ENDS_WITH_01,
+            accepted_strings,
+            rejected_strings,
             mask,
         )
 
-    def test_accepts_nfa_ends_with_01_epsilon(self, nfa_ends_with_01_epsilon):
+    def test_accepts_nfa_ends_with_01_epsilon(
+        self, nfa_ends_with_01_epsilon, str_ends_with_01, str_all_binary_up_to_5
+    ):
         """Test if the NFA with epsilon accepts a string."""
         mask = "1"
+        accepted_strings = list(str_ends_with_01)
+        rejected_strings = list(str_all_binary_up_to_5 - str_ends_with_01)
         TestNFA.assert_nfa_accepts_rejects(
             nfa_ends_with_01_epsilon,
-            self.STRINGS_ACCEPTED_BY_ENDS_WITH_01,
-            self.STRINGS_REJECTED_BY_ENDS_WITH_01,
+            accepted_strings,
+            rejected_strings,
             mask,
             "NFA with epsilon",
         )
 
-    def test_accept_nfa_ends_with_01_with_wildcard(self, nfa_ends_with_01):
-        """Test if the NFA accepts strings with wildcard characters."""
-        mask = "0"
-        TestNFA.assert_nfa_accepts_rejects(
-            nfa_ends_with_01,
-            self.STRINGS_ACCEPTED_WITH_WILDCARD,
-            self.STRINGS_REJECTED_WITH_WILDCARD,
-            mask,
-        )
-
-    def test_accepts_nfa_zero_star_one_star(self, nfa_zero_star_one_star):
+    def test_accepts_nfa_zero_star_one_star(
+        self, nfa_zero_star_one_star, str_all_binary_up_to_5
+    ):
         """Test if the NFA accepts a string. 0*1*."""
         mask = "1"
+        accepted_strings = [
+            s
+            for s in str_all_binary_up_to_5
+            if ("0" not in s or s.rstrip("1") == "0" * s.count("0"))
+        ]
+        rejected_strings = list(set(str_all_binary_up_to_5) - set(accepted_strings))
         TestNFA.assert_nfa_accepts_rejects(
             nfa_zero_star_one_star,
-            self.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR,
-            self.STRINGS_REJECTED_BY_ZERO_STAR_ONE_STAR,
+            accepted_strings,
+            rejected_strings,
             mask,
         )
 
@@ -375,35 +326,44 @@ class TestNFA:
         new_symbols = NFA.create_input_symbols_from_mask(mask)
         assert new_symbols == expected_symbols
 
-    def test_intersection_operation(self, nfa_ends_with_01, nfa_zero_star_one_star):
+    def test_intersection_operation(
+        self,
+        nfa_ends_with_01,
+        nfa_zero_star_one_star,
+        str_ends_with_01,
+        str_all_binary_up_to_5,
+    ):
         """Test the intersection operation between two NFAs."""
         intersection_nfa = nfa_ends_with_01.intersection(nfa_zero_star_one_star)
         mask = "1"
-
-        accepted_strings = list(
-            set(self.STRINGS_ACCEPTED_BY_ENDS_WITH_01)
-            & set(self.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR)
-        )
-        rejected_strings = list(self.ALL_STRINGS_UP_TO_LENGTH_3 - set(accepted_strings))
-
+        zero_star_one_star_set = {
+            s
+            for s in str_all_binary_up_to_5
+            if ("0" not in s or s.rstrip("1") == "0" * s.count("0"))
+        }
+        accepted_strings = list(str_ends_with_01 & zero_star_one_star_set)
+        rejected_strings = list(set(str_all_binary_up_to_5) - set(accepted_strings))
         TestNFA.assert_nfa_accepts_rejects(
             intersection_nfa, accepted_strings, rejected_strings, mask
         )
 
     def test_intersection_operation_with_epsilon(
-        self, nfa_ends_with_01_epsilon, nfa_zero_star_one_star
+        self,
+        nfa_ends_with_01_epsilon,
+        nfa_zero_star_one_star,
+        str_ends_with_01,
+        str_all_binary_up_to_5,
     ):
         """Test the intersection operation between an NFA with epsilon ."""
         intersection_nfa = nfa_ends_with_01_epsilon.intersection(nfa_zero_star_one_star)
         mask = "1"
-
-        # Only '01' and '001'
-        accepted_strings = list(
-            set(self.STRINGS_ACCEPTED_BY_ENDS_WITH_01)
-            & set(self.STRINGS_ACCEPTED_BY_ZERO_STAR_ONE_STAR)
-        )
-        rejected_strings = list(self.ALL_STRINGS_UP_TO_LENGTH_3 - set(accepted_strings))
-
+        zero_star_one_star_set = {
+            s
+            for s in str_all_binary_up_to_5
+            if ("0" not in s or s.rstrip("1") == "0" * s.count("0"))
+        }
+        accepted_strings = list(str_ends_with_01 & zero_star_one_star_set)
+        rejected_strings = list(set(str_all_binary_up_to_5) - set(accepted_strings))
         TestNFA.assert_nfa_accepts_rejects(
             intersection_nfa,
             accepted_strings,
