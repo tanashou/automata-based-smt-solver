@@ -2,20 +2,23 @@ from itertools import chain, product
 
 import pytest
 
-from automata_based_smt_solver.automata.input_symbol import EPSILON, InputSymbol
+from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
+    EPSILON,
+    MSBFAlphabetSymbol,
+)
 from automata_based_smt_solver.automata.nfa import NFA
 from automata_based_smt_solver.automata.state import State
 
 
-def create_symbols(*bits: str, mask: str) -> set[InputSymbol]:
-    return {InputSymbol(bit, mask) for bit in bits}
+def create_symbols(*bits: str, mask: str) -> set[MSBFAlphabetSymbol]:
+    return {MSBFAlphabetSymbol(bit, mask) for bit in bits}
 
 
 class TestNFA:
     @staticmethod
-    def convert_strings_to_inputs(strings, mask) -> list[list[InputSymbol]]:
-        """Convert string lists to InputSymbol format."""
-        return [[InputSymbol(bit, mask) for bit in string] for string in strings]
+    def convert_strings_to_inputs(strings, mask) -> list[list[MSBFAlphabetSymbol]]:
+        """Convert string lists to MSBFAlphabetSymbol format."""
+        return [[MSBFAlphabetSymbol(bit, mask) for bit in string] for string in strings]
 
     @staticmethod
     def assert_nfa_accepts_rejects(
@@ -53,15 +56,21 @@ class TestNFA:
         for state in ["q1", "q2"]:
             nfa.add_state(State(state))
 
-        nfa.add_input_symbol(InputSymbol("0", mask))
-        nfa.add_input_symbol(InputSymbol("1", mask))
+        nfa.add_input_symbol(MSBFAlphabetSymbol("0", mask))
+        nfa.add_input_symbol(MSBFAlphabetSymbol("1", mask))
 
         nfa.add_final_state(State("q2"))
 
-        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), nfa.initial_state)
-        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), State("q1"))
-        nfa.add_transition(nfa.initial_state, InputSymbol("1", mask), nfa.initial_state)
-        nfa.add_transition(State("q1"), InputSymbol("1", mask), State("q2"))
+        nfa.add_transition(
+            nfa.initial_state, MSBFAlphabetSymbol("0", mask), nfa.initial_state
+        )
+        nfa.add_transition(
+            nfa.initial_state, MSBFAlphabetSymbol("0", mask), State("q1")
+        )
+        nfa.add_transition(
+            nfa.initial_state, MSBFAlphabetSymbol("1", mask), nfa.initial_state
+        )
+        nfa.add_transition(State("q1"), MSBFAlphabetSymbol("1", mask), State("q2"))
 
         return nfa
 
@@ -75,16 +84,24 @@ class TestNFA:
         for state in ["q1", "q2"]:
             nfa.add_state(State(state))
 
-        nfa.add_input_symbol(InputSymbol("0", mask))
-        nfa.add_input_symbol(InputSymbol("1", mask))
+        nfa.add_input_symbol(MSBFAlphabetSymbol("0", mask))
+        nfa.add_input_symbol(MSBFAlphabetSymbol("1", mask))
 
         nfa.add_final_state(State("q2"))
 
-        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), nfa.initial_state)
-        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), State("q1"))
-        nfa.add_transition(nfa.initial_state, InputSymbol("1", mask), nfa.initial_state)
-        nfa.add_transition(State("q1"), InputSymbol("1", mask), State("q2"))
-        nfa.add_transition(State("q1"), InputSymbol("0", mask), State("q2"))  # 追加分
+        nfa.add_transition(
+            nfa.initial_state, MSBFAlphabetSymbol("0", mask), nfa.initial_state
+        )
+        nfa.add_transition(
+            nfa.initial_state, MSBFAlphabetSymbol("0", mask), State("q1")
+        )
+        nfa.add_transition(
+            nfa.initial_state, MSBFAlphabetSymbol("1", mask), nfa.initial_state
+        )
+        nfa.add_transition(State("q1"), MSBFAlphabetSymbol("1", mask), State("q2"))
+        nfa.add_transition(
+            State("q1"), MSBFAlphabetSymbol("0", mask), State("q2")
+        )  # 追加分
 
         return nfa
 
@@ -101,17 +118,17 @@ class TestNFA:
             else:
                 nfa.add_state(state)
 
-        nfa.add_input_symbol(InputSymbol("0", mask))
-        nfa.add_input_symbol(InputSymbol("1", mask))
+        nfa.add_input_symbol(MSBFAlphabetSymbol("0", mask))
+        nfa.add_input_symbol(MSBFAlphabetSymbol("1", mask))
 
         nfa.add_final_state(State("q5"))
 
         nfa.add_transition(nfa.initial_state, EPSILON, State("q1"))
-        nfa.add_transition(State("q1"), InputSymbol("0", mask), State("q1"))
-        nfa.add_transition(State("q1"), InputSymbol("1", mask), State("q1"))
+        nfa.add_transition(State("q1"), MSBFAlphabetSymbol("0", mask), State("q1"))
+        nfa.add_transition(State("q1"), MSBFAlphabetSymbol("1", mask), State("q1"))
         nfa.add_transition(State("q1"), EPSILON, State("q2"))
-        nfa.add_transition(State("q2"), InputSymbol("0", mask), State("q3"))
-        nfa.add_transition(State("q3"), InputSymbol("1", mask), State("q4"))
+        nfa.add_transition(State("q2"), MSBFAlphabetSymbol("0", mask), State("q3"))
+        nfa.add_transition(State("q3"), MSBFAlphabetSymbol("1", mask), State("q4"))
         nfa.add_transition(State("q4"), EPSILON, State("q5"))
 
         return nfa
@@ -126,15 +143,17 @@ class TestNFA:
         for state in ["q1", "q2"]:
             nfa.add_state(State(state))
 
-        nfa.add_input_symbol(InputSymbol("0", mask))
-        nfa.add_input_symbol(InputSymbol("1", mask))
+        nfa.add_input_symbol(MSBFAlphabetSymbol("0", mask))
+        nfa.add_input_symbol(MSBFAlphabetSymbol("1", mask))
 
         nfa.add_final_state(State("q2"))
 
-        nfa.add_transition(nfa.initial_state, InputSymbol("0", mask), State("q1"))
-        nfa.add_transition(State("q1"), InputSymbol("1", mask), State("q2"))
-        nfa.add_transition(State("q2"), InputSymbol("0", mask), State("q2"))
-        nfa.add_transition(State("q2"), InputSymbol("1", mask), State("q2"))
+        nfa.add_transition(
+            nfa.initial_state, MSBFAlphabetSymbol("0", mask), State("q1")
+        )
+        nfa.add_transition(State("q1"), MSBFAlphabetSymbol("1", mask), State("q2"))
+        nfa.add_transition(State("q2"), MSBFAlphabetSymbol("0", mask), State("q2"))
+        nfa.add_transition(State("q2"), MSBFAlphabetSymbol("1", mask), State("q2"))
 
         return nfa
 
@@ -151,16 +170,16 @@ class TestNFA:
             else:
                 nfa.add_state(state)
 
-        nfa.add_input_symbol(InputSymbol("0", mask))
-        nfa.add_input_symbol(InputSymbol("1", mask))
+        nfa.add_input_symbol(MSBFAlphabetSymbol("0", mask))
+        nfa.add_input_symbol(MSBFAlphabetSymbol("1", mask))
 
         # Set initial and final states
         nfa.add_final_state(State("q2"))
 
         nfa.add_transition(nfa.initial_state, EPSILON, State("q1"))
-        nfa.add_transition(State("q1"), InputSymbol("0", mask), State("q1"))
+        nfa.add_transition(State("q1"), MSBFAlphabetSymbol("0", mask), State("q1"))
         nfa.add_transition(State("q1"), EPSILON, State("q2"))
-        nfa.add_transition(State("q2"), InputSymbol("1", mask), State("q2"))
+        nfa.add_transition(State("q2"), MSBFAlphabetSymbol("1", mask), State("q2"))
 
         return nfa
 
@@ -220,13 +239,24 @@ class TestNFA:
         q2 = State("q2")
 
         # Test transitions
-        assert nfa_ends_with_01.get_next_states(q0, InputSymbol("0", "1")) == {q0, q1}
-        assert nfa_ends_with_01.get_next_states(q0, InputSymbol("1", "1")) == {q0}
-        assert nfa_ends_with_01.get_next_states(q1, InputSymbol("1", "1")) == {q2}
+        assert nfa_ends_with_01.get_next_states(q0, MSBFAlphabetSymbol("0", "1")) == {
+            q0,
+            q1,
+        }
+        assert nfa_ends_with_01.get_next_states(q0, MSBFAlphabetSymbol("1", "1")) == {
+            q0
+        }
+        assert nfa_ends_with_01.get_next_states(q1, MSBFAlphabetSymbol("1", "1")) == {
+            q2
+        }
 
         # Test non-existent transitions return empty set
-        assert nfa_ends_with_01.get_next_states(q1, InputSymbol("0", "1")) == set()
-        assert nfa_ends_with_01.get_next_states(q2, InputSymbol("0", "1")) == set()
+        assert (
+            nfa_ends_with_01.get_next_states(q1, MSBFAlphabetSymbol("0", "1")) == set()
+        )
+        assert (
+            nfa_ends_with_01.get_next_states(q2, MSBFAlphabetSymbol("0", "1")) == set()
+        )
 
     def test_add_state(self):
         """Test adding states to an NFA."""
@@ -254,7 +284,7 @@ class TestNFA:
         nfa.add_state(nfa.initial_state)
         nfa.add_state(State("q1"))
 
-        symbol = InputSymbol("1", "1")
+        symbol = MSBFAlphabetSymbol("1", "1")
         nfa.add_transition(nfa.initial_state, symbol, State("q1"))
 
         q0 = nfa.initial_state
@@ -387,7 +417,7 @@ class TestNFA:
         nfa3 = NFA()
         nfa3.add_state(State("q1"))
         nfa3.add_final_state(State("q1"))
-        symbol = InputSymbol("1", "1")
+        symbol = MSBFAlphabetSymbol("1", "1")
         nfa3.add_input_symbol(symbol)
         nfa3.add_transition(nfa3.initial_state, symbol, State("q1"))
         assert nfa3.is_acceptable() is True
@@ -417,7 +447,7 @@ class TestNFA:
     ):
         intersected_nfa_old = nfa_ends_with_01.intersection(nfa_starts_with_01)
 
-        delta_1_changes = {State("q1"): {InputSymbol("0", "1"): {State("q2")}}}
+        delta_1_changes = {State("q1"): {MSBFAlphabetSymbol("0", "1"): {State("q2")}}}
         delta_2_changes = {}
         intersected_nfa_new = NFA.incremental_intersection(
             intersected_nfa_old,
