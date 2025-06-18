@@ -15,6 +15,9 @@ class MSBFAlphabet:
     used_vars: list[FNode]
 
     def __post_init__(self) -> None:
+        if not set(self.used_vars).issubset(set(self.all_vars)):
+            msg = "used_vars must be a subset of all_vars"
+            raise ValueError(msg)
         self.all_vars = sorted(self.all_vars, key=lambda x: str(x))
         self.used_vars = sorted(self.used_vars, key=lambda x: str(x))
 
