@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass(slots=True)
 class MSBFAlphabetSymbol:
-    """MSBFAlphabetSymbol represents an input symbol with an optional mask.
+    """MSBFAlphabetSymbol represents an input symbol without epsilon with mask.
 
     TODO: More details about the class.
     needed to inherit str class to make image of automata using automata-lib
@@ -151,7 +151,3 @@ class MSBFAlphabetSymbol:
                 result += coeff
 
         return result
-
-
-# create epsilon as a singleton
-EPSILON = MSBFAlphabetSymbol(bin_value="", bin_mask="")
