@@ -15,8 +15,8 @@ class MSBFAlphabet:
     used_vars: list[FNode]
 
     def __post_init__(self) -> None:
-        self.all_vars = sorted(self.all_vars)
-        self.used_vars = sorted(self.used_vars)
+        self.all_vars = sorted(self.all_vars, key=lambda x: str(x))
+        self.used_vars = sorted(self.used_vars, key=lambda x: str(x))
 
     def has_same_symbols(self, other: "MSBFAlphabet") -> bool:
         return self.all_vars == other.all_vars
