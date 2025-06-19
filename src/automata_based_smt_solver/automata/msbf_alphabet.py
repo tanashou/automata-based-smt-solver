@@ -42,22 +42,19 @@ class MSBFAlphabet:
     def decode_symbol(
         self, symbols: list[MSBFAlphabetSymbol]
     ) -> dict[FNode, int | None]:
+        def twos_comp(val: int, bits: int) -> int:
+            if (val & (1 << (bits - 1))) != 0:
+                val = val - (1 << bits)
+            return val
+
         result: dict[FNode, int | None] = {}
         symbol_strs = [str(s) for s in symbols]
         transposed = ["".join(chars) for chars in zip(*symbol_strs, strict=True)]
 
-        for var, bits in zip(self.all_vars, transposed, strict=False):
-            if "*" in bits:
+        for var, bits_str in zip(self.all_vars, transposed, strict=True):
+            if "*" in bits_str:
                 result[var] = None
-            k = len(bits) - 1
-            first_bit = bits[0]
-            if first_bit == "0":
-                # unsigned: sum bi*2^(k-i)
-                value = sum(int(b) * (2 ** (k - i)) for i, b in enumerate(bits))
-            else:
-                # signed: -1*2^k + sum_{i=1}^k bi*2^{k-i}
-                value = -1 * (2**k) + sum(
-                    int(b) * (2 ** (k - i)) for i, b in enumerate(bits[1:], 1)
-                )
-            result[var] = value
+                continue
+
+            result[var] = twos_comp(int(bits_str, 2), len(bits_str))
         return result
