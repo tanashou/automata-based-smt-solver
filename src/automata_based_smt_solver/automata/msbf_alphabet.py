@@ -31,13 +31,13 @@ class MSBFAlphabet:
             yield MSBFAlphabetSymbol("".join(bits), mask)
 
     @staticmethod
-    def intersect_alphabet(a1: "MSBFAlphabet", a2: "MSBFAlphabet") -> "MSBFAlphabet":
+    def union_alphabet(a1: "MSBFAlphabet", a2: "MSBFAlphabet") -> "MSBFAlphabet":
         if a1.all_vars != a2.all_vars:
             msg = "Alphabets must have the same all_vars"
             raise ValueError(msg)
-        intersected_used_vars = sorted(set(a1.used_vars) & set(a2.used_vars))
+        union_used_vars = sorted(set(a1.used_vars) | set(a2.used_vars))
 
-        return MSBFAlphabet(a1.all_vars, intersected_used_vars)
+        return MSBFAlphabet(a1.all_vars, union_used_vars)
 
     def decode_symbol(
         self, symbols: list[MSBFAlphabetSymbol]
