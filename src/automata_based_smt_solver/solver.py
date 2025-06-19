@@ -93,10 +93,10 @@ class Solver:
         conjunction_data: list[FormulaData],
         all_vars: list[FNode],
         var_index_map: dict[FNode, int],
-        used_vars: list[FNode],
     ) -> list[AutomataBuilder]:
         builders: list[AutomataBuilder] = []
         for literal_data in conjunction_data:
+            used_vars = list(literal_data.coeffs.keys())
             builder = AutomataBuilder(
                 literal_data,
                 all_vars,
@@ -151,15 +151,14 @@ class Solver:
 
         formula = And(self._formulas)
         dnf_generator = self._rewrite_formula_to_dnf(formula)
-        all_vars: list[FNode] = formula.get_free_variables()
-        var_index_map = {name: index for index, name in enumerate(all_vars)}
 
         for conjunction in dnf_generator:
-            used_vars = conjunction.get_free_variables()
+            all_vars_in_conj = conjunction.get_free_variables()
+            var_index_map = {var: index for index, var in enumerate(all_vars_in_conj)}
             data = self._extract_data_from_conjunction(conjunction)
 
             literal_builders = self._setup_builders_for_conjunction(
-                data, all_vars, var_index_map, used_vars
+                data, all_vars_in_conj, var_index_map
             )
 
             for _ in self._stepwise_build_conjunction(literal_builders):
