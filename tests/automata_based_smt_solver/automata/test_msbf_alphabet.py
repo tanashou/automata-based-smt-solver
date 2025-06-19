@@ -82,3 +82,24 @@ class TestMSBFAlphabet:
         # If all_vars differ, should raise ValueError
         with pytest.raises(ValueError, match="Alphabets must have the same all_vars"):
             MSBFAlphabet.union_alphabet(alphabet1, MSBFAlphabet([self.d], [self.d]))
+
+    def test_decode_symbol(self):
+        all_vars = [self.a, self.b, self.c]
+        used_vars = [self.a, self.b]
+        alphabet = MSBFAlphabet(all_vars, used_vars)
+
+        # a: 0b0011, b: 0b1101, c: None
+        symbols = [
+            MSBFAlphabetSymbol("010", "110"),
+            MSBFAlphabetSymbol("010", "110"),
+            MSBFAlphabetSymbol("100", "110"),
+            MSBFAlphabetSymbol("110", "110"),
+        ]
+        decoded = alphabet.decode_symbol(symbols)
+
+        expected = {
+            self.a: 3,
+            self.b: -3,
+            self.c: None,
+        }
+        assert decoded == expected
