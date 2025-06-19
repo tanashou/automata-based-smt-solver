@@ -67,7 +67,7 @@ def run_and_profile():
                 break
 
             # Wait for a short interval.
-            time.sleep(0.1)
+            time.sleep(0.01)
 
     except KeyboardInterrupt:
         print("\nInterrupted manually.")
