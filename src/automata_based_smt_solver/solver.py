@@ -170,15 +170,27 @@ class Solver:
                 data, all_vars_in_conj, var_index_map
             )
 
-            for _ in self._stepwise_build_conjunction(literal_builders):
-                logger.info("intersecting NFA for conjunction #%d ...", i + 1)
+            for step, _ in enumerate(
+                self._stepwise_build_conjunction(literal_builders)
+            ):
+                logger.info(
+                    "intersecting NFA for conjunction #%d step %d", i + 1, step + 1
+                )
                 all_nfa = self._intersect_all_nfa_(
                     [builder.nfa for builder in literal_builders]
                 )
-                logger.info("Finished intersecting NFA for conjunction #%d", i + 1)
+                logger.info(
+                    "Finished intersecting NFA for conjunction #%d step %d",
+                    i + 1,
+                    step + 1,
+                )
                 if all_nfa and all_nfa.is_acceptable():
                     logger.info("SAT condition found in current conjunction.")
                     return SatStatus.SAT
+
+                logger.info(
+                    "Not enough for checking SAT condition yet. Building next step."
+                )
 
         logger.info(
             "No satisfiable conjunction found after checking all possibilities."
