@@ -88,38 +88,20 @@ class Solver:
     def add(self, formula: FNode) -> None:
         self._formulas.append(formula)
 
-    def _setup_builders_for_cnf(
-        self,
-        cnf_data: list[list[FormulaData]],
-        variables: list[FNode],
-        var_index_map: dict[FNode, int],
-    ) -> list[list[AutomataBuilder]]:
-        cnf_builders: list[list[AutomataBuilder]] = []
-        for clause_data in cnf_data:
-            clause_builders: list[AutomataBuilder] = []
-            for literal_data in clause_data:
-                builder = AutomataBuilder(
-                    literal_data,
-                    variables,
-                    var_index_map,
-                    create_all=True,  # 現状はこれにする
-                )
-                clause_builders.append(builder)
-            cnf_builders.append(clause_builders)
-        return cnf_builders
-
     def _setup_builders_for_conjunction(
         self,
         conjunction_data: list[FormulaData],
-        variables: list[FNode],
+        all_vars: list[FNode],
         var_index_map: dict[FNode, int],
+        used_vars: list[FNode],
     ) -> list[AutomataBuilder]:
         builders: list[AutomataBuilder] = []
         for literal_data in conjunction_data:
             builder = AutomataBuilder(
                 literal_data,
-                variables,
+                all_vars,
                 var_index_map,
+                used_vars,
                 create_all=False,
             )
             builders.append(builder)
@@ -169,18 +151,15 @@ class Solver:
 
         formula = And(self._formulas)
         dnf_generator = self._rewrite_formula_to_dnf(formula)
+        all_vars: list[FNode] = formula.get_free_variables()
+        var_index_map = {name: index for index, name in enumerate(all_vars)}
 
         for conjunction in dnf_generator:
-            variables: list[FNode] = sorted(
-                conjunction.get_free_variables(), key=lambda v: str(v)
-            )
-            var_index_map = {name: index for index, name in enumerate(variables)}
+            used_vars = conjunction.get_free_variables()
             data = self._extract_data_from_conjunction(conjunction)
 
             literal_builders = self._setup_builders_for_conjunction(
-                data,
-                variables,
-                var_index_map,
+                data, all_vars, var_index_map, used_vars
             )
 
             for _ in self._stepwise_build_conjunction(literal_builders):
