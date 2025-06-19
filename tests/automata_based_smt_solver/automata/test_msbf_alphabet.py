@@ -67,3 +67,18 @@ class TestMSBFAlphabet:
         # If all_vars differ, should be False
         diff_alphabet = MSBFAlphabet([*all_vars, self.e], used_vars1)
         assert not diff_alphabet.has_same_symbols(alphabet1)
+
+    def test_union_alphabet(self):
+        all_vars = [self.a, self.b, self.c]
+        used_vars1 = [self.a, self.b]
+        used_vars2 = [self.b, self.c]
+        alphabet1 = MSBFAlphabet(all_vars, used_vars1)
+        alphabet2 = MSBFAlphabet(all_vars, used_vars2)
+
+        unioned = MSBFAlphabet.union_alphabet(alphabet1, alphabet2)
+        assert unioned.all_vars == all_vars
+        assert unioned.used_vars == [self.a, self.b, self.c]
+
+        # If all_vars differ, should raise ValueError
+        with pytest.raises(ValueError, match="Alphabets must have the same all_vars"):
+            MSBFAlphabet.union_alphabet(alphabet1, MSBFAlphabet([self.d], [self.d]))
