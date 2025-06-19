@@ -18,55 +18,6 @@ class TestAutomataBuilder:
         }
 
     @pytest.mark.parametrize(
-        ("coeffs", "mask", "const", "expected_symbols"),
-        [
-            # x = 0
-            (
-                {"x": 1},
-                "100",
-                0,
-                {"000", "100"},
-            ),
-            # x + y = 0
-            (
-                {"x": 1, "y": 1},
-                "110",
-                0,
-                {"000", "010", "100", "110"},
-            ),
-            # x + z = 0
-            (
-                {"x": 1, "z": 1},
-                "101",
-                0,
-                {"000", "001", "100", "101"},
-            ),
-            # x + y + z = 0
-            (
-                {"x": 1, "y": 1, "z": 1},
-                "111",
-                0,
-                {"000", "001", "010", "011", "100", "101", "110", "111"},
-            ),
-        ],
-    )
-    def test_generate_input_symbols_parametrized(
-        self, coeffs, mask, const, expected_symbols
-    ):
-        var_map = {"x": self.x, "y": self.y, "z": self.z}
-        coeffs_sym = {var_map[k]: v for k, v in coeffs.items()}
-        formula_data = FormulaData(
-            coeffs=coeffs_sym,
-            const=const,
-            formula_type=FormulaType.EQ,
-            has_negation_before_bool_var=False,
-        )
-        builder = AutomataBuilder(formula_data, self.all_vars, self.all_var_index_map)
-        input_symbols = builder._generate_input_symbols(self.all_vars)
-        expected = {MSBFAlphabetSymbol(bits, mask) for bits in expected_symbols}
-        assert input_symbols == expected
-
-    @pytest.mark.parametrize(
         ("coeffs", "mask", "expected_dots"),
         [
             # x = 1
@@ -140,6 +91,7 @@ class TestAutomataBuilder:
     def test_calc_dots_parametrized(self, coeffs, mask, expected_dots):
         # Map string variable names to actual symbols
         var_map = {"x": self.x, "y": self.y, "z": self.z}
+        used_vars = [var_map[k] for k in coeffs]
         coeffs_sym = {var_map[k]: v for k, v in coeffs.items()}
         formula_data = FormulaData(
             coeffs=coeffs_sym,
@@ -147,7 +99,9 @@ class TestAutomataBuilder:
             formula_type=FormulaType.EQ,
             has_negation_before_bool_var=False,
         )
-        builder = AutomataBuilder(formula_data, self.all_vars, self.all_var_index_map)
+        builder = AutomataBuilder(
+            formula_data, self.all_vars, self.all_var_index_map, used_vars
+        )
         dots = builder._calc_dots(self.all_var_index_map)
         for bits, expected in expected_dots.items():
             assert dots[MSBFAlphabetSymbol(bits, mask)] == expected
@@ -159,6 +113,7 @@ class TestAutomataBuilder:
         const = 0
         all_vars = [self.x, self.y]
         all_var_index_map = {var: index for index, var in enumerate(all_vars)}
+        used_vars = [self.x]
         formula_data = FormulaData(
             coeffs=coeffs,
             const=const,
@@ -166,12 +121,13 @@ class TestAutomataBuilder:
             has_negation_before_bool_var=False,
         )
         builder1 = AutomataBuilder(
-            formula_data, all_vars, all_var_index_map, create_all=True
+            formula_data, all_vars, all_var_index_map, used_vars, create_all=True
         )
         builder1.build_step()
 
         # y = 0
         coeffs = {self.y: 1}
+        used_vars = [self.y]
         const = 0
         formula_data = FormulaData(
             coeffs=coeffs,
@@ -180,12 +136,13 @@ class TestAutomataBuilder:
             has_negation_before_bool_var=False,
         )
         builder2 = AutomataBuilder(
-            formula_data, all_vars, all_var_index_map, create_all=True
+            formula_data, all_vars, all_var_index_map, used_vars, create_all=True
         )
         builder2.build_step()
 
         # x + y = 1
         coeffs = {self.x: 1, self.y: 1}
+        used_vars = [self.x, self.y]
         const = 1
         formula_data = FormulaData(
             coeffs=coeffs,
@@ -194,7 +151,7 @@ class TestAutomataBuilder:
             has_negation_before_bool_var=False,
         )
         builder3 = AutomataBuilder(
-            formula_data, all_vars, all_var_index_map, create_all=True
+            formula_data, all_vars, all_var_index_map, used_vars, create_all=True
         )
         builder3.build_step()
 
@@ -209,6 +166,7 @@ class TestAutomataBuilder:
         coeffs = {self.x: 1, self.y: 1}
         const = 1
         all_vars = [self.x, self.y]
+        used_vars = [self.x, self.y]
         all_var_index_map = {var: index for index, var in enumerate(all_vars)}
         formula_data = FormulaData(
             coeffs=coeffs,
@@ -217,12 +175,13 @@ class TestAutomataBuilder:
             has_negation_before_bool_var=False,
         )
         builder1 = AutomataBuilder(
-            formula_data, all_vars, all_var_index_map, create_all=True
+            formula_data, all_vars, all_var_index_map, used_vars, create_all=True
         )
         builder1.build_step()
 
         # 2x + y = 0
         coeffs = {self.x: 2, self.y: 1}
+        used_vars = [self.x, self.y]
         const = 0
         formula_data = FormulaData(
             coeffs=coeffs,
@@ -231,7 +190,7 @@ class TestAutomataBuilder:
             has_negation_before_bool_var=False,
         )
         builder2 = AutomataBuilder(
-            formula_data, all_vars, all_var_index_map, create_all=True
+            formula_data, all_vars, all_var_index_map, used_vars, create_all=True
         )
         builder2.build_step()
 
