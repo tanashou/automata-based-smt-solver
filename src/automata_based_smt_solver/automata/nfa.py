@@ -210,11 +210,11 @@ class NFA:
             self.input_symbols, other.input_symbols
         )
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
-
         new_initial_state_value: tuple[NFAStateT, NFAStateT] = (
             self.initial_state.value,
             other.initial_state.value,
         )
+        new_states.add(State(new_initial_state_value))
 
         queue: deque[tuple[NFAStateT, NFAStateT]] = deque()
         queue.append(new_initial_state_value)
