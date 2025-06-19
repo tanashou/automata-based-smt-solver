@@ -1,7 +1,7 @@
 from itertools import chain, product
 
 import pytest
-from pysmt.fnode import FNode
+from pysmt.shortcuts import Symbol
 from pysmt.typing import INT
 
 from automata_based_smt_solver.automata.msbf_alphabet import MSBFAlphabet
@@ -51,7 +51,7 @@ class TestNFA:
     @pytest.fixture
     def msbf_alphabet_01(self):
         """Create a MSBFAlphabet with binary symbols."""
-        var = FNode("var", INT)
+        var = Symbol("var", INT)
         return MSBFAlphabet(
             all_vars=[var],
             used_vars=[var],
