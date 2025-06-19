@@ -2,6 +2,17 @@
 from automata_based_smt_solver.formula.smtlib_reader import SMTLIBReader
 from automata_based_smt_solver.solver import Solver
 
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,  # DEBUGレベル以上のログをすべて出力する
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.StreamHandler(),  # コンソールに出力
+    ],
+)
+
 prime_cone_2 = """
 (set-info :smt-lib-version 2.6)
 (set-logic QF_LIA)
@@ -63,12 +74,13 @@ prime_cone_4 = """
 def main():
     reader = SMTLIBReader()
     solver = Solver()
-    status, formula = reader.from_smt_lib(prime_cone_4)
-    print(formula)
+    status, formula = reader.from_smt_lib(prime_cone_2)
+    logging.info(f"Start solving formula. Expected status: {status}")
+    logging.debug(f"Input formula: {formula}")
 
     solver.add(formula)
     result = solver.solve_with_dnf()
-    print(f"Status: {result}")
+    logging.info(f"Finish solving formula. Result: {result}, Expected: {status}")
 
 
 if __name__ == "__main__":
