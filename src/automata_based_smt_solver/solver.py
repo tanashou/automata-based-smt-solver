@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Generator
 
 import pysmt.rewritings
@@ -19,6 +20,8 @@ from automata_based_smt_solver.formula.rewritings import (
 )
 from automata_based_smt_solver.formula.type import FormulaData
 from automata_based_smt_solver.sat_status import SatStatus
+
+logger = logging.getLogger(__name__)
 
 
 class Solver:
@@ -150,11 +153,17 @@ class Solver:
             raise ValueError(msg)
 
         formula = And(self._formulas)
+        logger.info("Solving formula: %s", formula.serialize(threshold=100))
         dnf_generator = self._rewrite_formula_to_dnf(formula)
+        logger.info("Rewritten formula to DNF.")
         all_vars: list[FNode] = formula.get_free_variables()
         var_index_map = {name: index for index, name in enumerate(all_vars)}
 
-        for conjunction in dnf_generator:
+        for i, conjunction in enumerate(dnf_generator):
+            logger.info("Processing DNF conjunction #%d", i + 1)
+            logger.info(
+                "Processing conjunction %s", conjunction.serialize(threshold=100)
+            )
             used_vars = conjunction.get_free_variables()
             data = self._extract_data_from_conjunction(conjunction)
 
@@ -163,10 +172,16 @@ class Solver:
             )
 
             for _ in self._stepwise_build_conjunction(literal_builders):
+                logger.info("intersecting NFA for conjunction #%d ...", i + 1)
                 all_nfa = self._intersect_all_nfa_(
                     [builder.nfa for builder in literal_builders]
                 )
+                logger.info("Finished intersecting NFA for conjunction #%d", i + 1)
                 if all_nfa and all_nfa.is_acceptable():
+                    logger.info("SAT condition found in current conjunction.")
                     return SatStatus.SAT
 
+        logger.info(
+            "No satisfiable conjunction found after checking all possibilities."
+        )
         return SatStatus.UNSAT
