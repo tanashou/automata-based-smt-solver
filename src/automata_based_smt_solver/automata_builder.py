@@ -1,8 +1,9 @@
+from collections import defaultdict
 from collections.abc import Generator
-from itertools import product
 
 from pysmt.fnode import FNode
 
+from automata_based_smt_solver.automata.msbf_alphabet import MSBFAlphabet
 from automata_based_smt_solver.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
 from automata_based_smt_solver.automata.nfa import NFA
 from automata_based_smt_solver.automata.state import State
@@ -17,17 +18,22 @@ class AutomataBuilder:
         formula_data: FormulaData,
         all_vars: list[FNode],
         all_var_index_map: dict[FNode, int],
+        used_vars: list[FNode],
         *,
         create_all: bool = False,
     ) -> None:
         self.formula_data: FormulaData = formula_data
         self.create_all: bool = create_all  # for debug
 
-        self.nfa = NFA()
-        # initialize nfa
-        self.nfa.add_state(State(self.formula_data.const))
-        self.nfa.set_input_symbols(self._generate_input_symbols(all_vars))
-        self.nfa.add_final_state(State(self.formula_data.const))
+        initial_state = State("q0")
+
+        self.nfa = NFA(
+            states={initial_state},
+            initial_state=initial_state,
+            input_symbols=MSBFAlphabet(all_vars, used_vars),
+            transitions=defaultdict(lambda: defaultdict(set)),
+            final_states={State(self.formula_data.const)},
+        )
 
         self.dots: dict[MSBFAlphabetSymbol, int] = self._calc_dots(all_var_index_map)
         self.work_list = [self.formula_data.const]
@@ -38,15 +44,6 @@ class AutomataBuilder:
     def build_status(self) -> BuildStatus:
         return self._build_status
 
-    # formula_data.vars と all_vars_index_map, all_vars を使う。
-    def _generate_input_symbols(self, all_vars: list[FNode]) -> set[MSBFAlphabetSymbol]:
-        mask = "".join(
-            "1" if var in self.formula_data.coeffs else "0" for var in all_vars
-        )
-        choices = [("0", "1") if ch == "1" else ("0",) for ch in mask]
-        symbols = {"".join(bits) for bits in product(*choices)}
-        return {MSBFAlphabetSymbol(symbol, mask) for symbol in symbols}
-
     def _calc_dots(
         self, all_var_index_map: dict[FNode, int]
     ) -> dict[MSBFAlphabetSymbol, int]:
@@ -55,7 +52,7 @@ class AutomataBuilder:
             (coeff, all_var_index_map[var])
             for var, coeff in self.formula_data.coeffs.items()
         ]
-        for symbol in self.nfa.input_symbols:
+        for symbol in self.nfa.input_symbols.symbol_generator():
             result[symbol] = symbol.dot(var_coef_index_pairs)
         return result
 
@@ -87,11 +84,11 @@ class AutomataBuilder:
 
         while self.work_list:
             current_state_val = self.work_list.pop()
-            for symbol in self.nfa.input_symbols:
+            for symbol in self.nfa.input_symbols.symbol_generator():
                 dot = self.dots[symbol]
                 if (current_state_val - dot) & 1 == 0:
                     previous_state_val = (current_state_val - dot) // 2
-                    if not self.nfa.contains_state(State(previous_state_val)):
+                    if State(previous_state_val) not in self.nfa.states:
                         self.nfa.add_state(State(previous_state_val))
                         self.work_list.append(previous_state_val)
                     self.nfa.add_transition(
@@ -111,10 +108,10 @@ class AutomataBuilder:
 
         while self.work_list:
             current_state_val = self.work_list.pop()
-            for symbol in self.nfa.input_symbols:
+            for symbol in self.nfa.input_symbols.symbol_generator():
                 dot = self.dots[symbol]
                 previous_state_val = (current_state_val - dot) // 2
-                if not self.nfa.contains_state(State(previous_state_val)):
+                if State(previous_state_val) not in self.nfa.states:
                     self.nfa.add_state(State(previous_state_val))
                     self.work_list.append(previous_state_val)
                 self.nfa.add_transition(
@@ -138,7 +135,7 @@ class AutomataBuilder:
         self.nfa.add_state(State(final_state))
 
         # length of input_symbols is always 2 for boolean formulas
-        for symbol in self.nfa.input_symbols:
+        for symbol in self.nfa.input_symbols.symbol_generator():
             dot_value = self.dots[symbol]
             if dot_value == 1:
                 self.nfa.add_transition(
@@ -163,7 +160,7 @@ class AutomataBuilder:
         self.nfa.add_state(State(final_state))
 
         # length of input_symbols is always 2 for boolean formulas
-        for symbol in self.nfa.input_symbols:
+        for symbol in self.nfa.input_symbols.symbol_generator():
             dot_value = self.dots[symbol]
             if dot_value == 0:
                 self.nfa.add_transition(

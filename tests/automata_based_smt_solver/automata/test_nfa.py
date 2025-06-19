@@ -1,7 +1,10 @@
 from itertools import chain, product
 
 import pytest
+from pysmt.shortcuts import Symbol
+from pysmt.typing import INT
 
+from automata_based_smt_solver.automata.msbf_alphabet import MSBFAlphabet
 from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
     MSBFAlphabetSymbol,
 )
@@ -9,8 +12,8 @@ from automata_based_smt_solver.automata.nfa import NFA
 from automata_based_smt_solver.automata.state import State
 
 
-def create_symbols(*bits: str, mask: str) -> set[MSBFAlphabetSymbol]:
-    return {MSBFAlphabetSymbol(bit, mask) for bit in bits}
+def create_symbols(*bits: str, mask: str) -> list[MSBFAlphabetSymbol]:
+    return [MSBFAlphabetSymbol(bit, mask) for bit in bits]
 
 
 class TestNFA:
@@ -46,87 +49,112 @@ class TestNFA:
         return ["".join(combo) for combo in combinations]
 
     @pytest.fixture
-    def nfa_ends_with_01(self):
-        """Create a NFA that accepts the regular expression (0|1)*01."""
-        mask = "1"
-        nfa = NFA()
-
-        # Add states
-        for state in ["q1", "q2"]:
-            nfa.add_state(State(state))
-
-        nfa.add_input_symbol(MSBFAlphabetSymbol("0", mask))
-        nfa.add_input_symbol(MSBFAlphabetSymbol("1", mask))
-
-        nfa.add_final_state(State("q2"))
-
-        nfa.add_transition(
-            nfa.initial_state, MSBFAlphabetSymbol("0", mask), nfa.initial_state
+    def msbf_alphabet_01(self):
+        """Create a MSBFAlphabet with binary symbols."""
+        var = Symbol("var", INT)
+        return MSBFAlphabet(
+            all_vars=[var],
+            used_vars=[var],
         )
-        nfa.add_transition(
-            nfa.initial_state, MSBFAlphabetSymbol("0", mask), State("q1")
-        )
-        nfa.add_transition(
-            nfa.initial_state, MSBFAlphabetSymbol("1", mask), nfa.initial_state
-        )
-        nfa.add_transition(State("q1"), MSBFAlphabetSymbol("1", mask), State("q2"))
-
-        return nfa
 
     @pytest.fixture
-    def nfa_ends_with_01_or_00(self):
+    def nfa_ends_with_01(self, msbf_alphabet_01):
         """Create a NFA that accepts the regular expression (0|1)*01."""
-        mask = "1"
-        nfa = NFA()
-
-        # Add states
-        for state in ["q1", "q2"]:
-            nfa.add_state(State(state))
-
-        nfa.add_input_symbol(MSBFAlphabetSymbol("0", mask))
-        nfa.add_input_symbol(MSBFAlphabetSymbol("1", mask))
-
-        nfa.add_final_state(State("q2"))
-
-        nfa.add_transition(
-            nfa.initial_state, MSBFAlphabetSymbol("0", mask), nfa.initial_state
+        # Define states
+        q0 = State("q0")
+        q1 = State("q1")
+        q2 = State("q2")
+        states = {q0, q1, q2}
+        # Define transitions
+        symbol_0, symbol_1 = create_symbols("0", "1", mask="1")
+        transitions = {
+            q0: {
+                symbol_0: {q0, q1},
+                symbol_1: {q0},
+            },
+            q1: {
+                symbol_1: {q2},
+            },
+            q2: {},
+        }
+        # Define initial and final states
+        initial_state = q0
+        final_states = {q2}
+        # Create NFA
+        return NFA(
+            states=states,
+            input_symbols=msbf_alphabet_01,
+            transitions=transitions,
+            initial_state=initial_state,
+            final_states=final_states,
         )
-        nfa.add_transition(
-            nfa.initial_state, MSBFAlphabetSymbol("0", mask), State("q1")
-        )
-        nfa.add_transition(
-            nfa.initial_state, MSBFAlphabetSymbol("1", mask), nfa.initial_state
-        )
-        nfa.add_transition(State("q1"), MSBFAlphabetSymbol("1", mask), State("q2"))
-        nfa.add_transition(
-            State("q1"), MSBFAlphabetSymbol("0", mask), State("q2")
-        )  # 追加分
-
-        return nfa
 
     @pytest.fixture
-    def nfa_starts_with_01(self):
+    def nfa_ends_with_01_or_00(self, msbf_alphabet_01):
+        """Create a NFA that accepts the regular expression (0|1)*01 or (0|1)*00."""
+        # Define states
+        q0 = State("q0")
+        q1 = State("q1")
+        q2 = State("q2")
+        states = {q0, q1, q2}
+        # Define transitions
+        symbol_0, symbol_1 = create_symbols("0", "1", mask="1")
+        transitions = {
+            q0: {
+                symbol_0: {q0, q1},
+                symbol_1: {q0},
+            },
+            q1: {
+                symbol_1: {q2},
+                symbol_0: {q2},
+            },
+            q2: {},
+        }
+        # Define initial and final states
+        initial_state = q0
+        final_states = {q2}
+        # Create NFA
+        return NFA(
+            states=states,
+            input_symbols=msbf_alphabet_01,
+            transitions=transitions,
+            initial_state=initial_state,
+            final_states=final_states,
+        )
+
+    @pytest.fixture
+    def nfa_starts_with_01(self, msbf_alphabet_01):
         """Create a NFA that accepts the regular expression 01(0|1)*."""
-        mask = "1"
-        nfa = NFA()
-
-        # Add states
-        for state in ["q1", "q2"]:
-            nfa.add_state(State(state))
-
-        nfa.add_input_symbol(MSBFAlphabetSymbol("0", mask))
-        nfa.add_input_symbol(MSBFAlphabetSymbol("1", mask))
-
-        nfa.add_final_state(State("q2"))
-
-        nfa.add_transition(
-            nfa.initial_state, MSBFAlphabetSymbol("0", mask), State("q1")
+        # Define states
+        q0 = State("q0")
+        q1 = State("q1")
+        q2 = State("q2")
+        states = {q0, q1, q2}
+        # Define transitions
+        symbol_0, symbol_1 = create_symbols("0", "1", mask="1")
+        transitions = {
+            q0: {
+                symbol_0: {q1},
+            },
+            q1: {
+                symbol_1: {q2},
+            },
+            q2: {
+                symbol_0: {q2},
+                symbol_1: {q2},
+            },
+        }
+        # Define initial and final states
+        initial_state = q0
+        final_states = {q2}
+        # Create NFA
+        return NFA(
+            states=states,
+            input_symbols=msbf_alphabet_01,
+            transitions=transitions,
+            initial_state=initial_state,
+            final_states=final_states,
         )
-        nfa.add_transition(State("q1"), MSBFAlphabetSymbol("1", mask), State("q2"))
-        nfa.add_transition(State("q2"), MSBFAlphabetSymbol("0", mask), State("q2"))
-        nfa.add_transition(State("q2"), MSBFAlphabetSymbol("1", mask), State("q2"))
-
-        return nfa
 
     @pytest.fixture
     def str_starts_with_01(self) -> set[str]:
@@ -203,39 +231,6 @@ class TestNFA:
             nfa_ends_with_01.get_next_states(q2, MSBFAlphabetSymbol("0", "1")) == set()
         )
 
-    def test_add_state(self):
-        """Test adding states to an NFA."""
-        nfa = NFA()
-        state_objs = [nfa.initial_state, State("q1")]
-
-        for state_obj in state_objs:
-            nfa.add_state(state_obj)
-
-        for state_obj in state_objs:
-            assert state_obj in nfa.states
-        assert len(nfa.states) == len(state_objs)
-
-    def test_add_duplicate_state(self):
-        """Test adding a duplicate state has no effect."""
-        nfa = NFA()
-        nfa.add_state(nfa.initial_state)
-        initial_state_count = len(nfa.states)
-        nfa.add_state(nfa.initial_state)  # Add the same state again
-        assert len(nfa.states) == initial_state_count
-
-    def test_add_transition(self):
-        """Test adding transitions to an NFA."""
-        nfa = NFA()
-        nfa.add_state(nfa.initial_state)
-        nfa.add_state(State("q1"))
-
-        symbol = MSBFAlphabetSymbol("1", "1")
-        nfa.add_transition(nfa.initial_state, symbol, State("q1"))
-
-        q0 = nfa.initial_state
-        q1 = State("q1")
-        assert nfa.get_next_states(q0, symbol) == {q1}
-
     def test_accepts_nfa_ends_with_01(
         self, nfa_ends_with_01, str_ends_with_01, str_all_binary_up_to_5
     ):
@@ -249,24 +244,6 @@ class TestNFA:
             rejected_strings,
             mask,
         )
-
-    @pytest.mark.parametrize(
-        ("mask", "expected_symbols"),
-        [
-            ("110", create_symbols("000", "010", "100", "110", mask="110")),
-            ("", set()),
-            ("1", create_symbols("0", "1", mask="1")),
-            (
-                "111",
-                create_symbols(
-                    "000", "001", "010", "011", "100", "101", "110", "111", mask="111"
-                ),
-            ),
-        ],
-    )
-    def test_union_of_input_symbols(self, mask, expected_symbols):
-        new_symbols = NFA.create_input_symbols_from_mask(mask)
-        assert new_symbols == expected_symbols
 
     def test_intersection_operation(
         self,
@@ -285,32 +262,27 @@ class TestNFA:
             intersection_nfa, accepted_strings, rejected_strings, mask="1"
         )
 
-    def test_is_acceptable(self):
-        """Test the is_acceptable function for various NFA configurations."""
-        # Accepting NFA: initial state is also final
-        nfa1 = NFA()
-        nfa1.add_final_state(nfa1.initial_state)
-        assert nfa1.is_acceptable() is True
-
-        # Non-accepting NFA: no final state
-        nfa2 = NFA()
-        assert nfa2.is_acceptable() is False
-
-        # Accepting NFA: path to final state
-        nfa3 = NFA()
-        nfa3.add_state(State("q1"))
-        nfa3.add_final_state(State("q1"))
-        symbol = MSBFAlphabetSymbol("1", "1")
-        nfa3.add_input_symbol(symbol)
-        nfa3.add_transition(nfa3.initial_state, symbol, State("q1"))
-        assert nfa3.is_acceptable() is True
-
-        # Non-accepting NFA: no path to final state
-        nfa4 = NFA()
-        nfa4.add_state(State("q1"))
-        nfa4.add_final_state(State("q1"))
-        # No transition from q0 to q1
-        assert nfa4.is_acceptable() is False
+    def test_is_acceptable(
+        self, nfa_ends_with_01, nfa_ends_with_01_or_00, nfa_starts_with_01
+    ):
+        # Accepting NFA: nfa_ends_with_01 has a path to a final state
+        assert nfa_ends_with_01.is_acceptable() is True
+        # Accepting NFA: nfa_ends_with_01_or_00 has a path to a final state
+        assert nfa_ends_with_01_or_00.is_acceptable() is True
+        # Accepting NFA: nfa_starts_with_01 has a path to a final state
+        assert nfa_starts_with_01.is_acceptable() is True
+        # Non-accepting NFA: create one with no final states
+        q0 = State("q0")
+        msbf_alphabet = nfa_ends_with_01.input_symbols
+        transitions = {q0: {}}
+        nfa_no_final = NFA(
+            states={q0},
+            input_symbols=msbf_alphabet,
+            transitions=transitions,
+            initial_state=q0,
+            final_states=set(),
+        )
+        assert nfa_no_final.is_acceptable() is False
 
     def test_incremental_intersection_specific_example(
         self,

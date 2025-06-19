@@ -5,11 +5,12 @@ import contextlib
 import copy
 import os
 from collections import defaultdict, deque
-from itertools import chain, product
-from typing import TYPE_CHECKING, TypeAlias, cast
+from itertools import chain
+from typing import TYPE_CHECKING, TypeAlias
 
 import pygraphviz as pgv
 
+from automata_based_smt_solver.automata.msbf_alphabet import MSBFAlphabet
 from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
     MSBFAlphabetSymbol,
 )
@@ -25,7 +26,6 @@ class NFA:
     """NFA represents a custom NFA for use in the automata-based SMT solver.
 
     Attributes:
-        _id (int): Unique identifier for the NFA.
         _states (set[State]): Set of all states.
         _input_symbols (set[MSBFAlphabetSymbol]): Set of input symbols.
         _transitions (NFATransitionsT): Transition mapping.
@@ -34,22 +34,30 @@ class NFA:
 
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        states: set[State],
+        input_symbols: MSBFAlphabet,
+        transitions: NFATransitionsT,
+        initial_state: State,
+        final_states: set[State],
+    ) -> None:
         """Initialize a NFA."""
-        self._states: set[State] = set()
-        self._input_symbols: set[MSBFAlphabetSymbol] = set()
-        self._transitions: NFATransitionsT = cast(
-            NFATransitionsT, defaultdict(lambda: defaultdict(set))
-        )
-        self._set_initial_state()
-        self._states.add(self._initial_state)
-        self._final_states: set[State] = set()
+        self._states = states
+        self._input_symbols = input_symbols
+        self._transitions = transitions
+        self._initial_state = initial_state
+        self._final_states = final_states
+
+        if self._initial_state not in self._states:
+            msg = "Initial state must be added to the set of states."
+            raise ValueError(msg)
 
     def __str__(self) -> str:
         """Return a string representation of the NFA."""
         return (
             f"states={self.states},\n"
-            f"input_symbols={self.input_symbols},\n"
+            f"input_symbols={self._input_symbols},\n"
             f"transitions={self.transitions},\n"
             f"initial_state={self.initial_state},\n"
             f"final_states={self.final_states}"
@@ -64,7 +72,7 @@ class NFA:
         return self._states
 
     @property
-    def input_symbols(self) -> set[MSBFAlphabetSymbol]:
+    def input_symbols(self) -> MSBFAlphabet:
         return self._input_symbols
 
     @property
@@ -84,12 +92,6 @@ class NFA:
 
     def add_states(self, states: set[State]) -> None:
         self._states.update(states)
-
-    def add_input_symbol(self, new_input_symbol: MSBFAlphabetSymbol) -> None:
-        self._input_symbols.add(new_input_symbol)
-
-    def set_input_symbols(self, input_symbols: set[MSBFAlphabetSymbol]) -> None:
-        self._input_symbols = input_symbols
 
     def _set_initial_state(self) -> None:
         initial_state_name = "q0"
@@ -145,9 +147,6 @@ class NFA:
                 result.update(next_states)
 
         return result
-
-    def contains_state(self, state: State) -> bool:
-        return state in self.states
 
     def accepts_input(self, input_str: list[MSBFAlphabetSymbol]) -> bool:
         """Check if the NFA accepts the given input sequence.
@@ -205,49 +204,17 @@ class NFA:
     ) -> pgv.AGraph:
         raise NotImplementedError
 
-    @staticmethod
-    def create_input_symbols_from_mask(mask: str) -> set[MSBFAlphabetSymbol]:
-        if not mask:
-            return set()
-        # Create options list based on mask bits: ["0","1"] or ["0"]
-        options = [["0", "1"] if bit == "1" else ["0"] for bit in mask]
-
-        # Generate all combinations as strings
-        return {
-            MSBFAlphabetSymbol(bin_value="".join(combo), bin_mask=mask)
-            for combo in product(*options)
-        }
-
-    @staticmethod
-    def input_symbol_intersection(
-        s1: set[MSBFAlphabetSymbol], s2: set[MSBFAlphabetSymbol]
-    ) -> set[MSBFAlphabetSymbol]:
-        tmp = s1 | s2
-        mask = 0
-        # 全ての input symbol でワイルドカードの桁を探す
-        for symbol in tmp:
-            if symbol.mask is not None:
-                mask |= symbol.mask
-        bin_length = next(iter(tmp)).bin_length if tmp else 0
-        mask_str = bin(mask)[2:].zfill(bin_length)
-        choices = [("0", "1") if ch == "1" else ("0",) for ch in mask_str]
-        symbols = {"".join(bits) for bits in product(*choices)}
-        return {MSBFAlphabetSymbol(symbol, mask_str) for symbol in symbols}
-
     def intersection(self, other: "NFA") -> "NFA":  # noqa: C901
-        result = self.__class__()
         new_states: set[State] = set()
-        new_input_symbols: set[MSBFAlphabetSymbol] = NFA.input_symbol_intersection(
+        new_input_symbols: MSBFAlphabet = MSBFAlphabet.union_alphabet(
             self.input_symbols, other.input_symbols
         )
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
-
         new_initial_state_value: tuple[NFAStateT, NFAStateT] = (
             self.initial_state.value,
             other.initial_state.value,
         )
-
-        result._set_custom_initial_state(State(new_initial_state_value))  # noqa: SLF001
+        new_states.add(State(new_initial_state_value))
 
         queue: deque[tuple[NFAStateT, NFAStateT]] = deque()
         queue.append(new_initial_state_value)
@@ -264,7 +231,7 @@ class NFA:
             transitions_b = other.transitions.get(State(q_b), {})
 
             # Add all transitions moving over same input symbols
-            for symbol in new_input_symbols:
+            for symbol in new_input_symbols.symbol_generator():
                 end_states_a: set[State] = set()
                 for key, dests in transitions_a.items():
                     if symbol == key:
@@ -300,12 +267,13 @@ class NFA:
             for q_b in other.final_states
         }
 
-        result.set_input_symbols(new_input_symbols)
-        result.set_transitions(new_transitions)
-        result.add_states(new_states)
-        result.set_final_states(new_final_states)
-
-        return result
+        return self.__class__(
+            states=new_states,
+            input_symbols=new_input_symbols,
+            transitions=new_transitions,
+            initial_state=State(new_initial_state_value),
+            final_states=new_final_states,
+        )
 
     @staticmethod
     def incremental_intersection(  # noqa: C901, PLR0912
@@ -402,7 +370,7 @@ class NFA:
                     intersected_nfa_new.final_states.add(intersected_state_to)
 
                 # Propagate changes
-                for next_symbol in n1_new.input_symbols:
+                for next_symbol in n1_new.input_symbols.symbol_generator():
                     if (
                         State(r1) in n1_new.transitions
                         and next_symbol in n1_new.transitions[State(r1)]
