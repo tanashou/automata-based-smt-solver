@@ -5,11 +5,15 @@ description = "This repository contains configurations to set up a Python develo
 
 authors = [{ name = "tanashou", email = "tanashou0210@gmail.com" }]
 
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 readme = "README.md"
 license = { file = "licenses/automata_based_smt_solver/LICENSE" }
 
-dependencies = ["automata-lib[visual]>=8.4.0", "pysmt==0.9.6"]
+dependencies = [
+    "automata-lib[visual]>=8.4.0",
+    "dd",
+    "pysmt==0.9.6",
+]
 
 [tool.uv]
 dev-dependencies = [
@@ -20,6 +24,9 @@ dev-dependencies = [
     "pytest-cov>=6.0.0",
     "ruff>=0.9.2",
 ]
+
+[tool.uv.sources]
+dd = { path = "../../dd/dist/dd-0.6.0-cp313-cp313-linux_aarch64.whl" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/automata_based_smt_solver"]
