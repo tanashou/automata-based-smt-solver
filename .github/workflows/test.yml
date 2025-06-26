@@ -50,6 +50,7 @@ jobs:
       - name: Install custom dd package and sync dependencies
         run: |
           uv lock --upgrade-package dd --find-links /tmp/dd/dd-dist/
+          uv add --frozen /dd/dist/dd-*.whl
           uv sync --frozen
 
       - name: Run Pytest if directory exists
