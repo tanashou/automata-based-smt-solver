@@ -62,4 +62,4 @@ RUN apt-get update \
 COPY --from=builder /dd/dist/dd-*.whl /dd/dist/
 
 RUN uv lock --upgrade-package dd --find-links /dd/dist/ \
-    && uv install --frozen --no-install-project
+    && uv sync --frozen --no-install-project
