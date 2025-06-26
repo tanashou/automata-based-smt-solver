@@ -5,6 +5,7 @@ import contextlib
 import copy
 import os
 from collections import defaultdict, deque
+from dataclasses import dataclass
 from itertools import chain
 from typing import TYPE_CHECKING, TypeAlias
 
@@ -22,34 +23,28 @@ NFAStateT: TypeAlias = str | int | tuple["NFAStateT", ...]
 NFATransitionsT: TypeAlias = dict[NFAStateT, dict[MSBFAlphabetSymbol, set[NFAStateT]]]
 
 
+@dataclass
 class NFA:
     """NFA represents a custom NFA for use in the automata-based SMT solver.
 
     Attributes:
-        _states (set[NFAStateT]): Set of all states.
-        _input_symbols (set[MSBFAlphabetSymbol]): Set of input symbols.
-        _transitions (NFATransitionsT): Transition mapping.
-        _initial_state (NFAStateT): Starting state.
-        _final_states (set[NFAStateT]): Set of accepting states.
+        states (set[NFAStateT]): Set of all states.
+        input_symbols (MSBFAlphabet): Set of input symbols.
+        transitions (NFATransitionsT): Transition mapping.
+        initial_state (NFAStateT): Starting state.
+        final_states (set[NFAStateT]): Set of accepting states.
 
     """
 
-    def __init__(
-        self,
-        states: set[NFAStateT],
-        input_symbols: MSBFAlphabet,
-        transitions: NFATransitionsT,
-        initial_state: NFAStateT,
-        final_states: set[NFAStateT],
-    ) -> None:
-        """Initialize a NFA."""
-        self._states = states
-        self._input_symbols = input_symbols
-        self._transitions = transitions
-        self._initial_state = initial_state
-        self._final_states = final_states
+    states: set[NFAStateT]
+    input_symbols: MSBFAlphabet
+    transitions: NFATransitionsT
+    initial_state: NFAStateT
+    final_states: set[NFAStateT]
 
-        if self._initial_state not in self._states:
+    def __post_init__(self) -> None:
+        """Validate the NFA after initialization."""
+        if self.initial_state not in self.states:
             msg = "Initial state must be added to the set of states."
             raise ValueError(msg)
 
@@ -57,52 +52,28 @@ class NFA:
         """Return a string representation of the NFA."""
         return (
             f"states={self.states},\n"
-            f"input_symbols={self._input_symbols},\n"
+            f"input_symbols={self.input_symbols},\n"
             f"transitions={self.transitions},\n"
             f"initial_state={self.initial_state},\n"
             f"final_states={self.final_states}"
         )
 
-    def __repr__(self) -> str:
-        """Return a string representation of the NFA."""
-        return f"NFA({self})"
-
-    @property
-    def states(self) -> set[NFAStateT]:
-        return self._states
-
-    @property
-    def input_symbols(self) -> MSBFAlphabet:
-        return self._input_symbols
-
-    @property
-    def transitions(self) -> NFATransitionsT:
-        return self._transitions
-
-    @property
-    def initial_state(self) -> NFAStateT:
-        return self._initial_state
-
-    @property
-    def final_states(self) -> set[NFAStateT]:
-        return self._final_states
-
     def add_state(self, new_state: NFAStateT) -> None:
-        self._states.add(new_state)
+        self.states.add(new_state)
 
     def add_states(self, states: set[NFAStateT]) -> None:
-        self._states.update(states)
+        self.states.update(states)
 
     def _set_initial_state(self) -> None:
         initial_state = "q0"
-        self._initial_state = initial_state
-        self._states.add(self._initial_state)
+        self.initial_state = initial_state
+        self.states.add(self.initial_state)
 
     def _set_custom_initial_state(self, initial_state: NFAStateT) -> None:
         """Set a custom initial state for the NFA. Only used in intersection."""
-        self._states.remove(self._initial_state)
-        self._initial_state = initial_state
-        self._states.add(initial_state)
+        self.states.remove(self.initial_state)
+        self.initial_state = initial_state
+        self.states.add(initial_state)
 
     def add_transition(
         self,
@@ -110,16 +81,16 @@ class NFA:
         symbol: MSBFAlphabetSymbol,
         end_state: NFAStateT,
     ) -> None:
-        self._transitions[start_state][symbol].add(end_state)
+        self.transitions[start_state][symbol].add(end_state)
 
     def set_transitions(self, transitions: NFATransitionsT) -> None:
-        self._transitions = transitions
+        self.transitions = transitions
 
     def add_final_state(self, new_final_state: NFAStateT) -> None:
-        self._final_states.add(new_final_state)
+        self.final_states.add(new_final_state)
 
     def set_final_states(self, final_states: set[NFAStateT]) -> None:
-        self._final_states = final_states
+        self.final_states = final_states
 
     def get_next_states(
         self, current_state: NFAStateT, input_symbol: MSBFAlphabetSymbol
@@ -135,7 +106,7 @@ class NFA:
 
         """
         # Get all transitions from the current state
-        state_transitions = self._transitions.get(current_state, {})
+        state_transitions = self.transitions.get(current_state, {})
         if not state_transitions:
             return set()
 
