@@ -58,5 +58,8 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy the custom wheel built in the previous stage
+COPY --from=builder /dd/dist/dd-*.whl /dd/dist/
+
 RUN uv lock --upgrade-package dd --find-links /dd/dist/ \
     && uv install --frozen --no-install-project
