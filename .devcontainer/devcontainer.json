@@ -36,6 +36,6 @@
     },
     "postCreateCommand": "uv sync --frozen",
     "postStartCommand": "uv run pre-commit install",
-    "postAttachCommand": "git config --global --add safe.directory /workspaces/SMT-Solver",
+    "postAttachCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
     "remoteUser": "vscode"
 }
