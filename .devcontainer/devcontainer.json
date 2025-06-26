@@ -2,11 +2,7 @@
     "name": "${localWorkspaceFolderBasename}",
     "build": {
         "context": "..",
-        "dockerfile": "Dockerfile",
-        "args": {
-            "UV_VERSION": "latest",
-            "DEBIAN_VERSION": "bookworm"
-        }
+        "dockerfile": "Dockerfile"
     },
     "features": {
         "ghcr.io/dhoeric/features/hadolint:1": {}
