@@ -30,10 +30,27 @@ jobs:
           sudo apt-get clean && \
           sudo rm -rf /var/lib/apt/lists/*
 
+      - name: Build custom dd package
+        run: |
+          git clone --branch v0.6.0 --depth 1 https://github.com/tulip-control/dd.git /tmp/dd
+          cd /tmp/dd
+          pip install cython build setuptools
+          export DD_FETCH=1
+          export DD_CUDD=1
+          export DD_CUDD_ZDD=1
+          python -m build --no-isolation
+          mkdir -p ./dd-dist
+          cp dist/dd-*.whl ./dd-dist/
+
       - name: Setup Python ${{ matrix.python-version }} with uv
         uses: ./.github/actions/setup-python-with-uv
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Install custom dd package and sync dependencies
+        run: |
+          uv lock --upgrade-package dd --find-links /tmp/dd/dd-dist/
+          uv sync --frozen
 
       - name: Run Pytest if directory exists
         run: |
