@@ -6,7 +6,6 @@ from pysmt.fnode import FNode
 from automata_based_smt_solver.automata.msbf_alphabet import MSBFAlphabet
 from automata_based_smt_solver.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
 from automata_based_smt_solver.automata.nfa import NFA
-from automata_based_smt_solver.automata.state import State
 from automata_based_smt_solver.build_status import BuildStatus
 from automata_based_smt_solver.formula.type import FormulaData, FormulaType
 
@@ -25,14 +24,14 @@ class AutomataBuilder:
         self.formula_data: FormulaData = formula_data
         self.create_all: bool = create_all  # for debug
 
-        initial_state = State("q0")
+        initial_state = "q0"
 
         self.nfa = NFA(
             states={initial_state},
             initial_state=initial_state,
             input_symbols=MSBFAlphabet(all_vars, used_vars),
             transitions=defaultdict(lambda: defaultdict(set)),
-            final_states={State(self.formula_data.const)},
+            final_states={self.formula_data.const},
         )
 
         self.dots: dict[MSBFAlphabetSymbol, int] = self._calc_dots(all_var_index_map)
@@ -83,20 +82,18 @@ class AutomataBuilder:
         partial_sat = False
 
         while self.work_list:
-            current_state_val = self.work_list.pop()
+            current_state = self.work_list.pop()
             for symbol in self.nfa.input_symbols.symbol_generator():
                 dot = self.dots[symbol]
-                if (current_state_val - dot) & 1 == 0:
-                    previous_state_val = (current_state_val - dot) // 2
-                    if State(previous_state_val) not in self.nfa.states:
-                        self.nfa.add_state(State(previous_state_val))
-                        self.work_list.append(previous_state_val)
+                if (current_state - dot) & 1 == 0:
+                    previous_state = (current_state - dot) // 2
+                    if previous_state not in self.nfa.states:
+                        self.nfa.add_state(previous_state)
+                        self.work_list.append(previous_state)
+                    self.nfa.add_transition(previous_state, symbol, current_state)
+                if current_state == -dot:
                     self.nfa.add_transition(
-                        State(previous_state_val), symbol, State(current_state_val)
-                    )
-                if current_state_val == -dot:
-                    self.nfa.add_transition(
-                        self.nfa.initial_state, symbol, State(current_state_val)
+                        self.nfa.initial_state, symbol, current_state
                     )
                     partial_sat = True
 
@@ -107,20 +104,18 @@ class AutomataBuilder:
         partial_sat = False
 
         while self.work_list:
-            current_state_val = self.work_list.pop()
+            current_state = self.work_list.pop()
             for symbol in self.nfa.input_symbols.symbol_generator():
                 dot = self.dots[symbol]
-                previous_state_val = (current_state_val - dot) // 2
-                if State(previous_state_val) not in self.nfa.states:
-                    self.nfa.add_state(State(previous_state_val))
-                    self.work_list.append(previous_state_val)
-                self.nfa.add_transition(
-                    State(previous_state_val), symbol, State(current_state_val)
-                )
+                previous_state = (current_state - dot) // 2
+                if previous_state not in self.nfa.states:
+                    self.nfa.add_state(previous_state)
+                    self.work_list.append(previous_state)
+                self.nfa.add_transition(previous_state, symbol, current_state)
 
-                if current_state_val + dot >= 0:
+                if current_state + dot >= 0:
                     self.nfa.add_transition(
-                        self.nfa.initial_state, symbol, State(current_state_val)
+                        self.nfa.initial_state, symbol, current_state
                     )
                     partial_sat = True
             if partial_sat and not self.create_all:
@@ -129,49 +124,41 @@ class AutomataBuilder:
     def false_to_nfa(self) -> Generator[None]:
         # add dead state
         dead_state = -1
-        self.nfa.add_state(State(dead_state))
+        self.nfa.add_state(dead_state)
         # add final state
         final_state = self.formula_data.const
-        self.nfa.add_state(State(final_state))
+        self.nfa.add_state(final_state)
 
         # length of input_symbols is always 2 for boolean formulas
         for symbol in self.nfa.input_symbols.symbol_generator():
             dot_value = self.dots[symbol]
             if dot_value == 1:
-                self.nfa.add_transition(
-                    self.nfa.initial_state, symbol, State(final_state)
-                )
+                self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
             else:
-                self.nfa.add_transition(
-                    self.nfa.initial_state, symbol, State(dead_state)
-                )
+                self.nfa.add_transition(self.nfa.initial_state, symbol, dead_state)
 
             # add loop to dead state and final state
-            self.nfa.add_transition(State(final_state), symbol, State(final_state))
-            self.nfa.add_transition(State(dead_state), symbol, State(dead_state))
+            self.nfa.add_transition(final_state, symbol, final_state)
+            self.nfa.add_transition(dead_state, symbol, dead_state)
         yield
 
     def true_to_nfa(self) -> Generator[None]:
         # add dead state
         dead_state = -1
-        self.nfa.add_state(State(dead_state))
+        self.nfa.add_state(dead_state)
         # add final state
         final_state = self.formula_data.const
-        self.nfa.add_state(State(final_state))
+        self.nfa.add_state(final_state)
 
         # length of input_symbols is always 2 for boolean formulas
         for symbol in self.nfa.input_symbols.symbol_generator():
             dot_value = self.dots[symbol]
             if dot_value == 0:
-                self.nfa.add_transition(
-                    self.nfa.initial_state, symbol, State(final_state)
-                )
+                self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
             else:
-                self.nfa.add_transition(
-                    self.nfa.initial_state, symbol, State(dead_state)
-                )
+                self.nfa.add_transition(self.nfa.initial_state, symbol, dead_state)
 
             # add loop to dead state and final state
-            self.nfa.add_transition(State(final_state), symbol, State(final_state))
-            self.nfa.add_transition(State(dead_state), symbol, State(dead_state))
+            self.nfa.add_transition(final_state, symbol, final_state)
+            self.nfa.add_transition(dead_state, symbol, dead_state)
         yield
