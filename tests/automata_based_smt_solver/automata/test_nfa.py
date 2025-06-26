@@ -8,8 +8,7 @@ from automata_based_smt_solver.automata.msbf_alphabet import MSBFAlphabet
 from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
     MSBFAlphabetSymbol,
 )
-from automata_based_smt_solver.automata.nfa import NFA
-from automata_based_smt_solver.automata.state import State
+from automata_based_smt_solver.automata.nfa import NFA, NFAStateT, NFATransitionsT
 
 
 def create_symbols(*bits: str, mask: str) -> list[MSBFAlphabetSymbol]:
@@ -61,13 +60,13 @@ class TestNFA:
     def nfa_ends_with_01(self, msbf_alphabet_01):
         """Create a NFA that accepts the regular expression (0|1)*01."""
         # Define states
-        q0 = State("q0")
-        q1 = State("q1")
-        q2 = State("q2")
-        states = {q0, q1, q2}
+        q0 = "q0"
+        q1 = "q1"
+        q2 = "q2"
+        states: set[NFAStateT] = {q0, q1, q2}
         # Define transitions
         symbol_0, symbol_1 = create_symbols("0", "1", mask="1")
-        transitions = {
+        transitions: NFATransitionsT = {
             q0: {
                 symbol_0: {q0, q1},
                 symbol_1: {q0},
@@ -79,7 +78,7 @@ class TestNFA:
         }
         # Define initial and final states
         initial_state = q0
-        final_states = {q2}
+        final_states: set[NFAStateT] = {q2}
         # Create NFA
         return NFA(
             states=states,
@@ -93,13 +92,13 @@ class TestNFA:
     def nfa_ends_with_01_or_00(self, msbf_alphabet_01):
         """Create a NFA that accepts the regular expression (0|1)*01 or (0|1)*00."""
         # Define states
-        q0 = State("q0")
-        q1 = State("q1")
-        q2 = State("q2")
-        states = {q0, q1, q2}
+        q0 = "q0"
+        q1 = "q1"
+        q2 = "q2"
+        states: set[NFAStateT] = {q0, q1, q2}
         # Define transitions
         symbol_0, symbol_1 = create_symbols("0", "1", mask="1")
-        transitions = {
+        transitions: NFATransitionsT = {
             q0: {
                 symbol_0: {q0, q1},
                 symbol_1: {q0},
@@ -112,7 +111,7 @@ class TestNFA:
         }
         # Define initial and final states
         initial_state = q0
-        final_states = {q2}
+        final_states: set[NFAStateT] = {q2}
         # Create NFA
         return NFA(
             states=states,
@@ -126,13 +125,13 @@ class TestNFA:
     def nfa_starts_with_01(self, msbf_alphabet_01):
         """Create a NFA that accepts the regular expression 01(0|1)*."""
         # Define states
-        q0 = State("q0")
-        q1 = State("q1")
-        q2 = State("q2")
-        states = {q0, q1, q2}
+        q0 = "q0"
+        q1 = "q1"
+        q2 = "q2"
+        states: set[NFAStateT] = {q0, q1, q2}
         # Define transitions
         symbol_0, symbol_1 = create_symbols("0", "1", mask="1")
-        transitions = {
+        transitions: NFATransitionsT = {
             q0: {
                 symbol_0: {q1},
             },
@@ -146,7 +145,7 @@ class TestNFA:
         }
         # Define initial and final states
         initial_state = q0
-        final_states = {q2}
+        final_states: set[NFAStateT] = {q2}
         # Create NFA
         return NFA(
             states=states,
@@ -208,8 +207,8 @@ class TestNFA:
         """Test that transitions work as expected."""
         # Get states
         q0 = nfa_ends_with_01.initial_state
-        q1 = State("q1")
-        q2 = State("q2")
+        q1 = "q1"
+        q2 = "q2"
 
         # Test transitions
         assert nfa_ends_with_01.get_next_states(q0, MSBFAlphabetSymbol("0", "1")) == {
@@ -272,9 +271,9 @@ class TestNFA:
         # Accepting NFA: nfa_starts_with_01 has a path to a final state
         assert nfa_starts_with_01.is_acceptable() is True
         # Non-accepting NFA: create one with no final states
-        q0 = State("q0")
+        q0 = "q0"  # Initial state
         msbf_alphabet = nfa_ends_with_01.input_symbols
-        transitions = {q0: {}}
+        transitions: NFATransitionsT = {q0: {}}
         nfa_no_final = NFA(
             states={q0},
             input_symbols=msbf_alphabet,
@@ -295,8 +294,10 @@ class TestNFA:
     ):
         intersected_nfa_old = nfa_ends_with_01.intersection(nfa_starts_with_01)
 
-        delta_1_changes = {State("q1"): {MSBFAlphabetSymbol("0", "1"): {State("q2")}}}
-        delta_2_changes = {}
+        delta_1_changes: NFATransitionsT = {
+            "q1": {MSBFAlphabetSymbol("0", "1"): {"q2"}}
+        }
+        delta_2_changes: NFATransitionsT = {}
         intersected_nfa_new = NFA.incremental_intersection(
             intersected_nfa_old,
             nfa_ends_with_01_or_00,
