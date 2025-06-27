@@ -3,21 +3,11 @@ revision = 2
 requires-python = ">=3.11"
 
 [[package]]
-name = "astutils"
-version = "0.0.6"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "ply" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/88/d9/86e4053d44baa2b648596a443e2bcf5b8e1d30a9669b14bfacc5307fbc2f/astutils-0.0.6.tar.gz", hash = "sha256:e9a6f31b243ecfc3c7c84dd2f145cf5de83e475b650d2a6b781cfa713ad15427", size = 9333, upload-time = "2024-04-15T17:25:19.294Z" }
-
-[[package]]
 name = "automata-based-smt-solver"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "automata-lib", extra = ["visual"] },
-    { name = "dd" },
     { name = "pysmt" },
 ]
 
@@ -34,7 +24,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "automata-lib", extras = ["visual"], specifier = ">=8.4.0" },
-    { name = "dd", path = "../../dd/dist/dd-0.6.0-cp313-cp313-linux_aarch64.whl" },
     { name = "pysmt", specifier = "==0.9.6" },
 ]
 
@@ -160,28 +149,6 @@ toml = [
 ]
 
 [[package]]
-name = "dd"
-version = "0.6.0"
-source = { path = "../../dd/dist/dd-0.6.0-cp313-cp313-linux_aarch64.whl" }
-dependencies = [
-    { name = "astutils" },
-    { name = "networkx" },
-    { name = "ply" },
-    { name = "setuptools" },
-]
-wheels = [
-    { filename = "dd-0.6.0-cp313-cp313-linux_aarch64.whl", hash = "sha256:32cea7d7c61261c17157106bd5e88d0286c73a13060e12d6482a04ab6996d1f3" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "astutils", specifier = ">=0.0.5" },
-    { name = "networkx", specifier = ">=2.4" },
-    { name = "ply", specifier = ">=3.4,<=3.10" },
-    { name = "setuptools", specifier = ">=65.6.0" },
-]
-
-[[package]]
 name = "distlib"
 version = "0.3.8"
 source = { registry = "https://pypi.org/simple" }
@@ -272,12 +239,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/96/2d/02d4312c973c6050a
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/5f/e351af9a41f866ac3f1fac4ca0613908d9a41741cfcf2228f4ad853b697d/pluggy-1.5.0-py3-none-any.whl", hash = "sha256:44e1ad92c8ca002de6377e165f3e0f1be63266ab4d554740532335b9d75ea669", size = 20556, upload-time = "2024-04-20T21:34:40.434Z" },
 ]
-
-[[package]]
-name = "ply"
-version = "3.10"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ce/3d/1f9ca69192025046f02a02ffc61bfbac2731aab06325a218370fd93e18df/ply-3.10.tar.gz", hash = "sha256:96e94af7dd7031d8d6dd6e2a8e0de593b511c211a86e28a9c9621c275ac8bacb", size = 150926, upload-time = "2017-01-31T18:38:34.244Z" }
 
 [[package]]
 name = "pre-commit"
@@ -424,15 +385,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c4/90/6c98f94e036c8acdf19bd8f3f84d246e43cbcc950e24dc7ff85d2f2735ba/ruff-0.9.8-py3-none-win32.whl", hash = "sha256:54b57b623a683e696a1ede99db95500763c1badafe105b6ad8d8e9d96e385ae2", size = 10234107, upload-time = "2025-02-27T14:10:33.768Z" },
     { url = "https://files.pythonhosted.org/packages/f5/e7/35877491b4b64daa35cbd7dc06aa5969e7bb1cd6f69e5594e4376dfbc16d/ruff-0.9.8-py3-none-win_amd64.whl", hash = "sha256:b0878103b2fb8af55ad701308a69ce713108ad346c3a3a143ebcd1e13829c9a7", size = 11357825, upload-time = "2025-02-27T14:10:36.467Z" },
     { url = "https://files.pythonhosted.org/packages/6e/98/de77a972b2e9ded804dea5d4e6fbfa093d99e81092602567787ea87979af/ruff-0.9.8-py3-none-win_arm64.whl", hash = "sha256:e459a4fc4150fcc60da26c59a6a4b70878c60a99df865a71cf6f958dc68c419a", size = 10435420, upload-time = "2025-02-27T14:10:39.129Z" },
-]
-
-[[package]]
-name = "setuptools"
-version = "80.9.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/18/5d/3bf57dcd21979b887f014ea83c24ae194cfcd12b9e0fda66b957c69d1fca/setuptools-80.9.0.tar.gz", hash = "sha256:f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c", size = 1319958, upload-time = "2025-05-27T00:56:51.443Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a3/dc/17031897dae0efacfea57dfd3a82fdd2a2aeb58e0ff71b77b87e44edc772/setuptools-80.9.0-py3-none-any.whl", hash = "sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922", size = 1201486, upload-time = "2025-05-27T00:56:49.664Z" },
 ]
 
 [[package]]
