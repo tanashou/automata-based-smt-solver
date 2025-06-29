@@ -20,7 +20,7 @@ RUN conda create -y --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION} && \
     conda install -y -n ${CONDA_ENV_NAME} -c conda-forge spot=${SPOT_VERSION} && \
     conda clean -afy
 
-COPY --from=uv: /uv /uvx /bin/
+COPY --from=uv /uv /uvx /bin/
 ENV UV_LINK_MODE=copy
 
 ENV UV_PYTHON=/opt/conda/envs/${CONDA_ENV_NAME}/bin/python
