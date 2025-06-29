@@ -9,8 +9,6 @@ from dataclasses import dataclass
 from itertools import chain
 from typing import TYPE_CHECKING, TypeAlias
 
-import pygraphviz as pgv
-
 from automata_based_smt_solver.automata.msbf_alphabet import MSBFAlphabet
 from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
     MSBFAlphabetSymbol,
@@ -172,7 +170,7 @@ class NFA:
         self,
         input_str: str | None = None,
         path: str | os.PathLike | None = None,
-    ) -> pgv.AGraph:
+    ) -> None:
         raise NotImplementedError
 
     def intersection(self, other: "NFA") -> "NFA":  # noqa: C901
