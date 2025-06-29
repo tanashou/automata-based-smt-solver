@@ -1,22 +1,45 @@
-name: Install Python with uv
+name: Install Python with conda and uv
 description: |
-  This GitHub Action installs Python using the uv tool.
-  It pins the specified Python version, caches uv files, and installs dependencies.
+  This GitHub Action installs Python using conda/mamba.
+  It pins the specified Python version and installs dependencies.
 
 inputs:
   python-version:
     description: Python version
     required: true
 
+  spot-version:
+    description: Spot package version
+    required: false
+    default: "2.12"
+
 runs:
   using: composite
   steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Miniconda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        python-version: ${{ inputs.python-version }}
+        activate-environment: absmt
+
+    - name: Install spot via conda
+      run: |
+        conda install -y -n absmt -c conda-forge spot=${{ inputs.spot-version }}
+        conda clean -afy
+      shell: bash -el {0}
+
     - name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
-        python-version: ${{ inputs.python-version }}
 
     - name: Install Dependencies
-      run: uv sync --frozen
-      shell: bash
+      run: |
+        uv pip sync pyproject.toml
+        uv pip install setuptools
+        uv pip install --group dev-dependencies -r pyproject.toml
+        uv pip install -e .
+      shell: bash -el {0}
