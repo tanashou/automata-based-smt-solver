@@ -9,12 +9,9 @@ requires-python = ">=3.11"
 readme = "README.md"
 license = { file = "licenses/automata_based_smt_solver/LICENSE" }
 
-dependencies = [
-    "automata-lib[visual]>=8.4.0",
-    "pysmt==0.9.6",
-]
+dependencies = ["pysmt==0.9.6"]
 
-[tool.uv]
+[dependency-groups]
 dev-dependencies = [
     "pre-commit>=4.1.0",
     "psutil>=7.0.0",
