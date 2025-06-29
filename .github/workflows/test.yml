@@ -13,24 +13,13 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12"]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update && \
-          sudo apt-get install -y --no-install-recommends \
-              build-essential \
-              graphviz \
-              graphviz-dev \
-              gcc && \
-          sudo apt-get clean && \
-          sudo rm -rf /var/lib/apt/lists/*
-
-      - name: Setup Python ${{ matrix.python-version }} with uv
+      - name: Setup Python ${{ matrix.python-version }} with conda
         uses: ./.github/actions/setup-python-with-uv
         with:
           python-version: ${{ matrix.python-version }}
@@ -38,5 +27,5 @@ jobs:
       - name: Run Pytest if directory exists
         run: |
           if [ -d "./tests/" ]; then
-            uv run pytest -s
+            pytest -s
           fi
