@@ -1,30 +1,29 @@
 ARG UV_VERSION=latest
-ARG DEBIAN_VERSION=bookworm
+ARG MINICONDA_VERSION=3
 
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
-FROM debian:${DEBIAN_VERSION}-slim
+FROM continuumio/miniconda3:${MINICONDA_VERSION}
 
 WORKDIR /app
 
 COPY --from=uv /uv /uvx /bin/
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml ./
 
-ENV PYTHONDONTWRITEBYTECODE=True
-ENV PYTHONUNBUFFERED=True
+# Latest version for linux-aarch64
+ARG SPOT_VERSION=2.12
+# for this spot version, conda version does not have the latest spot and cannot use python 3.13.
+ARG PYTHON_VERSION=3.12
+ARG CONDA_ENV_NAME=absmt
+
+# install spot
+RUN conda create -y --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION} && \
+    conda install -y -n ${CONDA_ENV_NAME} -c conda-forge spot=${SPOT_VERSION} && \
+    conda clean -afy
+
+COPY --from=uv: /uv /uvx /bin/
 ENV UV_LINK_MODE=copy
 
-# Add proxy configuration to fix "Hash sum mismatch" error
-RUN echo 'Acquire::http::Pipeline-Depth 0;' >> /etc/apt/apt.conf.d/99fixbadproxy \
-    && echo 'Acquire::http::No-Cache true;' >> /etc/apt/apt.conf.d/99fixbadproxy \
-    && echo 'Acquire::BrokenProxy true;' >> /etc/apt/apt.conf.d/99fixbadproxy
+ENV UV_PYTHON=/opt/conda/envs/${CONDA_ENV_NAME}/bin/python
 
-# hadolint ignore=DL3008
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-    build-essential \
-    graphviz graphviz-dev gcc \
-    # To remove the image size, it is recommended refresh the package cache as follows
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN uv sync --frozen --no-install-project
+RUN uv pip sync pyproject.toml && \
+    uv pip install -e .
