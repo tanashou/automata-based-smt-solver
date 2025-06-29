@@ -1,7 +1,7 @@
 {
     "files.insertFinalNewline": true,
     "files.trimTrailingWhitespace": true,
-    "python.defaultInterpreterPath": ".venv/bin/python",
+    "python.defaultInterpreterPath": "/opt/conda/envs/absmt/bin/python",
     "[dockercompose]": {
         "editor.autoIndent": "advanced",
         "editor.defaultFormatter": "redhat.vscode-yaml",
@@ -15,7 +15,7 @@
         "editor.tabSize": 4
     },
     "[dockerfile]": {
-        "editor.defaultFormatter": "ms-azuretools.vscode-docker",
+        "editor.defaultFormatter": "ms-azuretools.vscode-containers",
         "editor.formatOnSave": true
     },
     "[github-actions-workflow]": {
