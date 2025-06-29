@@ -7,7 +7,6 @@ authors = [{ name = "tanashou", email = "tanashou0210@gmail.com" }]
 
 requires-python = ">=3.11"
 readme = "README.md"
-license = { file = "licenses/automata_based_smt_solver/LICENSE" }
 
 dependencies = ["pysmt==0.9.6"]
 
