@@ -24,3 +24,4 @@ jobs:
           if [ -d "./tests/" ]; then
             pytest -s
           fi
+        shell: bash -el {0}
