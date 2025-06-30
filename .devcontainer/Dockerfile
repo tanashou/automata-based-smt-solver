@@ -10,7 +10,9 @@ ARG USER_NAME=vscode
 ARG CONDA_ENV_NAME=absmt
 
 COPY environment.yml /tmp/environment.yml
-RUN conda env create -f /tmp/environment.yml && rm /tmp/environment.yml
+RUN conda env create -f /tmp/environment.yml && \
+    rm /tmp/environment.yml && \
+    conda clean -afy
 # setup for activating created conda env when starting a shell
 RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> /home/${USER_NAME}/.bashrc && \
     echo "conda activate ${CONDA_ENV_NAME}" >> /home/${USER_NAME}/.bashrc
