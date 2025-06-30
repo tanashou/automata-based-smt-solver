@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python ${{ matrix.python-version }} with conda
+      - name: Setup Python with conda
         uses: ./.github/actions/setup-python-with-uv
 
       - name: Run Pytest if directory exists
