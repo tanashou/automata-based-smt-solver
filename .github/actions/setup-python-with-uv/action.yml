@@ -25,6 +25,11 @@ runs:
         environment-file: environment.yml
         activate-environment: ${{ inputs.conda-env-name }}
 
+    - name: Get Python path
+      id: get-python
+      run: echo "PYTHON_PATH=$(which python)" >> $GITHUB_ENV
+      shell: bash -el {0}
+
     - name: Install uv
       uses: astral-sh/setup-uv@v6
       with:
@@ -36,4 +41,4 @@ runs:
         uv pip install .
       shell: bash -el {0}
       env:
-        UV_PYTHON: /opt/conda/envs/${{ inputs.conda-env-name }}/bin/python
+        UV_PYTHON: ${{ env.PYTHON_PATH }}
