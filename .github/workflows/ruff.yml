@@ -19,9 +19,7 @@ jobs:
         uses: ./.github/actions/setup-python-with-uv
 
       - name: Lint
-        run: |
-          uv pip install ruff
-          ruff check --output-format=github .
+        run: ruff check --output-format=github .
         shell: bash -el {0}
 
   format:
@@ -35,7 +33,5 @@ jobs:
         uses: ./.github/actions/setup-python-with-uv
 
       - name: Format
-        run: |
-          uv pip install ruff
-          ruff format . --check --diff
+        run: ruff format . --check --diff
         shell: bash -el {0}
