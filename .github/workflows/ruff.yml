@@ -11,39 +11,31 @@ jobs:
   lint:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12"]
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python ${{ matrix.python-version }} with conda
+      - name: Setup Python with conda
         uses: ./.github/actions/setup-python-with-uv
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Lint
-        run: ruff check --output-format=github .
+        run: |
+          uv pip install ruff
+          ruff check --output-format=github .
         shell: bash -el {0}
 
   format:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12"]
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python ${{ matrix.python-version }} with conda
+      - name: Setup Python with conda
         uses: ./.github/actions/setup-python-with-uv
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Format
-        run: ruff format . --check --diff
+        run: |
+          uv pip install ruff
+          ruff format . --check --diff
         shell: bash -el {0}
