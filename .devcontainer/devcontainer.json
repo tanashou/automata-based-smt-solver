@@ -25,14 +25,7 @@
             ]
         }
     },
-    "containerEnv": {
-        "DISPLAY": "dummy",
-        "PYTHONUNBUFFERED": "True",
-        "UV_LINK_MODE": "copy"
-    },
-    "postCreateCommand": "uv sync --frozen",
-    // recreate lockfile and then run `uv sync --frozen`
-    "postStartCommand": "uv lock --upgrade-package dd --find-links /dd/dist/ && uv sync --frozen",
+    "postCreateCommand": "bash .devcontainer/setup_uv.sh",
     "postAttachCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
     "remoteUser": "vscode"
 }
