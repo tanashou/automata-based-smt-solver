@@ -1,0 +1,7 @@
+name: absmt
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12 # spot v2.12 don't support python3.13.
+  - spot=2.12 # Latest version for linux-aarch64
+  # Other dependencies are managed with uv.
