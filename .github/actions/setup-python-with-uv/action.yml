@@ -8,10 +8,10 @@ inputs:
     description: Python version
     required: true
 
-  spot-version:
-    description: Spot package version
+  conda-env-name:
+    description: Conda environment name
     required: false
-    default: "2.12"
+    default: absmt
 
 runs:
   using: composite
@@ -19,27 +19,20 @@ runs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Miniconda
+    - name: Setup conda environment
       uses: conda-incubator/setup-miniconda@v3
       with:
-        python-version: ${{ inputs.python-version }}
-        activate-environment: absmt
-
-    - name: Install spot via conda
-      run: |
-        conda install -y -n absmt -c conda-forge spot=${{ inputs.spot-version }}
-        conda clean -afy
-      shell: bash -el {0}
+        environment-file: environment.yml
 
     - name: Install uv
       uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
 
-    - name: Install Dependencies
+    - name: Install dependencies with uv
       run: |
         uv pip sync pyproject.toml
-        uv pip install setuptools
-        uv pip install --group dev-dependencies -r pyproject.toml
-        uv pip install -e .
+        uv pip install .
       shell: bash -el {0}
+      env:
+        UV_PYTHON: /opt/conda/envs/${{ inputs.conda-env-name }}/bin/python
