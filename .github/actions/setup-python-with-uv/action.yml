@@ -38,6 +38,7 @@ runs:
     - name: Install dependencies with uv
       run: |
         uv pip sync pyproject.toml
+        uv pip install --group dev-dependencies -r pyproject.toml
         uv pip install .
       shell: bash -el {0}
       env:
