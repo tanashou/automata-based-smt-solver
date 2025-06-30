@@ -11,59 +11,27 @@ jobs:
   lint:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12", "3.13"]
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update && \
-          sudo apt-get install -y --no-install-recommends \
-              build-essential \
-              graphviz \
-              graphviz-dev \
-              gcc && \
-          sudo apt-get clean && \
-          sudo rm -rf /var/lib/apt/lists/*
-
-      - name: Setup Python ${{ matrix.python-version }} with uv
+      - name: Setup Python with conda
         uses: ./.github/actions/setup-python-with-uv
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Lint
-        run: uv run ruff check --output-format=github .
+        run: ruff check --output-format=github .
+        shell: bash -el {0}
 
   format:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12", "3.13"]
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update && \
-          sudo apt-get install -y --no-install-recommends \
-              build-essential \
-              graphviz \
-              graphviz-dev \
-              gcc && \
-          sudo apt-get clean && \
-          sudo rm -rf /var/lib/apt/lists/*
-
-      - name: Setup Python ${{ matrix.python-version }} with uv
+      - name: Setup Python with conda
         uses: ./.github/actions/setup-python-with-uv
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Format
-        run: uv run ruff format . --check --diff
+        run: ruff format . --check --diff
+        shell: bash -el {0}

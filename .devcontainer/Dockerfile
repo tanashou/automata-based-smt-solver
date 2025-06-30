@@ -1,61 +1,24 @@
-# =================================================================
-# Stage 1: Build dd wheel with CUDD
-# =================================================================
-# Global args that can be used across stages
-# Must match the python version used in the uv image
-ARG VARIANT=3.13
 ARG UV_VERSION=latest
-ARG DEBIAN_VERSION=bookworm
+ARG MINICONDA_VERSION=3
 
-FROM python:${VARIANT}-slim-${DEBIAN_VERSION} AS builder
-
-# Add proxy configuration to fix "Hash sum mismatch" error
-RUN echo 'Acquire::http::Pipeline-Depth 0;' >> /etc/apt/apt.conf.d/99fixbadproxy \
-    && echo 'Acquire::http::No-Cache true;' >> /etc/apt/apt.conf.d/99fixbadproxy \
-    && echo 'Acquire::BrokenProxy true;' >> /etc/apt/apt.conf.d/99fixbadproxy
-
-# hadolint ignore=DL3008
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-    build-essential \
-    git \
-    # To remove the image size, it is recommended refresh the package cache as follows
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-ARG DD_TAG=v0.6.0
-RUN git clone --branch $DD_TAG --depth 1 https://github.com/tulip-control/dd.git /dd
-
-WORKDIR /dd
-
-# hadolint ignore=DL3013,DL3042
-RUN pip install cython build setuptools
-# Set environment variables required for the dd build
-ENV DD_FETCH=1
-ENV DD_CUDD=1
-ENV DD_CUDD_ZDD=1
-RUN python -m build --no-isolation
-
-# =================================================================
-# Stage 2: Final image with uv and the custom dd wheel
-# =================================================================
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
-FROM mcr.microsoft.com/vscode/devcontainers/base:${DEBIAN_VERSION}
+FROM mcr.microsoft.com/devcontainers/miniconda:${MINICONDA_VERSION}
 
-# Add proxy configuration to fix "Hash sum mismatch" error
-RUN echo 'Acquire::http::Pipeline-Depth 0;' >> /etc/apt/apt.conf.d/99fixbadproxy \
-    && echo 'Acquire::http::No-Cache true;' >> /etc/apt/apt.conf.d/99fixbadproxy \
-    && echo 'Acquire::BrokenProxy true;' >> /etc/apt/apt.conf.d/99fixbadproxy
+ARG USER_NAME=vscode
 
-# hadolint ignore=DL3008
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-    build-essential \
-    graphviz graphviz-dev gcc \
-    # To remove the image size, it is recommended refresh the package cache as follows
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# TODO: manage conda env name in one place.
+ARG CONDA_ENV_NAME=absmt
 
-COPY --from=uv --chown=vscode: /uv /uvx /bin/
-# Copy the custom wheel built in the previous stage
-COPY --from=builder /dd/dist/dd-*.whl /dd/dist/
+COPY environment.yml /tmp/environment.yml
+RUN conda env create -f /tmp/environment.yml && \
+    rm /tmp/environment.yml && \
+    conda clean -afy
+# setup for activating created conda env when starting a shell
+RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> /home/${USER_NAME}/.bashrc && \
+    echo "conda activate ${CONDA_ENV_NAME}" >> /home/${USER_NAME}/.bashrc
+
+COPY --from=uv --chown=${USER_NAME}: /uv /uvx /bin/
+ENV UV_LINK_MODE=copy
+
+RUN chown -R ${USER_NAME}:${USER_NAME} /opt/conda/envs/${CONDA_ENV_NAME}
+ENV UV_PYTHON=/opt/conda/envs/${CONDA_ENV_NAME}/bin/python
