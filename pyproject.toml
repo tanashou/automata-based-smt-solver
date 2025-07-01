@@ -1,3 +1,5 @@
+# This pyproject.toml is maintained manually. Dependencies are managed
+# directly in this file rather than using uv's automatic dependency resolution.
 [project]
 name = "automata_based_smt_solver"
 version = "0.2.0"
