@@ -4,11 +4,11 @@ import pytest
 from pysmt.shortcuts import Symbol
 from pysmt.typing import INT
 
-from automata_based_smt_solver.automata.msbf_alphabet import MSBFAlphabet
-from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
+from absmt.automata.msbf_alphabet import MSBFAlphabet
+from absmt.automata.msbf_alphabet_symbol import (
     MSBFAlphabetSymbol,
 )
-from automata_based_smt_solver.automata.nfa import NFA, NFAStateT, NFATransitionsT
+from absmt.automata.nfa import NFA, NFAStateT, NFATransitionsT
 
 
 def create_symbols(*bits: str, mask: str) -> list[MSBFAlphabetSymbol]:

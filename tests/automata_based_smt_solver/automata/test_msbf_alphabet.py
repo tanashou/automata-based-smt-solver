@@ -4,8 +4,8 @@ import pytest
 from pysmt.shortcuts import Symbol
 from pysmt.typing import INT
 
-from automata_based_smt_solver.automata.msbf_alphabet import MSBFAlphabet
-from automata_based_smt_solver.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
+from absmt.automata.msbf_alphabet import MSBFAlphabet
+from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
 
 
 class TestMSBFAlphabet:

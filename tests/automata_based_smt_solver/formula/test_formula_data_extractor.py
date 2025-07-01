@@ -3,8 +3,8 @@ from pysmt.exceptions import UnsupportedOperatorError
 from pysmt.shortcuts import LE, LT, And, Equals, Int, Not, Plus, Symbol, Times
 from pysmt.typing import BOOL, INT
 
-from automata_based_smt_solver.formula import DataExtractor
-from automata_based_smt_solver.formula.type import FormulaData, FormulaType
+from absmt.formula import DataExtractor
+from absmt.formula.type import FormulaData, FormulaType
 
 
 # If the coeff of symbol is 1, it should be Times(Int(1), symbol).

@@ -4,7 +4,7 @@ from itertools import product
 
 from pysmt.fnode import FNode
 
-from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
+from absmt.automata.msbf_alphabet_symbol import (
     MSBFAlphabetSymbol,
 )
 
