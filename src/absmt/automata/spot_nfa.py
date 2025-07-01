@@ -65,16 +65,7 @@ class SpotNFA:
 
     def _add_transitions(self) -> None:
         """Add transitions to the automaton."""
-        if self._ap_map is None or self._state_map is None:
-            return
-
-        for src_state, transitions in self.transitions.items():
-            for symbol, dst_states in transitions.items():
-                cond = self._ap_map[symbol]
-                for dst_state in dst_states:
-                    self._spot_automaton.new_edge(  # type: ignore[attr-defined]
-                        self._state_map[src_state], self._state_map[dst_state], cond
-                    )
+        raise NotImplementedError
 
     def _set_initial_state(self) -> None:
         """Set the initial state of the automaton."""
@@ -84,7 +75,10 @@ class SpotNFA:
 
     def _set_acceptance_condition(self) -> None:
         """Set acceptance condition for Büchi automaton."""
-        self._spot_automaton.set_acceptance(1, "Inf(0)")  # type: ignore[attr-defined]
+        # 受理状態集合の数なので、1
+        # 無限語、有限語ともに受理したいので、"t"
+        self._spot_automaton.set_acceptance(1, "t")  # type: ignore[attr-defined]
+        # 受理状態に入る遷移に集合0を割り当てる
 
         # For Büchi automata, mark states that should be visited
         # infinitely often
@@ -146,3 +140,33 @@ class SpotNFA:
     def __str__(self) -> str:
         """Return string representation showing the HOA format."""
         return self.to_hoa()
+
+    @staticmethod
+    def has_common_language(*nfas: "SpotNFA") -> bool:
+        """Check if all given NFAs have a common language.
+
+        Args:
+            *nfas: SpotNFA instances to check
+
+        Returns:
+            bool: True if all NFAs have a common language, False otherwise
+
+        """
+        if not nfas:
+            return True  # Empty set has trivially common language
+
+        if len(nfas) == 1:
+            return not nfas[0].spot_automaton.is_empty()  # type: ignore[attr-defined]
+
+        # Initialize product with first automaton
+        product_aut = nfas[0].spot_automaton
+
+        # Calculate product with remaining automata
+        for nfa in nfas[1:]:
+            product_aut = spot.product(product_aut, nfa.spot_automaton)  # type: ignore[attr-defined]
+
+            # Early termination: return False if product becomes empty
+            if product_aut.is_empty():  # type: ignore[attr-defined]
+                return False
+
+        return not product_aut.is_empty()  # type: ignore[attr-defined]
