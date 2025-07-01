@@ -6,7 +6,7 @@ from pysmt.exceptions import UnsupportedOperatorError
 from pysmt.typing import BOOL
 from pysmt.walkers import DagWalker
 
-from automata_based_smt_solver.formula.type import FormulaData, FormulaType
+from absmt.formula.type import FormulaData, FormulaType
 
 if TYPE_CHECKING:
     from pysmt.fnode import FNode
