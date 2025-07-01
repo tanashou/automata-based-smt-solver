@@ -14,6 +14,8 @@ TODO
 ## License
 This project is licensed under the GNU General Public License v3.0 (GPLv3).
 
+Some files in this repository are derived from third-party projects licensed under the MIT License. All such files retain their original copyright and license notices, as required.
+
 ### Use of Spot
 This project uses the [Spot](https://spot.lre.epita.fr/) library, which is distributed under the GNU GPL v3 license.
 Because Spot is a dependency, the terms of the GPL v3 also apply to this project.
