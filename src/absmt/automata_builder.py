@@ -3,11 +3,11 @@ from collections.abc import Generator
 
 from pysmt.fnode import FNode
 
-from automata_based_smt_solver.automata.msbf_alphabet import MSBFAlphabet
-from automata_based_smt_solver.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
-from automata_based_smt_solver.automata.nfa import NFA
-from automata_based_smt_solver.build_status import BuildStatus
-from automata_based_smt_solver.formula.type import FormulaData, FormulaType
+from absmt.automata.msbf_alphabet import MSBFAlphabet
+from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
+from absmt.automata.nfa import NFA
+from absmt.build_status import BuildStatus
+from absmt.formula.type import FormulaData, FormulaType
 
 
 # 1つのリテラルに対してnfaを作成していくクラス
