@@ -1,4 +1,4 @@
-# ruff: noqa: ANN201, ANN204, ANN001, ANN003, ARG002, D101, D107, D102
+# ruff: noqa: ANN201, ANN204, ANN001, ANN003, ARG002
 import itertools
 
 import pysmt.operators as op
