@@ -4,7 +4,7 @@ from pysmt.shortcuts import FALSE, GT, LT, TRUE, And, Equals, Not, Or, Symbol
 from pysmt.typing import INT
 
 # Using the import path you specified
-from automata_based_smt_solver.formula.rewritings.dnf_generator import DNFGenerator
+from absmt.formula.rewritings.dnf_generator import DNFGenerator
 
 
 def formula_equal(f1, f2):

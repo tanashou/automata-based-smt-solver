@@ -3,7 +3,7 @@ import itertools
 from pysmt.shortcuts import Int, Plus, Symbol, Times
 from pysmt.typing import INT
 
-from automata_based_smt_solver.formula.rewritings import (
+from absmt.formula.rewritings import (
     CalculatingBracketExpander,
 )
 
