@@ -1,4 +1,4 @@
-# ruff: noqa
+# ruff: noqa: C901, PLR0912, ANN201, T201, S603
 import subprocess
 import sys
 import time
