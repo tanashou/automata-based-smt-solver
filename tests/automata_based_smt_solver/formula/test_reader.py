@@ -1,6 +1,6 @@
 from pysmt.fnode import FNode
 
-from automata_based_smt_solver.sat_status import SatStatus
+from absmt.sat_status import SatStatus
 
 
 class TestReader:

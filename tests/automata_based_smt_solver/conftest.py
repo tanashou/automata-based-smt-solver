@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from automata_based_smt_solver.formula.smtlib_reader import SMTLIBReader
+from absmt.formula.smtlib_reader import SMTLIBReader
 
 
 @pytest.fixture

@@ -2,9 +2,9 @@ import pytest
 from pysmt.shortcuts import Symbol
 from pysmt.typing import INT
 
-from automata_based_smt_solver.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
-from automata_based_smt_solver.automata_builder import AutomataBuilder
-from automata_based_smt_solver.formula.type import FormulaData, FormulaType
+from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
+from absmt.automata_builder import AutomataBuilder
+from absmt.formula.type import FormulaData, FormulaType
 
 
 class TestAutomataBuilder:
