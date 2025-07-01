@@ -1,4 +1,4 @@
-# ruff: noqa: ANN201, ANN204, ANN001, ANN003, ARG002, D101, D107, D102
+# ruff: noqa: ARG002
 from pysmt.fnode import FNode
 from pysmt.shortcuts import Int, Plus, Times
 from pysmt.walkers import IdentityDagWalker

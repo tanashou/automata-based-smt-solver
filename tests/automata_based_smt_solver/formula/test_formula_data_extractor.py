@@ -1,6 +1,6 @@
 import pytest
 from pysmt.exceptions import UnsupportedOperatorError
-from pysmt.shortcuts import LE, And, Equals, Int, Not, Plus, Symbol, Times
+from pysmt.shortcuts import LE, LT, And, Equals, Int, Not, Plus, Symbol, Times
 from pysmt.typing import BOOL, INT
 
 from automata_based_smt_solver.formula import DataExtractor
@@ -71,8 +71,6 @@ class TestDataExtractor:
         upper_bound = 7
         coeff_count = 2
         expected_upper_bound = upper_bound - 1
-
-        from pysmt.shortcuts import LT
 
         x_term = Times(Int(x_coeff), self.x)
         left_side = Plus(x_term, self.y_coeff_1)
@@ -235,8 +233,6 @@ class TestDataExtractor:
 
     def test_extract_var_times_var_raises(self):
         """Test that extracting data from a formula with var * var raises an error."""
-        from pysmt.exceptions import UnsupportedOperatorError
-
         formula = Equals(Times(self.x, self.y), Int(0))
         with pytest.raises(UnsupportedOperatorError):
             self.extractor.extract(formula)

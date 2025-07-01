@@ -1,4 +1,4 @@
-# ruff: noqa
+# ruff: noqa: I001, ANN201, LOG015, G004
 from automata_based_smt_solver.formula.smtlib_reader import SMTLIBReader
 from automata_based_smt_solver.solver import Solver
 
