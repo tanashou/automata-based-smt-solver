@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from pysmt.fnode import FNode
 
-from automata_based_smt_solver.formula.type.formula_type import FormulaType
+from absmt.formula.type.formula_type import FormulaType
 
 
 @dataclass

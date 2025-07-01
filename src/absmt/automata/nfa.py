@@ -30,8 +30,8 @@ from dataclasses import dataclass
 from itertools import chain
 from typing import TYPE_CHECKING, TypeAlias
 
-from automata_based_smt_solver.automata.msbf_alphabet import MSBFAlphabet
-from automata_based_smt_solver.automata.msbf_alphabet_symbol import (
+from absmt.automata.msbf_alphabet import MSBFAlphabet
+from absmt.automata.msbf_alphabet_symbol import (
     MSBFAlphabetSymbol,
 )
 

@@ -1,7 +1,7 @@
 # This pyproject.toml is maintained manually. Dependencies are managed
 # directly in this file rather than using uv's automatic dependency resolution.
 [project]
-name = "automata_based_smt_solver"
+name = "absmt"
 version = "0.2.0"
 description = "This repository contains configurations to set up a Python development environment using VSCode's Dev Container feature. The environment includes uv and Ruff."
 
@@ -24,7 +24,7 @@ dev-dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/automata_based_smt_solver"]
+packages = ["src/absmt"]
 
 [build-system]
 requires = ["hatchling"]

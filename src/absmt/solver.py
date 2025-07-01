@@ -7,19 +7,19 @@ from pysmt.rewritings import TimesDistributor
 from pysmt.shortcuts import And
 from pysmt.smtlib.parser import SmtLibParser
 
-from automata_based_smt_solver.automata.nfa import NFA
-from automata_based_smt_solver.automata_builder import AutomataBuilder
-from automata_based_smt_solver.build_status import BuildStatus
-from automata_based_smt_solver.formula import DataExtractor
-from automata_based_smt_solver.formula.rewritings import (
+from absmt.automata.nfa import NFA
+from absmt.automata_builder import AutomataBuilder
+from absmt.build_status import BuildStatus
+from absmt.formula import DataExtractor
+from absmt.formula.rewritings import (
     CalculatingBracketExpander,
     DNFGenerator,
     NegationEliminator,
     OrFlattener,
     SymbolCoeffNormalizer,
 )
-from automata_based_smt_solver.formula.type import FormulaData
-from automata_based_smt_solver.sat_status import SatStatus
+from absmt.formula.type import FormulaData
+from absmt.sat_status import SatStatus
 
 logger = logging.getLogger(__name__)
 
