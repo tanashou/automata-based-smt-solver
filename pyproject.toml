@@ -1,3 +1,5 @@
+# This pyproject.toml is maintained manually. Dependencies are managed
+# directly in this file rather than using uv's automatic dependency resolution.
 [project]
 name = "automata_based_smt_solver"
 version = "0.2.0"
@@ -7,7 +9,7 @@ authors = [{ name = "tanashou", email = "tanashou0210@gmail.com" }]
 
 requires-python = ">=3.11"
 readme = "README.md"
-license = { file = "licenses/automata_based_smt_solver/LICENSE" }
+license = { file = "LICENSE" }
 
 dependencies = ["pysmt==0.9.6"]
 
