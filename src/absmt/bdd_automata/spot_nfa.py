@@ -22,10 +22,13 @@ class SpotNFA:
     initial_state: NFAStateT
     final_states: set[NFAStateT]
 
-    _bdict: Any = None  # spot.bdd_dict | None
-    spot_automaton: Any = None  # spot.twa_graph | None
+    bdd_dict: Any  # spot.bdd_dict
+
+    spot_automaton: Any = field(
+        default_factory=Any, init=False
+    )  # spot.twa_graph | None
     _state_map: dict[NFAStateT, int] = field(default_factory=dict, init=False)
-    _bdd_var_ids: dict[str, Any] = field(default_factory=dict, init=False)
+    _bdd_var_str_to_id: dict[str, Any] = field(default_factory=dict, init=False)
 
     def __post_init__(self) -> None:
         """Initialize the Spot automaton after creation."""
@@ -38,25 +41,23 @@ class SpotNFA:
 
     def _create_automaton(self) -> None:
         """Create BDD dictionary and Spot automaton."""
-        self._bdict = spot.make_bdd_dict()
-        self.spot_automaton = spot.make_twa_graph(self._bdict)
+        self.spot_automaton = spot.make_twa_graph(self._bdd_dict_manager.bdd_dict)  # type: ignore[attr-defined]
 
     def _register_ap(self) -> None:
         """Register atomic propositions for each variable in the BDD."""
-        for var in self.alphabet.all_vars:
-            # Register each variable as an atomic proposition
-            bdd_var_index = self.spot_automaton.register_ap(str(var))
-            self._bdd_var_ids[str(var)] = bdd_var_index
+        for var in self.alphabet.used_vars:
+            bdd_var_id = self.spot_automaton.register_ap(str(var))
+            self._bdd_var_str_to_id[str(var)] = bdd_var_id
 
     def _add_states(self) -> None:
         """Add states to the automaton."""
         self._state_map = {}
-        state_list = list(self.states)
 
-        if state_list:
+        if self.states:
             # Add required number of states
-            self.spot_automaton.new_states(len(state_list))  # type: ignore[attr-defined]
-            for i, state in enumerate(state_list):
+            self.spot_automaton.new_states(len(self.states))  # type: ignore[attr-defined]
+            # spot.aut の状態と NFA の状態を対応させるためのマップを作成
+            for i, state in enumerate(self.states):
                 self._state_map[state] = i
 
     def _set_initial_state(self) -> None:
@@ -79,23 +80,26 @@ class SpotNFA:
             for symbol, state_to_set in transitions.items():
                 for state_to in state_to_set:
                     state_to_id = self._state_map[state_to]
-                    bdd = self.symbol_to_bdd(symbol)
+                    formula = self.symbol_to_formula(symbol)
+
                     if state_to in self.final_states:
                         # 受理状態に入る遷移に集合0を割り当てる
                         self.spot_automaton.new_edge(
-                            state_from_id, state_to_id, bdd, [0]
+                            state_from_id, state_to_id, formula, [0]
                         )
                     else:
-                        self.spot_automaton.new_edge(state_from_id, state_to_id, bdd)
+                        self.spot_automaton.new_edge(
+                            state_from_id, state_to_id, formula
+                        )
 
-    def symbol_to_bdd(self, symbol: MSBFAlphabetSymbol) -> object:
-        """Convert MSBF alphabet symbol to BDD condition.
+    def symbol_to_formula(self, symbol: MSBFAlphabetSymbol) -> object:
+        """Convert MSBF alphabet symbol to formula.
 
         Args:
             symbol: The MSBF alphabet symbol to convert
 
         Returns:
-            BDD condition representing the symbol
+            Formula representing the symbol
 
         """
         # Start with True (bddtrue)
@@ -104,14 +108,14 @@ class SpotNFA:
         symbol_str = str(symbol)
         for i, bit in enumerate(symbol_str):
             var_name = str(self.alphabet.all_vars[i])
-            bdd_var_index = self._bdd_var_ids[var_name]
+            bdd_var_id = self._bdd_var_str_to_id[var_name]
 
             if bit == "1":
                 # Bit is 1 means variable is True
-                result = result & buddy.bdd_ithvar(bdd_var_index)
+                result = result & buddy.bdd_ithvar(bdd_var_id)
             elif bit == "0":
                 # Bit is 0 means variable is False (negated)
-                result = result & (-buddy.bdd_ithvar(bdd_var_index))
+                result = result & (-buddy.bdd_ithvar(bdd_var_id))
             # Skip wildcards
 
         return result
@@ -135,11 +139,12 @@ class SpotNFA:
         raise NotImplementedError(msg)
 
     @classmethod
-    def from_nfa(cls, nfa: "NFA") -> "SpotNFA":
+    def from_nfa(cls, nfa: "NFA", bdd_dict: Any) -> "SpotNFA":  # noqa: ANN401
         """Create SpotNFA from an NFA object.
 
         Args:
             nfa: NFA object to convert
+            bdd_dict: BDD dictionary to use for the Spot automaton
 
         Returns:
             SpotNFA: New SpotNFA instance
@@ -151,6 +156,7 @@ class SpotNFA:
             nfa.transitions,
             nfa.initial_state,
             nfa.final_states,
+            bdd_dict,
         )
 
     def __str__(self) -> str:
