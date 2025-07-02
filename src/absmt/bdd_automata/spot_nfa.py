@@ -1,15 +1,12 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import buddy
 import spot
 
 from absmt.automata.msbf_alphabet import MSBFAlphabet
 from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
-from absmt.automata.nfa import NFAStateT, NFATransitionsT
-
-if TYPE_CHECKING:
-    from absmt.automata.nfa import NFA
+from absmt.automata.nfa import NFA, NFAStateT, NFATransitionsT
 
 
 @dataclass
@@ -21,11 +18,11 @@ class SpotNFA:
     transitions: NFATransitionsT
     initial_state: NFAStateT
     final_states: set[NFAStateT]
-
     bdd_dict: Any  # spot.bdd_dict
 
     spot_automaton: Any = field(
-        default_factory=Any, init=False
+        default_factory=lambda: None,
+        init=False,
     )  # spot.twa_graph | None
     _state_map: dict[NFAStateT, int] = field(default_factory=dict, init=False)
     _bdd_var_str_to_id: dict[str, Any] = field(default_factory=dict, init=False)
@@ -41,11 +38,11 @@ class SpotNFA:
 
     def _create_automaton(self) -> None:
         """Create BDD dictionary and Spot automaton."""
-        self.spot_automaton = spot.make_twa_graph(self._bdd_dict_manager.bdd_dict)  # type: ignore[attr-defined]
+        self.spot_automaton = spot.make_twa_graph(self.bdd_dict)
 
     def _register_ap(self) -> None:
         """Register atomic propositions for each variable in the BDD."""
-        for var in self.alphabet.used_vars:
+        for var in self.alphabet.all_vars:
             bdd_var_id = self.spot_automaton.register_ap(str(var))
             self._bdd_var_str_to_id[str(var)] = bdd_var_id
 
@@ -55,7 +52,7 @@ class SpotNFA:
 
         if self.states:
             # Add required number of states
-            self.spot_automaton.new_states(len(self.states))  # type: ignore[attr-defined]
+            self.spot_automaton.new_states(len(self.states))
             # spot.aut の状態と NFA の状態を対応させるためのマップを作成
             for i, state in enumerate(self.states):
                 self._state_map[state] = i
@@ -64,14 +61,14 @@ class SpotNFA:
         """Set the initial state of the automaton."""
         if self._state_map is not None and self.initial_state in self._state_map:
             initial_state_id = self._state_map[self.initial_state]
-            self.spot_automaton.set_init_state(initial_state_id)  # type: ignore[attr-defined]
+            self.spot_automaton.set_init_state(initial_state_id)
 
     def _set_acceptance_condition(self) -> None:
         """Set acceptance condition for Büchi automaton."""
         # 受理状態集合の数なので第一引数は 1
         # 無限語、有限語ともに受理したいので第二引数は "Inf(0) | Fin(0)"
         # 受理集合は 0
-        self.spot_automaton.set_acceptance(1, "Inf(0) | Fin(0)")  # type: ignore[attr-defined]
+        self.spot_automaton.set_acceptance(1, "Inf(0) | Fin(0)")
 
     def _add_transitions(self) -> None:
         """Add transitions to the automaton."""
@@ -122,11 +119,11 @@ class SpotNFA:
 
     def to_hoa(self) -> str:
         """Convert the automaton to HOA format string."""
-        return self.spot_automaton.to_str("hoa")  # type: ignore[attr-defined]
+        return self.spot_automaton.to_str("hoa")
 
     def to_dot(self) -> str:
         """Convert the automaton to DOT format string."""
-        return self.spot_automaton.to_str("dot")  # type: ignore[attr-defined]
+        return self.spot_automaton.to_str("dot")
 
     def accepts(self, word: str) -> bool:
         """Check if the automaton accepts a given word."""
