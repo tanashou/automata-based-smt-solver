@@ -1,11 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-import buddy
 import spot
 
 from absmt.automata.msbf_alphabet import MSBFAlphabet
-from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
+from absmt.automata.msbf_to_bdd_encoder import MSBFToBDDEncoder
 from absmt.automata.nfa import NFAStateT, NFATransitionsT
 
 if TYPE_CHECKING:
@@ -17,32 +16,31 @@ class SpotNFA:
     """Wrapper class for converting NFA components to Spot automaton."""
 
     states: set[NFAStateT]
-    input_symbols: MSBFAlphabet
+    alphabet: MSBFAlphabet
     transitions: NFATransitionsT
     initial_state: NFAStateT
     final_states: set[NFAStateT]
-    _spot_automaton: Any = None  # spot.twa_graph | None
-    _state_map: dict[NFAStateT, int] | None = None
-    _ap_map: dict[MSBFAlphabetSymbol, Any] | None = None
+
+    bdd_encoder: MSBFToBDDEncoder
+
     _bdict: Any = None  # spot.bdd_dict | None
+    spot_automaton: Any = None  # spot.twa_graph | None
+    _state_map: dict[NFAStateT, int] = field(default_factory=dict, init=False)
+    _bdd_var_ids: dict[str, Any] = field(default_factory=dict, init=False)
 
     def __post_init__(self) -> None:
         """Initialize the Spot automaton after creation."""
-        self._build_spot_automaton()
-
-    def _build_spot_automaton(self) -> None:
-        """Convert the custom NFA to a Spot automaton."""
         self._create_automaton()
-        self._add_states()
-        self._register_atomic_propositions()
-        self._add_transitions()
-        self._set_initial_state()
+        self.bdd_encoder.register_ap(self.spot_automaton)
         self._set_acceptance_condition()
+        self._add_states()
+        self._set_initial_state()
+        self._add_transitions()
 
     def _create_automaton(self) -> None:
         """Create BDD dictionary and Spot automaton."""
         self._bdict = spot.make_bdd_dict()
-        self._spot_automaton = spot.make_twa_graph(self._bdict)
+        self.spot_automaton = spot.make_twa_graph(self._bdict)
 
     def _add_states(self) -> None:
         """Add states to the automaton."""
@@ -51,54 +49,38 @@ class SpotNFA:
 
         if state_list:
             # Add required number of states
-            self._spot_automaton.new_states(len(state_list))  # type: ignore[attr-defined]
+            self.spot_automaton.new_states(len(state_list))  # type: ignore[attr-defined]
             for i, state in enumerate(state_list):
                 self._state_map[state] = i
-
-    def _register_atomic_propositions(self) -> None:
-        """Register atomic propositions and create BDD variables."""
-        self._ap_map = {}
-        for symbol in self.input_symbols.symbol_generator():
-            symbol_str = str(symbol)
-            ap_num = self._spot_automaton.register_ap(symbol_str)  # type: ignore[attr-defined]
-            self._ap_map[symbol] = buddy.bdd_ithvar(ap_num)
-
-    def _add_transitions(self) -> None:
-        """Add transitions to the automaton."""
-        raise NotImplementedError
 
     def _set_initial_state(self) -> None:
         """Set the initial state of the automaton."""
         if self._state_map is not None and self.initial_state in self._state_map:
-            initial_state_num = self._state_map[self.initial_state]
-            self._spot_automaton.set_init_state(initial_state_num)  # type: ignore[attr-defined]
+            initial_state_id = self._state_map[self.initial_state]
+            self.spot_automaton.set_init_state(initial_state_id)  # type: ignore[attr-defined]
 
     def _set_acceptance_condition(self) -> None:
         """Set acceptance condition for Büchi automaton."""
-        # 受理状態集合の数なので、1
-        # 無限語、有限語ともに受理したいので、"t"
-        self._spot_automaton.set_acceptance(1, "t")  # type: ignore[attr-defined]
-        # 受理状態に入る遷移に集合0を割り当てる
+        # 受理状態集合の数なので第一引数は 1
+        # 無限語、有限語ともに受理したいので第二引数は "Inf(0) | Fin(0)"
+        # 受理集合は 0
+        self.spot_automaton.set_acceptance(1, "Inf(0) | Fin(0)")  # type: ignore[attr-defined]
 
-        # For Büchi automata, mark states that should be visited
-        # infinitely often
-        if self._state_map is not None:
-            for final_state in self.final_states:
-                final_state_num = self._state_map[final_state]
-                # Add a self-loop with true condition and acceptance mark
-                self._spot_automaton.new_edge(  # type: ignore[attr-defined]
-                    final_state_num, final_state_num, buddy.bddtrue, [0]
-                )
-
-    @property
-    def spot_automaton(self) -> object:
-        """Get the underlying Spot automaton."""
-        if self._spot_automaton is None:
-            self._build_spot_automaton()
-        if self._spot_automaton is None:
-            msg = "Failed to build Spot automaton"
-            raise RuntimeError(msg)
-        return self._spot_automaton
+    def _add_transitions(self) -> None:
+        """Add transitions to the automaton."""
+        for state_from, transitions in self.transitions.items():
+            state_from_id = self._state_map[state_from]
+            for symbol, state_to_set in transitions.items():
+                for state_to in state_to_set:
+                    state_to_id = self._state_map[state_to]
+                    bdd = self.bdd_encoder.symbol_to_bdd(symbol)
+                    if state_to in self.final_states:
+                        # 受理状態に入る遷移に集合0を割り当てる
+                        self.spot_automaton.new_edge(
+                            state_from_id, state_to_id, bdd, [0]
+                        )
+                    else:
+                        self.spot_automaton.new_edge(state_from_id, state_to_id, bdd)
 
     def to_hoa(self) -> str:
         """Convert the automaton to HOA format string."""
@@ -129,13 +111,7 @@ class SpotNFA:
             SpotNFA: New SpotNFA instance
 
         """
-        return cls(
-            states=nfa.states,
-            input_symbols=nfa.input_symbols,
-            transitions=nfa.transitions,
-            initial_state=nfa.initial_state,
-            final_states=nfa.final_states,
-        )
+        raise NotImplementedError
 
     def __str__(self) -> str:
         """Return string representation showing the HOA format."""
