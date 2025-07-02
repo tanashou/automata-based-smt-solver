@@ -9,8 +9,8 @@ from pysmt.shortcuts import And
 from pysmt.smtlib.parser import SmtLibParser
 
 from absmt.automata.nfa import NFA
-from absmt.automata.spot_nfa import SpotNFA
 from absmt.automata_builder import AutomataBuilder
+from absmt.bdd_automata.spot_nfa import SpotNFA
 from absmt.build_status import BuildStatus
 from absmt.formula import DataExtractor
 from absmt.formula.rewritings import (
