@@ -1,10 +1,11 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+import buddy
 import spot
 
 from absmt.automata.msbf_alphabet import MSBFAlphabet
-from absmt.automata.msbf_to_bdd_encoder import MSBFToBDDEncoder
+from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
 from absmt.automata.nfa import NFAStateT, NFATransitionsT
 
 if TYPE_CHECKING:
@@ -21,8 +22,6 @@ class SpotNFA:
     initial_state: NFAStateT
     final_states: set[NFAStateT]
 
-    bdd_encoder: MSBFToBDDEncoder
-
     _bdict: Any = None  # spot.bdd_dict | None
     spot_automaton: Any = None  # spot.twa_graph | None
     _state_map: dict[NFAStateT, int] = field(default_factory=dict, init=False)
@@ -31,7 +30,7 @@ class SpotNFA:
     def __post_init__(self) -> None:
         """Initialize the Spot automaton after creation."""
         self._create_automaton()
-        self.bdd_encoder.register_ap(self.spot_automaton)
+        self._register_ap()
         self._set_acceptance_condition()
         self._add_states()
         self._set_initial_state()
@@ -41,6 +40,13 @@ class SpotNFA:
         """Create BDD dictionary and Spot automaton."""
         self._bdict = spot.make_bdd_dict()
         self.spot_automaton = spot.make_twa_graph(self._bdict)
+
+    def _register_ap(self) -> None:
+        """Register atomic propositions for each variable in the BDD."""
+        for var in self.alphabet.all_vars:
+            # Register each variable as an atomic proposition
+            bdd_var_index = self.spot_automaton.register_ap(str(var))
+            self._bdd_var_ids[str(var)] = bdd_var_index
 
     def _add_states(self) -> None:
         """Add states to the automaton."""
@@ -73,7 +79,7 @@ class SpotNFA:
             for symbol, state_to_set in transitions.items():
                 for state_to in state_to_set:
                     state_to_id = self._state_map[state_to]
-                    bdd = self.bdd_encoder.symbol_to_bdd(symbol)
+                    bdd = self.symbol_to_bdd(symbol)
                     if state_to in self.final_states:
                         # 受理状態に入る遷移に集合0を割り当てる
                         self.spot_automaton.new_edge(
@@ -81,6 +87,34 @@ class SpotNFA:
                         )
                     else:
                         self.spot_automaton.new_edge(state_from_id, state_to_id, bdd)
+
+    def symbol_to_bdd(self, symbol: MSBFAlphabetSymbol) -> object:
+        """Convert MSBF alphabet symbol to BDD condition.
+
+        Args:
+            symbol: The MSBF alphabet symbol to convert
+
+        Returns:
+            BDD condition representing the symbol
+
+        """
+        # Start with True (bddtrue)
+        result = buddy.bddtrue
+
+        symbol_str = str(symbol)
+        for i, bit in enumerate(symbol_str):
+            var_name = str(self.alphabet.all_vars[i])
+            bdd_var_index = self._bdd_var_ids[var_name]
+
+            if bit == "1":
+                # Bit is 1 means variable is True
+                result = result & buddy.bdd_ithvar(bdd_var_index)
+            elif bit == "0":
+                # Bit is 0 means variable is False (negated)
+                result = result & (-buddy.bdd_ithvar(bdd_var_index))
+            # Skip wildcards
+
+        return result
 
     def to_hoa(self) -> str:
         """Convert the automaton to HOA format string."""
@@ -111,7 +145,13 @@ class SpotNFA:
             SpotNFA: New SpotNFA instance
 
         """
-        raise NotImplementedError
+        return cls(
+            nfa.states,
+            nfa.input_symbols,
+            nfa.transitions,
+            nfa.initial_state,
+            nfa.final_states,
+        )
 
     def __str__(self) -> str:
         """Return string representation showing the HOA format."""
