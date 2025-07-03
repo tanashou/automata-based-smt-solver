@@ -2,6 +2,7 @@ import logging
 from collections.abc import Generator
 
 import pysmt.rewritings
+import spot
 from pysmt.fnode import FNode
 from pysmt.rewritings import TimesDistributor
 from pysmt.shortcuts import And
@@ -9,6 +10,7 @@ from pysmt.smtlib.parser import SmtLibParser
 
 from absmt.automata.nfa import NFA
 from absmt.automata_builder import AutomataBuilder
+from absmt.bdd_automata.spot_nfa import SpotNFA
 from absmt.build_status import BuildStatus
 from absmt.formula import DataExtractor
 from absmt.formula.rewritings import (
@@ -185,6 +187,52 @@ class Solver:
                     step + 1,
                 )
                 if all_nfa and all_nfa.is_acceptable():
+                    logger.info("SAT condition found in current conjunction.")
+                    return SatStatus.SAT
+
+                logger.info(
+                    "Not enough for checking SAT condition yet. Building next step."
+                )
+
+        logger.info(
+            "No satisfiable conjunction found after checking all possibilities."
+        )
+        return SatStatus.UNSAT
+
+    def solve_with_dnf2(self) -> SatStatus:
+        if not self._formulas:
+            msg = "No formulas to solve."
+            raise ValueError(msg)
+
+        formula = And(self._formulas)
+        logger.info("Solving formula: %s", formula.serialize(threshold=100))
+        dnf_generator = self._rewrite_formula_to_dnf(formula)
+        logger.info("Rewritten formula to DNF.")
+
+        for i, conjunction in enumerate(dnf_generator):
+            logger.info("Processing DNF conjunction #%d", i + 1)
+            logger.info(
+                "Processing conjunction %s", conjunction.serialize(threshold=100)
+            )
+            all_vars_in_conj = conjunction.get_free_variables()
+            var_index_map = {var: index for index, var in enumerate(all_vars_in_conj)}
+            data = self._extract_data_from_conjunction(conjunction)
+
+            literal_builders = self._setup_builders_for_conjunction(
+                data, all_vars_in_conj, var_index_map
+            )
+
+            for step, _ in enumerate(
+                self._stepwise_build_conjunction(literal_builders)
+            ):
+                logger.info(
+                    "intersecting NFA for conjunction #%d step %d", i + 1, step + 1
+                )
+                nfas = [builder.nfa for builder in literal_builders]
+                bdict = spot.make_bdd_dict()
+                bdd_nfas = [SpotNFA.from_nfa(nfa, bdict) for nfa in nfas]
+
+                if SpotNFA.has_common_language(*bdd_nfas):
                     logger.info("SAT condition found in current conjunction.")
                     return SatStatus.SAT
 

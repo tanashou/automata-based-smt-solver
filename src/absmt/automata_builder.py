@@ -27,7 +27,7 @@ class AutomataBuilder:
         initial_state = "q0"
 
         self.nfa = NFA(
-            states={initial_state},
+            states={initial_state, self.formula_data.const},
             initial_state=initial_state,
             input_symbols=MSBFAlphabet(all_vars, used_vars),
             transitions=defaultdict(lambda: defaultdict(set)),
