@@ -1,15 +1,15 @@
+import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import buddy
 import spot
 
 from absmt.automata.msbf_alphabet import MSBFAlphabet
 from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
-from absmt.automata.nfa import NFAStateT, NFATransitionsT
+from absmt.automata.nfa import NFA, NFAStateT, NFATransitionsT
 
-if TYPE_CHECKING:
-    from absmt.automata.nfa import NFA
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -21,11 +21,11 @@ class SpotNFA:
     transitions: NFATransitionsT
     initial_state: NFAStateT
     final_states: set[NFAStateT]
-
     bdd_dict: Any  # spot.bdd_dict
 
     spot_automaton: Any = field(
-        default_factory=Any, init=False
+        default_factory=lambda: None,
+        init=False,
     )  # spot.twa_graph | None
     _state_map: dict[NFAStateT, int] = field(default_factory=dict, init=False)
     _bdd_var_str_to_id: dict[str, Any] = field(default_factory=dict, init=False)
@@ -34,14 +34,17 @@ class SpotNFA:
         """Initialize the Spot automaton after creation."""
         self._create_automaton()
         self._register_ap()
-        self._set_acceptance_condition()
         self._add_states()
         self._set_initial_state()
         self._add_transitions()
 
     def _create_automaton(self) -> None:
         """Create BDD dictionary and Spot automaton."""
-        self.spot_automaton = spot.make_twa_graph(self._bdd_dict_manager.bdd_dict)  # type: ignore[attr-defined]
+        self.spot_automaton = spot.make_twa_graph(self.bdd_dict)
+        # Set the acceptance condition of the automaton to Inf(0)
+        self.spot_automaton.set_buchi()
+        # Pretend this is state-based acceptance
+        self.spot_automaton.prop_state_acc(True)  # noqa: FBT003
 
     def _register_ap(self) -> None:
         """Register atomic propositions for each variable in the BDD."""
@@ -55,7 +58,7 @@ class SpotNFA:
 
         if self.states:
             # Add required number of states
-            self.spot_automaton.new_states(len(self.states))  # type: ignore[attr-defined]
+            self.spot_automaton.new_states(len(self.states))
             # spot.aut の状態と NFA の状態を対応させるためのマップを作成
             for i, state in enumerate(self.states):
                 self._state_map[state] = i
@@ -64,26 +67,22 @@ class SpotNFA:
         """Set the initial state of the automaton."""
         if self._state_map is not None and self.initial_state in self._state_map:
             initial_state_id = self._state_map[self.initial_state]
-            self.spot_automaton.set_init_state(initial_state_id)  # type: ignore[attr-defined]
-
-    def _set_acceptance_condition(self) -> None:
-        """Set acceptance condition for Büchi automaton."""
-        # 受理状態集合の数なので第一引数は 1
-        # 無限語、有限語ともに受理したいので第二引数は "Inf(0) | Fin(0)"
-        # 受理集合は 0
-        self.spot_automaton.set_acceptance(1, "Inf(0) | Fin(0)")  # type: ignore[attr-defined]
+            self.spot_automaton.set_init_state(initial_state_id)
 
     def _add_transitions(self) -> None:
         """Add transitions to the automaton."""
         for state_from, transitions in self.transitions.items():
             state_from_id = self._state_map[state_from]
+            is_state_from_final = state_from in self.final_states
+
+            # 受理状態からの遷移全てを受理条件に追加
             for symbol, state_to_set in transitions.items():
                 for state_to in state_to_set:
                     state_to_id = self._state_map[state_to]
+
                     formula = self.symbol_to_formula(symbol)
 
-                    if state_to in self.final_states:
-                        # 受理状態に入る遷移に集合0を割り当てる
+                    if is_state_from_final:
                         self.spot_automaton.new_edge(
                             state_from_id, state_to_id, formula, [0]
                         )
@@ -91,6 +90,17 @@ class SpotNFA:
                         self.spot_automaton.new_edge(
                             state_from_id, state_to_id, formula
                         )
+
+        # Buchi オートマトンに変換するため、無限語を受理できるようにする
+        for final_state in self.final_states:
+            if self.transitions.get(final_state) is None:
+                # If there are no transitions from the final state, create a self-loop
+                final_state_id = self._state_map[final_state]
+                self.spot_automaton.new_edge(
+                    final_state_id,
+                    final_state_id,
+                    buddy.bddtrue,
+                )
 
     def symbol_to_formula(self, symbol: MSBFAlphabetSymbol) -> object:
         """Convert MSBF alphabet symbol to formula.
@@ -108,12 +118,13 @@ class SpotNFA:
         symbol_str = str(symbol)
         for i, bit in enumerate(symbol_str):
             var_name = str(self.alphabet.all_vars[i])
-            bdd_var_id = self._bdd_var_str_to_id[var_name]
 
             if bit == "1":
+                bdd_var_id = self._bdd_var_str_to_id[var_name]
                 # Bit is 1 means variable is True
                 result = result & buddy.bdd_ithvar(bdd_var_id)
             elif bit == "0":
+                bdd_var_id = self._bdd_var_str_to_id[var_name]
                 # Bit is 0 means variable is False (negated)
                 result = result & (-buddy.bdd_ithvar(bdd_var_id))
             # Skip wildcards
@@ -122,11 +133,11 @@ class SpotNFA:
 
     def to_hoa(self) -> str:
         """Convert the automaton to HOA format string."""
-        return self.spot_automaton.to_str("hoa")  # type: ignore[attr-defined]
+        return self.spot_automaton.to_str("hoa")
 
     def to_dot(self) -> str:
         """Convert the automaton to DOT format string."""
-        return self.spot_automaton.to_str("dot")  # type: ignore[attr-defined]
+        return self.spot_automaton.to_str("dot")
 
     def accepts(self, word: str) -> bool:
         """Check if the automaton accepts a given word."""
@@ -175,6 +186,7 @@ class SpotNFA:
 
         """
         if not nfas:
+            logger.debug("No NFAs provided, returning True for common language check.")
             return True  # Empty set has trivially common language
 
         if len(nfas) == 1:
