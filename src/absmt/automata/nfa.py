@@ -83,17 +83,6 @@ class NFA:
     def add_states(self, states: set[NFAStateT]) -> None:
         self.states.update(states)
 
-    def _set_initial_state(self) -> None:
-        initial_state = "q0"
-        self.initial_state = initial_state
-        self.states.add(self.initial_state)
-
-    def _set_custom_initial_state(self, initial_state: NFAStateT) -> None:
-        """Set a custom initial state for the NFA. Only used in intersection."""
-        self.states.remove(self.initial_state)
-        self.initial_state = initial_state
-        self.states.add(initial_state)
-
     def add_transition(
         self,
         start_state: NFAStateT,
@@ -102,14 +91,8 @@ class NFA:
     ) -> None:
         self.transitions[start_state][symbol].add(end_state)
 
-    def set_transitions(self, transitions: NFATransitionsT) -> None:
-        self.transitions = transitions
-
     def add_final_state(self, new_final_state: NFAStateT) -> None:
         self.final_states.add(new_final_state)
-
-    def set_final_states(self, final_states: set[NFAStateT]) -> None:
-        self.final_states = final_states
 
     def get_next_states(
         self, current_state: NFAStateT, input_symbol: MSBFAlphabetSymbol
