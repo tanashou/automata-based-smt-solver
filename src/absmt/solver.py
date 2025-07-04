@@ -140,7 +140,7 @@ class Solver:
             all_nfa = all_nfa.intersection(union_nfa)
         return all_nfa
 
-    def solve_with_dnf(self) -> SatStatus:
+    def solve_legacy(self) -> SatStatus:
         if not self._formulas:
             msg = "No formulas to solve."
             raise ValueError(msg)
@@ -180,7 +180,7 @@ class Solver:
         )
         return SatStatus.UNSAT
 
-    def solve_with_dnf2(self) -> SatStatus:
+    def solve(self) -> SatStatus:
         if not self._formulas:
             msg = "No formulas to solve."
             raise ValueError(msg)
