@@ -79,7 +79,7 @@ def main():
     logging.debug(f"Input formula: {formula}")
 
     solver.add(formula)
-    result = solver.solve_with_dnf()
+    result = solver.solve()
     logging.info(f"Finish solving formula. Result: {result}, Expected: {status}")
 
 
