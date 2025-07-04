@@ -80,7 +80,12 @@ def main():
 
     solver.add(formula)
     result = solver.solve()
-    logging.info(f"Finish solving formula. Result: {result}, Expected: {status}")
+    if result != status:
+        logging.error(f"Unexpected result: {result}, expected: {status}")
+    else:
+        logging.info(
+            f"Successfully solved formula. Result: {result}, Expected: {status}"
+        )
 
 
 if __name__ == "__main__":
