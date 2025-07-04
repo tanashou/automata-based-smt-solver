@@ -1,8 +1,6 @@
 from collections import defaultdict
 from collections.abc import Generator
 
-from pysmt.fnode import FNode
-
 from absmt.automata.msbf_alphabet import MSBFAlphabet
 from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
 from absmt.automata.nfa import NFA
@@ -15,9 +13,9 @@ class AutomataBuilder:
     def __init__(
         self,
         formula_data: FormulaData,
-        all_vars: list[FNode],
-        all_var_index_map: dict[FNode, int],
-        used_vars: list[FNode],
+        all_vars: list[str],
+        all_var_index_map: dict[str, int],
+        used_vars: list[str],
         *,
         create_all: bool = False,
     ) -> None:
@@ -44,7 +42,7 @@ class AutomataBuilder:
         return self._build_status
 
     def _calc_dots(
-        self, all_var_index_map: dict[FNode, int]
+        self, all_var_index_map: dict[str, int]
     ) -> dict[MSBFAlphabetSymbol, int]:
         result = {}
         var_coef_index_pairs = [
