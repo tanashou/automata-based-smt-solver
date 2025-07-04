@@ -82,7 +82,7 @@ class TestNFA:
         # Create NFA
         return NFA(
             states=states,
-            input_symbols=msbf_alphabet_01,
+            alphabet=msbf_alphabet_01,
             transitions=transitions,
             initial_state=initial_state,
             final_states=final_states,
@@ -115,7 +115,7 @@ class TestNFA:
         # Create NFA
         return NFA(
             states=states,
-            input_symbols=msbf_alphabet_01,
+            alphabet=msbf_alphabet_01,
             transitions=transitions,
             initial_state=initial_state,
             final_states=final_states,
@@ -149,7 +149,7 @@ class TestNFA:
         # Create NFA
         return NFA(
             states=states,
-            input_symbols=msbf_alphabet_01,
+            alphabet=msbf_alphabet_01,
             transitions=transitions,
             initial_state=initial_state,
             final_states=final_states,
@@ -272,11 +272,11 @@ class TestNFA:
         assert nfa_starts_with_01.is_acceptable() is True
         # Non-accepting NFA: create one with no final states
         q0 = "q0"  # Initial state
-        msbf_alphabet = nfa_ends_with_01.input_symbols
+        msbf_alphabet = nfa_ends_with_01.alphabet
         transitions: NFATransitionsT = {q0: {}}
         nfa_no_final = NFA(
             states={q0},
-            input_symbols=msbf_alphabet,
+            alphabet=msbf_alphabet,
             transitions=transitions,
             initial_state=q0,
             final_states=set(),

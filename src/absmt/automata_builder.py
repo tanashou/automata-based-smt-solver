@@ -22,7 +22,7 @@ class AutomataBuilder:
         self.nfa = NFA(
             states={initial_state, self.formula_data.const},
             initial_state=initial_state,
-            input_symbols=MSBFAlphabet(all_vars, used_vars),
+            alphabet=MSBFAlphabet(all_vars, used_vars),
             transitions=defaultdict(lambda: defaultdict(set)),
             final_states={self.formula_data.const},
         )
@@ -44,7 +44,7 @@ class AutomataBuilder:
             (coeff, all_var_index_map[var])
             for var, coeff in self.formula_data.coeffs.items()
         ]
-        for symbol in self.nfa.input_symbols.symbol_generator():
+        for symbol in self.nfa.alphabet.symbol_generator():
             result[symbol] = symbol.dot(var_coef_index_pairs)
         return result
 
@@ -63,7 +63,7 @@ class AutomataBuilder:
     def eq_to_nfa(self) -> None:
         while self.work_list:
             current_state = self.work_list.pop()
-            for symbol in self.nfa.input_symbols.symbol_generator():
+            for symbol in self.nfa.alphabet.symbol_generator():
                 dot = self.dots[symbol]
                 if (current_state - dot) & 1 == 0:
                     previous_state = (current_state - dot) // 2
@@ -79,7 +79,7 @@ class AutomataBuilder:
     def le_to_nfa(self) -> None:
         while self.work_list:
             current_state = self.work_list.pop()
-            for symbol in self.nfa.input_symbols.symbol_generator():
+            for symbol in self.nfa.alphabet.symbol_generator():
                 dot = self.dots[symbol]
                 previous_state = (current_state - dot) // 2
                 if previous_state not in self.nfa.states:
@@ -101,7 +101,7 @@ class AutomataBuilder:
         self.nfa.add_state(final_state)
 
         # length of input_symbols is always 2 for boolean formulas
-        for symbol in self.nfa.input_symbols.symbol_generator():
+        for symbol in self.nfa.alphabet.symbol_generator():
             dot_value = self.dots[symbol]
             if dot_value == 1:
                 self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
@@ -121,7 +121,7 @@ class AutomataBuilder:
         self.nfa.add_state(final_state)
 
         # length of input_symbols is always 2 for boolean formulas
-        for symbol in self.nfa.input_symbols.symbol_generator():
+        for symbol in self.nfa.alphabet.symbol_generator():
             dot_value = self.dots[symbol]
             if dot_value == 0:
                 self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
