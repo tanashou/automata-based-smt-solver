@@ -1,6 +1,4 @@
 import pytest
-from pysmt.shortcuts import Symbol
-from pysmt.typing import INT
 
 from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
 from absmt.automata_builder import AutomataBuilder
@@ -9,9 +7,9 @@ from absmt.formula.type import FormulaData, FormulaType
 
 class TestAutomataBuilder:
     def setup_method(self):
-        self.x = Symbol("x", INT)
-        self.y = Symbol("y", INT)
-        self.z = Symbol("z", INT)
+        self.x = "x"
+        self.y = "y"
+        self.z = "z"
         self.all_vars = [self.x, self.y, self.z]
         self.all_var_index_map = {
             name: index for index, name in enumerate(self.all_vars)
@@ -90,11 +88,9 @@ class TestAutomataBuilder:
     )
     def test_calc_dots_parametrized(self, coeffs, mask, expected_dots):
         # Map string variable names to actual symbols
-        var_map = {"x": self.x, "y": self.y, "z": self.z}
-        used_vars = [var_map[k] for k in coeffs]
-        coeffs_sym = {var_map[k]: v for k, v in coeffs.items()}
+        used_vars = list(coeffs.keys())
         formula_data = FormulaData(
-            coeffs=coeffs_sym,
+            coeffs=coeffs,
             const=0,  # const is not used in dot calculation
             formula_type=FormulaType.EQ,
             has_negation_before_bool_var=False,
