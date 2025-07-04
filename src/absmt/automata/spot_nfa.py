@@ -174,7 +174,11 @@ class SpotNFA:
 
                 aut1 = automata_list[i]
                 aut2 = automata_list[i + 1]
+                logger.debug("Computing product of automata %d and %d", i, i + 1)
                 product_aut = spot.product(aut1, aut2)
+                logger.debug(
+                    "Product computation finished for automata %d and %d", i, i + 1
+                )
 
                 # If the product automaton is empty, there is no common language
                 if product_aut.is_empty():
@@ -185,4 +189,7 @@ class SpotNFA:
             # Update the list of automata for the next level
             automata_list = next_level_automata
 
-        return automata_list[0].intersects(automata_list[1])
+        logger.debug("Computing final intersects for the last two automata")
+        result = automata_list[0].intersects(automata_list[1])
+        logger.debug("Final intersects computation finished")
+        return result
