@@ -272,7 +272,7 @@ class TestNFA:
         assert nfa_starts_with_01.is_acceptable() is True
         # Non-accepting NFA: create one with no final states
         q0 = "q0"  # Initial state
-        msbf_alphabet = nfa_ends_with_01.input_symbols
+        msbf_alphabet = nfa_ends_with_01.alphabet
         transitions: NFATransitionsT = {q0: {}}
         nfa_no_final = NFA(
             states={q0},
