@@ -156,20 +156,33 @@ class SpotNFA:
         """
         if not nfas:
             logger.debug("No NFAs provided, returning True for common language check.")
-            return True  # Empty set has trivially common language
+            return True  # If no NFAs are provided, consider it trivially true
 
         if len(nfas) == 1:
-            return not nfas[0].spot_automaton.is_empty()  # type: ignore[attr-defined]
+            return not nfas[0].spot_automaton.is_empty()
 
-        # Initialize product with first automaton
-        product_aut = nfas[0].spot_automaton
+        automata_list: list[Any] = [nfa.spot_automaton for nfa in nfas]
 
-        # Calculate product with remaining automata
-        for nfa in nfas[1:]:
-            product_aut = spot.product(product_aut, nfa.spot_automaton)  # type: ignore[attr-defined]
+        # loop until the list has only two automata
+        while len(automata_list) > 2:  # noqa: PLR2004
+            next_level_automata: list[Any] = []
+            for i in range(0, len(automata_list), 2):
+                # If there is only one element left at the end of the list
+                if i + 1 >= len(automata_list):
+                    next_level_automata.append(automata_list[i])
+                    break
 
-            # Early termination: return False if product becomes empty
-            if product_aut.is_empty():  # type: ignore[attr-defined]
-                return False
+                aut1 = automata_list[i]
+                aut2 = automata_list[i + 1]
+                product_aut = spot.product(aut1, aut2)
 
-        return not product_aut.is_empty()  # type: ignore[attr-defined]
+                # If the product automaton is empty, there is no common language
+                if product_aut.is_empty():
+                    return False
+
+                next_level_automata.append(product_aut)
+
+            # Update the list of automata for the next level
+            automata_list = next_level_automata
+
+        return automata_list[0].intersects(automata_list[1])
