@@ -26,10 +26,10 @@ class SpotNFA:
     def __post_init__(self, nfa: NFA, bdd_dict: Any) -> None:  # noqa: ANN401
         """Initialize the Spot automaton after creation."""
         self._create_automaton(bdd_dict)
-        self._register_ap(nfa.input_symbols)
+        self._register_ap(nfa.alphabet)
         self._add_states(nfa.states)
         self._set_initial_state(nfa.initial_state)
-        self._add_transitions(nfa.transitions, nfa.final_states, nfa.input_symbols)
+        self._add_transitions(nfa.transitions, nfa.final_states, nfa.alphabet)
 
     def _create_automaton(self, bdd_dict: Any) -> None:  # noqa: ANN401
         """Create BDD dictionary and Spot automaton."""

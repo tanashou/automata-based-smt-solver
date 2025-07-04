@@ -48,7 +48,7 @@ class NFA:
 
     Attributes:
         states (set[NFAStateT]): Set of all states.
-        input_symbols (MSBFAlphabet): Set of input symbols.
+        alphabet (MSBFAlphabet): Set of input symbols.
         transitions (NFATransitionsT): Transition mapping.
         initial_state (NFAStateT): Starting state.
         final_states (set[NFAStateT]): Set of accepting states.
@@ -56,7 +56,7 @@ class NFA:
     """
 
     states: set[NFAStateT]
-    input_symbols: MSBFAlphabet
+    alphabet: MSBFAlphabet
     transitions: NFATransitionsT
     initial_state: NFAStateT
     final_states: set[NFAStateT]
@@ -71,7 +71,7 @@ class NFA:
         """Return a string representation of the NFA."""
         return (
             f"states={self.states},\n"
-            f"input_symbols={self.input_symbols},\n"
+            f"alphabet={self.alphabet},\n"
             f"transitions={self.transitions},\n"
             f"initial_state={self.initial_state},\n"
             f"final_states={self.final_states}"
@@ -179,8 +179,8 @@ class NFA:
 
     def intersection(self, other: "NFA") -> "NFA":  # noqa: C901
         new_states: set[NFAStateT] = set()
-        new_input_symbols: MSBFAlphabet = MSBFAlphabet.union_alphabet(
-            self.input_symbols, other.input_symbols
+        new_alphabet: MSBFAlphabet = MSBFAlphabet.union_alphabet(
+            self.alphabet, other.alphabet
         )
         new_transitions: NFATransitionsT = defaultdict(lambda: defaultdict(set))
         new_initial_state_value: tuple[NFAStateT, NFAStateT] = (
@@ -204,7 +204,7 @@ class NFA:
             transitions_b = other.transitions.get(q_b, {})
 
             # Add all transitions moving over same input symbols
-            for symbol in new_input_symbols.symbol_generator():
+            for symbol in new_alphabet.symbol_generator():
                 end_states_a: set[NFAStateT] = set()
                 for key, dests in transitions_a.items():
                     if symbol == key:
@@ -240,7 +240,7 @@ class NFA:
 
         return self.__class__(
             states=new_states,
-            input_symbols=new_input_symbols,
+            alphabet=new_alphabet,
             transitions=new_transitions,
             initial_state=new_initial_state_value,
             final_states=new_final_states,
@@ -337,7 +337,7 @@ class NFA:
                     intersected_nfa_new.final_states.add(intersected_state_to)
 
                 # Propagate changes
-                for next_symbol in n1_new.input_symbols.symbol_generator():
+                for next_symbol in n1_new.alphabet.symbol_generator():
                     if (
                         r1 in n1_new.transitions
                         and next_symbol in n1_new.transitions[r1]
