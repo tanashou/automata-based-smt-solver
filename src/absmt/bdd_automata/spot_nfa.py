@@ -19,7 +19,7 @@ class SpotNFA:
     nfa: InitVar[NFA]
     bdd_dict: InitVar[Any]  # spot.bdd_dict
 
-    spot_automaton: Any = field(init=False)  # spot.twa_graph | None
+    spot_automaton: Any = field(init=False)  # spot.twa_graph
     _state_map: dict[NFAStateT, int] = field(default_factory=dict, init=False)
     _bdd_var_str_to_id: dict[str, Any] = field(default_factory=dict, init=False)
 
@@ -68,6 +68,9 @@ class SpotNFA:
         alphabet: MSBFAlphabet,
     ) -> None:
         """Add transitions to the automaton."""
+        # Cache alphabet information to avoid repeated access
+        all_vars = alphabet.all_vars
+
         for state_from, trans in transitions.items():
             state_from_id = self._state_map[state_from]
             is_state_from_final = state_from in final_states
@@ -77,8 +80,9 @@ class SpotNFA:
                 for state_to in state_to_set:
                     state_to_id = self._state_map[state_to]
 
-                    formula = self.symbol_to_formula(alphabet, symbol)
+                    formula = self._symbol_to_formula(all_vars, symbol)
 
+                    # Buchiオートマトンに変換するため受理状態からの遷移を受理条件に追加
                     if is_state_from_final:
                         self.spot_automaton.new_edge(
                             state_from_id, state_to_id, formula, [0]
@@ -88,7 +92,7 @@ class SpotNFA:
                             state_from_id, state_to_id, formula
                         )
 
-        # Buchi オートマトンに変換するため、無限語を受理できるようにする
+        # Buchiオートマトンに変換するため、無限語を受理できるようにする
         for final_state in final_states:
             if transitions.get(final_state) is None:
                 # If there are no transitions from the final state, create a self-loop
@@ -99,15 +103,16 @@ class SpotNFA:
                     buddy.bddtrue,
                 )
 
-    def symbol_to_formula(
-        self, alphabet: MSBFAlphabet, symbol: MSBFAlphabetSymbol
+    def _symbol_to_formula(
+        self, all_vars: list[str], symbol: MSBFAlphabetSymbol
     ) -> object:
+        """Optimized version that avoids repeated alphabet access."""
         # Start with True (bddtrue)
         result = buddy.bddtrue
 
         symbol_str = str(symbol)
         for i, bit in enumerate(symbol_str):
-            var_name = str(alphabet.all_vars[i])
+            var_name = str(all_vars[i])
 
             if bit == "1":
                 bdd_var_id = self._bdd_var_str_to_id[var_name]
@@ -132,11 +137,6 @@ class SpotNFA:
     def accepts(self, word: str) -> bool:
         """Check if the automaton accepts a given word."""
         msg = "Word acceptance checking not yet implemented"
-        raise NotImplementedError(msg)
-
-    def minimize(self) -> "SpotNFA":
-        """Return a minimized version of this automaton."""
-        msg = "Minimization not yet implemented"
         raise NotImplementedError(msg)
 
     def __str__(self) -> str:
