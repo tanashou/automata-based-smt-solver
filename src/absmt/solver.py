@@ -93,7 +93,7 @@ class Solver:
     def add(self, formula: FNode) -> None:
         self._formulas.append(formula)
 
-    def _setup_builders_for_conjunction(
+    def _setup_and_build(
         self,
         conjunction_data: list[FormulaData],
         all_vars: list[str],
@@ -107,8 +107,8 @@ class Solver:
                 all_vars,
                 var_index_map,
                 used_vars,
-                create_all=False,
             )
+            builder.build()
             builders.append(builder)
         return builders
 
@@ -124,22 +124,13 @@ class Solver:
                 for builder in clause_builders:
                     if builder.build_status == BuildStatus.COMPLETED:
                         continue
-                    builder.build_step()
+                    builder.build()
                     break
             yield
 
-    def _stepwise_build_conjunction(
-        self, literal_builders: list[AutomataBuilder]
-    ) -> Generator[None]:
-        while not all(
-            builder.build_status == BuildStatus.COMPLETED
-            for builder in literal_builders
-        ):
-            for builder in literal_builders:
-                if builder.build_status == BuildStatus.COMPLETED:
-                    continue
-                builder.build_step()
-            yield
+    def _build_conjunction(self, literal_builders: list[AutomataBuilder]) -> None:
+        for builder in literal_builders:
+            builder.build()
 
     def _intersect_all_nfa_(self, union_nfas: list[NFA]) -> NFA | None:
         if not union_nfas:
@@ -149,7 +140,7 @@ class Solver:
             all_nfa = all_nfa.intersection(union_nfa)
         return all_nfa
 
-    def solve_with_dnf(self) -> SatStatus:
+    def solve_legacy(self) -> SatStatus:
         if not self._formulas:
             msg = "No formulas to solve."
             raise ValueError(msg)
@@ -168,38 +159,28 @@ class Solver:
             var_index_map = {var: index for index, var in enumerate(all_vars_in_conj)}
             data = self._extract_data_from_conjunction(conjunction)
 
-            literal_builders = self._setup_builders_for_conjunction(
+            literal_builders = self._setup_and_build(
                 data, all_vars_in_conj, var_index_map
             )
 
-            for step, _ in enumerate(
-                self._stepwise_build_conjunction(literal_builders)
-            ):
-                logger.info(
-                    "intersecting NFA for conjunction #%d step %d", i + 1, step + 1
-                )
-                all_nfa = self._intersect_all_nfa_(
-                    [builder.nfa for builder in literal_builders]
-                )
-                logger.info(
-                    "Finished intersecting NFA for conjunction #%d step %d",
-                    i + 1,
-                    step + 1,
-                )
-                if all_nfa and all_nfa.is_acceptable():
-                    logger.info("SAT condition found in current conjunction.")
-                    return SatStatus.SAT
-
-                logger.info(
-                    "Not enough for checking SAT condition yet. Building next step."
-                )
+            logger.info("intersecting NFA for conjunction #%d", i + 1)
+            all_nfa = self._intersect_all_nfa_(
+                [builder.nfa for builder in literal_builders]
+            )
+            logger.info(
+                "Finished intersecting NFA for conjunction #%d",
+                i + 1,
+            )
+            if all_nfa and all_nfa.is_acceptable():
+                logger.info("SAT condition found in current conjunction.")
+                return SatStatus.SAT
 
         logger.info(
             "No satisfiable conjunction found after checking all possibilities."
         )
         return SatStatus.UNSAT
 
-    def solve_with_dnf2(self) -> SatStatus:
+    def solve(self) -> SatStatus:
         if not self._formulas:
             msg = "No formulas to solve."
             raise ValueError(msg)
@@ -218,27 +199,18 @@ class Solver:
             var_index_map = {var: index for index, var in enumerate(all_vars_in_conj)}
             data = self._extract_data_from_conjunction(conjunction)
 
-            literal_builders = self._setup_builders_for_conjunction(
+            literal_builders = self._setup_and_build(
                 data, all_vars_in_conj, var_index_map
             )
 
-            for step, _ in enumerate(
-                self._stepwise_build_conjunction(literal_builders)
-            ):
-                logger.info(
-                    "intersecting NFA for conjunction #%d step %d", i + 1, step + 1
-                )
-                nfas = [builder.nfa for builder in literal_builders]
-                bdict = spot.make_bdd_dict()
-                bdd_nfas = [SpotNFA.from_nfa(nfa, bdict) for nfa in nfas]
+            logger.info("intersecting NFA for conjunction #%d", i + 1)
+            nfas = [builder.nfa for builder in literal_builders]
+            bdict = spot.make_bdd_dict()
+            bdd_nfas = [SpotNFA(nfa, bdict) for nfa in nfas]
 
-                if SpotNFA.has_common_language(*bdd_nfas):
-                    logger.info("SAT condition found in current conjunction.")
-                    return SatStatus.SAT
-
-                logger.info(
-                    "Not enough for checking SAT condition yet. Building next step."
-                )
+            if SpotNFA.has_common_language(*bdd_nfas):
+                logger.info("SAT condition found in current conjunction.")
+                return SatStatus.SAT
 
         logger.info(
             "No satisfiable conjunction found after checking all possibilities."
