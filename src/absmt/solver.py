@@ -9,9 +9,8 @@ from pysmt.shortcuts import And
 from pysmt.smtlib.parser import SmtLibParser
 
 from absmt.automata.nfa import NFA
+from absmt.automata.spot_nfa import SpotNFA
 from absmt.automata_builder import AutomataBuilder
-from absmt.bdd_automata.spot_nfa import SpotNFA
-from absmt.build_status import BuildStatus
 from absmt.formula import DataExtractor
 from absmt.formula.rewritings import (
     CalculatingBracketExpander,
@@ -111,26 +110,6 @@ class Solver:
             builder.build()
             builders.append(builder)
         return builders
-
-    def _stepwise_build(
-        self, cnf_builders: list[list[AutomataBuilder]]
-    ) -> Generator[None]:
-        while not all(
-            builder.build_status == BuildStatus.COMPLETED
-            for clause_builders in cnf_builders
-            for builder in clause_builders
-        ):
-            for clause_builders in cnf_builders:
-                for builder in clause_builders:
-                    if builder.build_status == BuildStatus.COMPLETED:
-                        continue
-                    builder.build()
-                    break
-            yield
-
-    def _build_conjunction(self, literal_builders: list[AutomataBuilder]) -> None:
-        for builder in literal_builders:
-            builder.build()
 
     def _intersect_all_nfa_(self, union_nfas: list[NFA]) -> NFA | None:
         if not union_nfas:
