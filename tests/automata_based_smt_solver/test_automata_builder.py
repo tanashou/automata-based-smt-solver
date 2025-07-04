@@ -116,10 +116,8 @@ class TestAutomataBuilder:
             formula_type=FormulaType.EQ,
             has_negation_before_bool_var=False,
         )
-        builder1 = AutomataBuilder(
-            formula_data, all_vars, all_var_index_map, used_vars, create_all=True
-        )
-        builder1.build_step()
+        builder1 = AutomataBuilder(formula_data, all_vars, all_var_index_map, used_vars)
+        builder1.build()
 
         # y = 0
         coeffs = {self.y: 1}
@@ -131,10 +129,8 @@ class TestAutomataBuilder:
             formula_type=FormulaType.EQ,
             has_negation_before_bool_var=False,
         )
-        builder2 = AutomataBuilder(
-            formula_data, all_vars, all_var_index_map, used_vars, create_all=True
-        )
-        builder2.build_step()
+        builder2 = AutomataBuilder(formula_data, all_vars, all_var_index_map, used_vars)
+        builder2.build()
 
         # x + y = 1
         coeffs = {self.x: 1, self.y: 1}
@@ -146,10 +142,8 @@ class TestAutomataBuilder:
             formula_type=FormulaType.EQ,
             has_negation_before_bool_var=False,
         )
-        builder3 = AutomataBuilder(
-            formula_data, all_vars, all_var_index_map, used_vars, create_all=True
-        )
-        builder3.build_step()
+        builder3 = AutomataBuilder(formula_data, all_vars, all_var_index_map, used_vars)
+        builder3.build()
 
         intersection12 = builder1.nfa.intersection(builder2.nfa)
         intersection123 = intersection12.intersection(builder3.nfa)
@@ -170,10 +164,8 @@ class TestAutomataBuilder:
             formula_type=FormulaType.LE,
             has_negation_before_bool_var=False,
         )
-        builder1 = AutomataBuilder(
-            formula_data, all_vars, all_var_index_map, used_vars, create_all=True
-        )
-        builder1.build_step()
+        builder1 = AutomataBuilder(formula_data, all_vars, all_var_index_map, used_vars)
+        builder1.build()
 
         # 2x + y = 0
         coeffs = {self.x: 2, self.y: 1}
@@ -185,10 +177,8 @@ class TestAutomataBuilder:
             formula_type=FormulaType.LE,
             has_negation_before_bool_var=False,
         )
-        builder2 = AutomataBuilder(
-            formula_data, all_vars, all_var_index_map, used_vars, create_all=True
-        )
-        builder2.build_step()
+        builder2 = AutomataBuilder(formula_data, all_vars, all_var_index_map, used_vars)
+        builder2.build()
 
         intersection = builder1.nfa.intersection(builder2.nfa)
 
