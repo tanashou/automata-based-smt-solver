@@ -96,8 +96,8 @@ class Solver:
     def _setup_builders_for_conjunction(
         self,
         conjunction_data: list[FormulaData],
-        all_vars: list[FNode],
-        var_index_map: dict[FNode, int],
+        all_vars: list[str],
+        var_index_map: dict[str, int],
     ) -> list[AutomataBuilder]:
         builders: list[AutomataBuilder] = []
         for literal_data in conjunction_data:
