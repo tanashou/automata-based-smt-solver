@@ -36,8 +36,8 @@ class TestDataExtractor:
         assert data.formula_type == FormulaType.EQ
         assert data.const == const
         assert len(data.coeffs) == coeff_count
-        assert data.coeffs[self.x] == x_coeff
-        assert data.coeffs[self.y] == y_coeff
+        assert data.coeffs[str(self.x)] == x_coeff
+        assert data.coeffs[str(self.y)] == y_coeff
         assert not data.has_negation_before_bool_var
 
     def test_extract_le_formula(self):
@@ -56,8 +56,8 @@ class TestDataExtractor:
         assert data.formula_type == FormulaType.LE
         assert data.const == upper_bound
         assert len(data.coeffs) == coeff_count
-        assert data.coeffs[self.x] == x_coeff
-        assert data.coeffs[self.y] == y_coeff
+        assert data.coeffs[str(self.x)] == x_coeff
+        assert data.coeffs[str(self.y)] == y_coeff
         assert not data.has_negation_before_bool_var
 
     def test_extract_lt_formula(self):
@@ -81,8 +81,8 @@ class TestDataExtractor:
         assert data.formula_type == FormulaType.LE
         assert data.const == expected_upper_bound
         assert len(data.coeffs) == coeff_count
-        assert data.coeffs[self.x] == x_coeff
-        assert data.coeffs[self.y] == y_coeff
+        assert data.coeffs[str(self.x)] == x_coeff
+        assert data.coeffs[str(self.y)] == y_coeff
         assert not data.has_negation_before_bool_var
 
     def test_extract_bool_formula(self):
@@ -95,7 +95,7 @@ class TestDataExtractor:
         data = self.extractor.extract(bv1)
 
         assert data.formula_type == FormulaType.BOOL
-        assert data.coeffs[bv1] == expected_coeff
+        assert data.coeffs[str(bv1)] == expected_coeff
         assert data.const == expected_const
         assert not data.has_negation_before_bool_var
 
@@ -110,7 +110,7 @@ class TestDataExtractor:
         data = self.extractor.extract(formula)
 
         assert data.formula_type == FormulaType.BOOL
-        assert data.coeffs[bv1] == expected_coeff
+        assert data.coeffs[str(bv1)] == expected_coeff
         assert data.const == expected_const
         assert data.has_negation_before_bool_var
 
@@ -142,8 +142,8 @@ class TestDataExtractor:
         assert data.formula_type == FormulaType.EQ
         assert data.const == const_rhs - const_lhs
         assert len(data.coeffs) == coeff_count
-        assert data.coeffs[self.x] == x_coeff
-        assert data.coeffs[self.y] == y_coeff
+        assert data.coeffs[str(self.x)] == x_coeff
+        assert data.coeffs[str(self.y)] == y_coeff
         assert not data.has_negation_before_bool_var
 
     def test_extract_formula_with_constants_on_both_sides_le(self):
@@ -169,8 +169,8 @@ class TestDataExtractor:
 
         assert data.formula_type == FormulaType.LE
         assert data.const == expected_upper_bound
-        assert data.coeffs[self.x] == x_coeff
-        assert data.coeffs[self.y] == y_coeff
+        assert data.coeffs[str(self.x)] == x_coeff
+        assert data.coeffs[str(self.y)] == y_coeff
         assert not data.has_negation_before_bool_var
 
     def test_extract_formula_with_negative_constants(self):
@@ -193,8 +193,8 @@ class TestDataExtractor:
 
         assert data.formula_type == FormulaType.EQ
         assert data.const == expected_const
-        assert data.coeffs[self.x] == x_coeff
-        assert data.coeffs[self.y] == y_coeff
+        assert data.coeffs[str(self.x)] == x_coeff
+        assert data.coeffs[str(self.y)] == y_coeff
         assert not data.has_negation_before_bool_var
 
     def test_extract_formula_with_minus_symbol(self):
@@ -215,8 +215,8 @@ class TestDataExtractor:
         assert data.formula_type == FormulaType.EQ
         assert data.const == const
         assert len(data.coeffs) == coeff_count
-        assert data.coeffs[self.x] == x_coeff
-        assert data.coeffs[self.y] == y_coeff
+        assert data.coeffs[str(self.x)] == x_coeff
+        assert data.coeffs[str(self.y)] == y_coeff
         assert not data.has_negation_before_bool_var
 
     def test_extract_var_equals_const(self):
@@ -228,7 +228,7 @@ class TestDataExtractor:
         assert data.formula_type == FormulaType.EQ
         assert data.const == const
         assert len(data.coeffs) == 1
-        assert data.coeffs[self.x] == 1
+        assert data.coeffs[str(self.x)] == 1
         assert not data.has_negation_before_bool_var
 
     def test_extract_var_times_var_raises(self):
