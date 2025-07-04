@@ -1,21 +1,18 @@
 # ruff: noqa: ANN201, ANN001, ANN003, ARG002
 from collections import defaultdict
-from typing import TYPE_CHECKING
 
 from pysmt.exceptions import UnsupportedOperatorError
+from pysmt.fnode import FNode
 from pysmt.typing import BOOL
 from pysmt.walkers import DagWalker
 
 from absmt.formula.type import FormulaData, FormulaType
 
-if TYPE_CHECKING:
-    from pysmt.fnode import FNode
-
 
 class DataExtractor(DagWalker):
     def __init__(self) -> None:
         super().__init__(invalidate_memoization=True)
-        self._coeffs: defaultdict[FNode, int] = defaultdict(int)
+        self._coeffs: defaultdict[str, int] = defaultdict(int)
         self._const: int = 0
         self._formula_type: FormulaType = FormulaType.BOOL
         self._has_negation_before_bool_var: bool = False
@@ -74,7 +71,7 @@ class DataExtractor(DagWalker):
         self._has_negation_before_bool_var = True
         return formula
 
-    def walk_times(self, formula, args, **kwargs):
+    def walk_times(self, formula, args: list[FNode], **kwargs):
         expected_arg_count = 2
         if len(args) != expected_arg_count:
             # var with 2 or more degrees exists"
@@ -84,16 +81,16 @@ class DataExtractor(DagWalker):
         a, b = args
         if a.is_int_constant() and b.is_symbol():
             coeff = a.constant_value() * self._side_sign
-            self._coeffs[b] += coeff
+            self._coeffs[str(b)] += coeff
         elif a.is_symbol() and b.is_int_constant():
             coeff = b.constant_value() * self._side_sign
-            self._coeffs[a] += coeff
+            self._coeffs[str(a)] += coeff
         else:
             msg = "Multiplication of variables (var * var) is not allowed in LIA."
             raise UnsupportedOperatorError(msg)
         return formula
 
-    def walk_plus(self, formula, args, **kwargs):
+    def walk_plus(self, formula, args: list[FNode], **kwargs):
         for arg in args:
             if arg.is_int_constant():
                 self._const += arg.constant_value() * (-self._side_sign)
@@ -120,7 +117,7 @@ class DataExtractor(DagWalker):
     def walk_symbol(self, formula, args, **kwargs):
         # for bool var, set the coeff to 1. use in AutomataBuilder
         if formula.get_type() == BOOL:
-            self._coeffs[formula] = 1
+            self._coeffs[str(formula)] = 1
         return formula
 
     def walk_int_constant(self, formula, args, **kwargs):

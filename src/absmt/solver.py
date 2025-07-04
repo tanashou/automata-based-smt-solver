@@ -96,8 +96,8 @@ class Solver:
     def _setup_builders_for_conjunction(
         self,
         conjunction_data: list[FormulaData],
-        all_vars: list[FNode],
-        var_index_map: dict[FNode, int],
+        all_vars: list[str],
+        var_index_map: dict[str, int],
     ) -> list[AutomataBuilder]:
         builders: list[AutomataBuilder] = []
         for literal_data in conjunction_data:
@@ -164,7 +164,7 @@ class Solver:
             logger.info(
                 "Processing conjunction %s", conjunction.serialize(threshold=100)
             )
-            all_vars_in_conj = conjunction.get_free_variables()
+            all_vars_in_conj = [str(var) for var in conjunction.get_free_variables()]
             var_index_map = {var: index for index, var in enumerate(all_vars_in_conj)}
             data = self._extract_data_from_conjunction(conjunction)
 
@@ -214,7 +214,7 @@ class Solver:
             logger.info(
                 "Processing conjunction %s", conjunction.serialize(threshold=100)
             )
-            all_vars_in_conj = conjunction.get_free_variables()
+            all_vars_in_conj = [str(var) for var in conjunction.get_free_variables()]
             var_index_map = {var: index for index, var in enumerate(all_vars_in_conj)}
             data = self._extract_data_from_conjunction(conjunction)
 
