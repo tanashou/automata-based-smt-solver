@@ -79,8 +79,13 @@ def main():
     logging.debug(f"Input formula: {formula}")
 
     solver.add(formula)
-    result = solver.solve_with_dnf()
-    logging.info(f"Finish solving formula. Result: {result}, Expected: {status}")
+    result = solver.solve()
+    if result != status:
+        logging.error(f"Unexpected result: {result}, expected: {status}")
+    else:
+        logging.info(
+            f"Successfully solved formula. Result: {result}, Expected: {status}"
+        )
 
 
 if __name__ == "__main__":
