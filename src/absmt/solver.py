@@ -206,7 +206,7 @@ class Solver:
             logger.info("intersecting NFA for conjunction #%d", i + 1)
             nfas = [builder.nfa for builder in literal_builders]
             bdict = spot.make_bdd_dict()
-            bdd_nfas = [SpotNFA.from_nfa(nfa, bdict) for nfa in nfas]
+            bdd_nfas = [SpotNFA(nfa, bdict) for nfa in nfas]
 
             if SpotNFA.has_common_language(*bdd_nfas):
                 logger.info("SAT condition found in current conjunction.")
