@@ -2,8 +2,6 @@ from collections.abc import Generator
 from dataclasses import dataclass
 from itertools import product
 
-from pysmt.fnode import FNode
-
 from absmt.automata.msbf_alphabet_symbol import (
     MSBFAlphabetSymbol,
 )
@@ -11,15 +9,15 @@ from absmt.automata.msbf_alphabet_symbol import (
 
 @dataclass(slots=True)
 class MSBFAlphabet:
-    all_vars: list[FNode]
-    used_vars: list[FNode]
+    all_vars: list[str]
+    used_vars: list[str]
 
     def __post_init__(self) -> None:
         if not set(self.used_vars).issubset(set(self.all_vars)):
             msg = "used_vars must be a subset of all_vars"
             raise ValueError(msg)
-        self.all_vars = sorted(self.all_vars, key=lambda x: str(x))
-        self.used_vars = sorted(self.used_vars, key=lambda x: str(x))
+        self.all_vars = sorted(self.all_vars)
+        self.used_vars = sorted(self.used_vars)
 
     def has_same_symbols(self, other: "MSBFAlphabet") -> bool:
         return self.all_vars == other.all_vars
@@ -39,15 +37,13 @@ class MSBFAlphabet:
 
         return MSBFAlphabet(a1.all_vars, union_used_vars)
 
-    def decode_symbol(
-        self, symbols: list[MSBFAlphabetSymbol]
-    ) -> dict[FNode, int | None]:
+    def decode_symbol(self, symbols: list[MSBFAlphabetSymbol]) -> dict[str, int | None]:
         def twos_comp(val: int, bits: int) -> int:
             if (val & (1 << (bits - 1))) != 0:
                 val = val - (1 << bits)
             return val
 
-        result: dict[FNode, int | None] = {}
+        result: dict[str, int | None] = {}
         symbol_strs = [str(s) for s in symbols]
         transposed = ["".join(chars) for chars in zip(*symbol_strs, strict=True)]
 
