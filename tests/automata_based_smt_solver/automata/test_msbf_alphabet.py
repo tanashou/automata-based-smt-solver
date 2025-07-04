@@ -1,8 +1,6 @@
 import itertools
 
 import pytest
-from pysmt.shortcuts import Symbol
-from pysmt.typing import INT
 
 from absmt.automata.msbf_alphabet import MSBFAlphabet
 from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
@@ -10,11 +8,11 @@ from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
 
 class TestMSBFAlphabet:
     def setup_method(self):
-        self.a = Symbol("a", INT)
-        self.b = Symbol("b", INT)
-        self.c = Symbol("c", INT)
-        self.d = Symbol("d", INT)
-        self.e = Symbol("e", INT)
+        self.a = "a"
+        self.b = "b"
+        self.c = "c"
+        self.d = "d"
+        self.e = "e"
 
     def test_symbol_generator_partial_used_vars(self):
         all_vars = [self.a, self.b, self.c]
