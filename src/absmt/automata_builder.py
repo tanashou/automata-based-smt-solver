@@ -17,7 +17,6 @@ class AutomataBuilder:
         used_vars: list[str],
     ) -> None:
         self.formula_data: FormulaData = formula_data
-
         initial_state = "q0"
 
         self.nfa = NFA(
