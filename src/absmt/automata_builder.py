@@ -1,5 +1,4 @@
 from collections import defaultdict
-from collections.abc import Generator
 
 from absmt.automata.msbf_alphabet import MSBFAlphabet
 from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
@@ -16,11 +15,8 @@ class AutomataBuilder:
         all_vars: list[str],
         all_var_index_map: dict[str, int],
         used_vars: list[str],
-        *,
-        create_all: bool = False,
     ) -> None:
         self.formula_data: FormulaData = formula_data
-        self.create_all: bool = create_all  # for debug
 
         initial_state = "q0"
 
@@ -53,32 +49,19 @@ class AutomataBuilder:
             result[symbol] = symbol.dot(var_coef_index_pairs)
         return result
 
-    def _build_nfa_generator(self) -> Generator[None]:
-        # yield を使って 各種nfa変換関数を呼び出す
+    def build(self) -> None:
         match self.formula_data.formula_type:
             case FormulaType.EQ:
-                yield from self.eq_to_nfa()
+                self.eq_to_nfa()
             case FormulaType.LE:
-                yield from self.le_to_nfa()
+                self.le_to_nfa()
             case FormulaType.BOOL:
                 if self.formula_data.has_negation_before_bool_var:
-                    yield from self.false_to_nfa()
+                    self.false_to_nfa()
                 else:
-                    yield from self.true_to_nfa()
+                    self.true_to_nfa()
 
-    def build_step(self) -> BuildStatus:
-        if not hasattr(self, "_build_gen"):
-            self._build_gen = self._build_nfa_generator()
-        try:
-            next(self._build_gen)
-            self._build_status = BuildStatus.ONGOING
-        except StopIteration:
-            self._build_status = BuildStatus.COMPLETED
-        return self._build_status
-
-    def eq_to_nfa(self) -> Generator[None]:
-        partial_sat = False
-
+    def eq_to_nfa(self) -> None:
         while self.work_list:
             current_state = self.work_list.pop()
             for symbol in self.nfa.input_symbols.symbol_generator():
@@ -93,14 +76,8 @@ class AutomataBuilder:
                     self.nfa.add_transition(
                         self.nfa.initial_state, symbol, current_state
                     )
-                    partial_sat = True
 
-            if partial_sat and not self.create_all:
-                yield
-
-    def le_to_nfa(self) -> Generator[None]:
-        partial_sat = False
-
+    def le_to_nfa(self) -> None:
         while self.work_list:
             current_state = self.work_list.pop()
             for symbol in self.nfa.input_symbols.symbol_generator():
@@ -115,11 +92,8 @@ class AutomataBuilder:
                     self.nfa.add_transition(
                         self.nfa.initial_state, symbol, current_state
                     )
-                    partial_sat = True
-            if partial_sat and not self.create_all:
-                yield
 
-    def false_to_nfa(self) -> Generator[None]:
+    def false_to_nfa(self) -> None:
         # add dead state
         dead_state = -1
         self.nfa.add_state(dead_state)
@@ -138,9 +112,8 @@ class AutomataBuilder:
             # add loop to dead state and final state
             self.nfa.add_transition(final_state, symbol, final_state)
             self.nfa.add_transition(dead_state, symbol, dead_state)
-        yield
 
-    def true_to_nfa(self) -> Generator[None]:
+    def true_to_nfa(self) -> None:
         # add dead state
         dead_state = -1
         self.nfa.add_state(dead_state)
@@ -159,4 +132,3 @@ class AutomataBuilder:
             # add loop to dead state and final state
             self.nfa.add_transition(final_state, symbol, final_state)
             self.nfa.add_transition(dead_state, symbol, dead_state)
-        yield
