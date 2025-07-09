@@ -15,7 +15,7 @@ except NameError:
 
 TARGET_SCRIPT_PATH = PROFILER_DIR / "target_script.py"
 
-TIMEOUT_SECONDS = 1200
+TIMEOUT_SECONDS = 60
 
 
 def run_and_profile():
@@ -94,8 +94,8 @@ def run_and_profile():
         else:
             print("Status: Completed successfully")
 
-        print(f"Execution Time: {total_time:.2f} s")
-        print(f"Peak Memory Usage: {max_memory_mb:.2f} MB")
+        print(f"Execution Time: {total_time:.3f} s")
+        print(f"Peak Memory Usage: {max_memory_mb:.3f} MB")
 
         # Ensure the process is terminated if it's still running.
         if proc.poll() is None:
