@@ -70,13 +70,13 @@ def main():
     solver = Solver()
     reader = SMTLIBReader()
 
-    for smt2_file_path in PRIME_CONE_UNSAT:
+    for smt2_file_path in PRIME_CONE_SAT:
         status, formula = reader.from_smt_lib(str(smt2_file_path), is_file_path=True)
         solver.add(formula)
         start_time = time.time()
 
         try:
-            result, max_memory_bytes = solve_with_timeout(solver, timeout=60)
+            result, max_memory_bytes = solve_with_timeout(solver, timeout=300)
             if max_memory_bytes is not None:
                 max_memory_mb = max_memory_bytes / (1024 * 1024)
             else:
