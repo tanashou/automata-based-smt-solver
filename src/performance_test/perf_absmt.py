@@ -1,12 +1,14 @@
-# ruff: noqa: I001, ANN201, LOG015, G004
-from absmt.solver import Solver
-from absmt.formula.smtlib_reader import SMTLIBReader
+# ruff: noqa: ANN201, LOG015, G004
 import logging
-import psutil
-import time
-from pathlib import Path
 import multiprocessing
 import os
+import time
+from pathlib import Path
+
+import psutil
+
+from absmt.formula.smtlib_reader import SMTLIBReader
+from absmt.solver import Solver
 
 logging.basicConfig(
     level=logging.INFO,  # INFOレベル以上のログをすべて出力する
@@ -70,7 +72,7 @@ def main():
     solver = Solver()
     reader = SMTLIBReader()
 
-    for smt2_file_path in PRIME_CONE_SAT:
+    for smt2_file_path in PRIME_CONE_UNSAT:
         status, formula = reader.from_smt_lib(str(smt2_file_path), is_file_path=True)
         solver.add(formula)
         start_time = time.time()
