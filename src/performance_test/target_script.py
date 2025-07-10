@@ -68,11 +68,9 @@ def solve_with_timeout(solver: Solver, timeout: int = 60):
 
 def main():
     solver = Solver()
-    profile_results = []
     reader = SMTLIBReader()
 
     for smt2_file_path in PRIME_CONE_UNSAT:
-        solver.clear()
         status, formula = reader.from_smt_lib(str(smt2_file_path), is_file_path=True)
         solver.add(formula)
         start_time = time.time()
@@ -97,16 +95,6 @@ def main():
         else:
             max_memory_str = str(max_memory_mb)
 
-        profile_results.append(
-            [
-                smt2_file_path.name,
-                result,
-                status,
-                f"{total_time:.6f}",
-                max_memory_str,
-            ]
-        )
-
         if result == "timeout":
             logging.warning(f"Timeout occurred for {smt2_file_path.name}")
         elif result != status:
@@ -120,6 +108,8 @@ def main():
             f"{total_time:.6f}",
             max_memory_str,
         )
+
+        solver.clear()
 
 
 if __name__ == "__main__":
