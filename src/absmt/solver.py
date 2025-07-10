@@ -92,6 +92,9 @@ class Solver:
     def add(self, formula: FNode) -> None:
         self._formulas.append(formula)
 
+    def clear(self) -> None:
+        self._formulas.clear()
+
     def _setup_and_build(
         self,
         conjunction_data: list[FormulaData],
@@ -125,13 +128,13 @@ class Solver:
             raise ValueError(msg)
 
         formula = And(self._formulas)
-        logger.info("Solving formula: %s", formula.serialize(threshold=100))
+        logger.debug("Solving formula: %s", formula.serialize(threshold=100))
         dnf_generator = self._rewrite_formula_to_dnf(formula)
-        logger.info("Rewritten formula to DNF.")
+        logger.debug("Rewritten formula to DNF.")
 
         for i, conjunction in enumerate(dnf_generator):
-            logger.info("Processing DNF conjunction #%d", i + 1)
-            logger.info(
+            logger.debug("Processing DNF conjunction #%d", i + 1)
+            logger.debug(
                 "Processing conjunction %s", conjunction.serialize(threshold=100)
             )
             all_vars_in_conj = [str(var) for var in conjunction.get_free_variables()]
@@ -142,19 +145,19 @@ class Solver:
                 data, all_vars_in_conj, var_index_map
             )
 
-            logger.info("intersecting NFA for conjunction #%d", i + 1)
+            logger.debug("intersecting NFA for conjunction #%d", i + 1)
             all_nfa = self._intersect_all_nfa_(
                 [builder.nfa for builder in literal_builders]
             )
-            logger.info(
+            logger.debug(
                 "Finished intersecting NFA for conjunction #%d",
                 i + 1,
             )
             if all_nfa and all_nfa.is_acceptable():
-                logger.info("SAT condition found in current conjunction.")
+                logger.debug("SAT condition found in current conjunction.")
                 return SatStatus.SAT
 
-        logger.info(
+        logger.debug(
             "No satisfiable conjunction found after checking all possibilities."
         )
         return SatStatus.UNSAT
@@ -165,13 +168,13 @@ class Solver:
             raise ValueError(msg)
 
         formula = And(self._formulas)
-        logger.info("Solving formula: %s", formula.serialize(threshold=100))
+        logger.debug("Solving formula: %s", formula.serialize(threshold=100))
         dnf_generator = self._rewrite_formula_to_dnf(formula)
-        logger.info("Rewritten formula to DNF.")
+        logger.debug("Rewritten formula to DNF.")
 
         for i, conjunction in enumerate(dnf_generator):
-            logger.info("Processing DNF conjunction #%d", i + 1)
-            logger.info(
+            logger.debug("Processing DNF conjunction #%d", i + 1)
+            logger.debug(
                 "Processing conjunction %s", conjunction.serialize(threshold=100)
             )
             all_vars_in_conj = [str(var) for var in conjunction.get_free_variables()]
@@ -182,16 +185,16 @@ class Solver:
                 data, all_vars_in_conj, var_index_map
             )
 
-            logger.info("intersecting NFA for conjunction #%d", i + 1)
+            logger.debug("intersecting NFA for conjunction #%d", i + 1)
             nfas = [builder.nfa for builder in literal_builders]
             bdict = spot.make_bdd_dict()
             bdd_nfas = [SpotNFA(nfa, bdict) for nfa in nfas]
 
             if SpotNFA.has_common_language(*bdd_nfas):
-                logger.info("SAT condition found in current conjunction.")
+                logger.debug("SAT condition found in current conjunction.")
                 return SatStatus.SAT
 
-        logger.info(
+        logger.debug(
             "No satisfiable conjunction found after checking all possibilities."
         )
         return SatStatus.UNSAT

@@ -20,9 +20,7 @@ class SMTLIBReader:
         else:
             smt_script = self.parser.get_script(StringIO(source))
         # SAT 情報と式を返す
-        return self._get_sat_status(
-            smt_script
-        ), smt_script.get_strict_formula().simplify()
+        return self._get_sat_status(smt_script), smt_script.get_strict_formula()
 
     def _get_sat_status(self, script: SmtLibScript) -> SatStatus:
         for cmd in script.commands:
