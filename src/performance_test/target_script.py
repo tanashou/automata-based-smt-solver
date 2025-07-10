@@ -1,11 +1,15 @@
 # ruff: noqa: I001, ANN201, LOG015, G004
-from absmt.formula.smtlib_reader import SMTLIBReader
 from absmt.solver import Solver
-
+from absmt.formula.smtlib_reader import SMTLIBReader
 import logging
+import psutil
+import time
+from pathlib import Path
+import multiprocessing
+import os
 
 logging.basicConfig(
-    level=logging.DEBUG,  # DEBUGレベル以上のログをすべて出力する
+    level=logging.INFO,  # INFOレベル以上のログをすべて出力する
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[
@@ -13,103 +17,108 @@ logging.basicConfig(
     ],
 )
 
-prime_cone_2 = """
-(set-info :smt-lib-version 2.6)
-(set-logic QF_LIA)
-(set-info :category "crafted")
-(set-info :status sat)
-(declare-fun x_0 () Int)
-(declare-fun x_1 () Int)
-(assert (>= x_0 0))
-(assert (>= x_1 0))
-(assert (<= (+ (* (- 4) x_0) (* 2 x_1)) 0))
-(assert (<= (+ (* 3 x_0) (* (- 3) x_1)) 0))
-(assert (>= (+ x_0 x_1) 1))
-(check-sat)
-(exit)
-"""
-# from prime_cone
-prime_cone_3 = """
-(set-info :smt-lib-version 2.6)
-(set-logic QF_LIA)
-(set-info :category "crafted")
-(set-info :status sat)
-(declare-fun x_0 () Int)
-(declare-fun x_1 () Int)
-(declare-fun x_2 () Int)
-(assert (>= x_0 0))
-(assert (>= x_1 0))
-(assert (>= x_2 0))
-(assert (<= (+ (* (- 9) x_0) (* 2 x_1) (* 2 x_2)) 0))
-(assert (<= (+ (* 3 x_0) (* (- 8) x_1) (* 3 x_2)) 0))
-(assert (<= (+ (* 5 x_0) (* 5 x_1) (* (- 6) x_2)) 0))
-(assert (>= (+ x_0 x_1 x_2) 1))
-(check-sat)
-(exit)
-"""
 
-prime_cone_4 = """
-(set-info :smt-lib-version 2.6)
-(set-logic QF_LIA)
-(set-info :category "crafted")
-(set-info :status sat)
-(declare-fun x_0 () Int)
-(declare-fun x_1 () Int)
-(declare-fun x_2 () Int)
-(declare-fun x_3 () Int)
-(assert (>= x_0 0))
-(assert (>= x_1 0))
-(assert (>= x_2 0))
-(assert (>= x_3 0))
-(assert (<= (+ (* (- 16) x_0) (* 2 x_1) (* 2 x_2) (* 2 x_3)) 0))
-(assert (<= (+ (* 3 x_0) (* (- 15) x_1) (* 3 x_2) (* 3 x_3)) 0))
-(assert (<= (+ (* 5 x_0) (* 5 x_1) (* (- 13) x_2) (* 5 x_3)) 0))
-(assert (<= (+ (* 7 x_0) (* 7 x_1) (* 7 x_2) (* (- 11) x_3)) 0))
-(assert (>= (+ x_0 x_1 x_2 x_3) 1))
-(check-sat)
-(exit)
-"""
+# List of SMT2 file paths for indices 2 to 20
+PRIME_CONE_SAT = [
+    Path(__file__).parent.parent.parent
+    / "benchmarks"
+    / "QF_LIA"
+    / "prime-cone"
+    / f"prime_cone_sat_{i}.smt2"
+    for i in range(2, 21)
+]
 
-prime_cone_5 = """
-(set-info :smt-lib-version 2.6)
-(set-logic QF_LIA)
-(set-info :category "crafted")
-(set-info :status sat)
-(declare-fun x_0 () Int)
-(declare-fun x_1 () Int)
-(declare-fun x_2 () Int)
-(declare-fun x_3 () Int)
-(declare-fun x_4 () Int)
-(assert (>= x_0 0))
-(assert (>= x_1 0))
-(assert (>= x_2 0))
-(assert (>= x_3 0))
-(assert (>= x_4 0))
-(assert (<= (+ (* (- 27) x_0) (* 2 x_1) (* 2 x_2) (* 2 x_3) (* 2 x_4)) 0))
-(assert (<= (+ (* 3 x_0) (* (- 26) x_1) (* 3 x_2) (* 3 x_3) (* 3 x_4)) 0))
-(assert (<= (+ (* 5 x_0) (* 5 x_1) (* (- 24) x_2) (* 5 x_3) (* 5 x_4)) 0))
-(assert (<= (+ (* 7 x_0) (* 7 x_1) (* 7 x_2) (* (- 22) x_3) (* 7 x_4)) 0))
-(assert (<= (+ (* 11 x_0) (* 11 x_1) (* 11 x_2) (* 11 x_3) (* (- 18) x_4)) 0))
-(assert (>= (+ x_0 x_1 x_2 x_3 x_4) 1))
-(check-sat)
-(exit)
-"""
+PRIME_CONE_UNSAT = [
+    Path(__file__).parent.parent.parent
+    / "benchmarks"
+    / "QF_LIA"
+    / "prime-cone"
+    / f"prime_cone_unsat_{i}.smt2"
+    for i in range(3, 21)
+]
+
+
+def solve_with_timeout(solver: Solver, timeout: int = 60):
+    result_queue = multiprocessing.Queue()
+
+    def target() -> None:
+        process = psutil.Process(os.getpid())
+        max_mem = process.memory_info().rss
+        try:
+            res = solver.solve()
+            max_mem = max(max_mem, process.memory_info().rss)
+            result_queue.put((res, max_mem))
+        except (RuntimeError, ValueError) as e:
+            result_queue.put((e, max_mem))
+
+    p = multiprocessing.Process(target=target)
+    p.start()
+    p.join(timeout)
+    if p.is_alive():
+        p.terminate()
+        p.join()
+        return "timeout", None
+    if not result_queue.empty():
+        result, max_mem = result_queue.get()
+        if isinstance(result, Exception):
+            raise result
+        return result, max_mem
+    return "timeout", None
 
 
 def main():
-    reader = SMTLIBReader()
     solver = Solver()
-    status, formula = reader.from_smt_lib(prime_cone_5)
-    logging.info(f"Start solving formula. Expected status: {status}")
-    logging.debug(f"Input formula: {formula}")
+    profile_results = []
+    reader = SMTLIBReader()
 
-    solver.add(formula)
-    result = solver.solve()
-    if result != status:
-        logging.error(f"Unexpected result: {result}, expected: {status}")
-    else:
+    for smt2_file_path in PRIME_CONE_UNSAT:
+        solver.clear()
+        status, formula = reader.from_smt_lib(str(smt2_file_path), is_file_path=True)
+        solver.add(formula)
+        start_time = time.time()
+
+        try:
+            result, max_memory_bytes = solve_with_timeout(solver, timeout=60)
+            if max_memory_bytes is not None:
+                max_memory_mb = max_memory_bytes / (1024 * 1024)
+            else:
+                max_memory_mb = "N/A"
+        except Exception:
+            result = "error"
+            max_memory_mb = "N/A"
+            logging.exception(f"Error occurred for {smt2_file_path.name}")
+
+        end_time = time.time()
+        total_time = end_time - start_time
+
+        # Format memory for output
+        if isinstance(max_memory_mb, int | float):
+            max_memory_str = f"{max_memory_mb:.3f}"
+        else:
+            max_memory_str = str(max_memory_mb)
+
+        profile_results.append(
+            [
+                smt2_file_path.name,
+                result,
+                status,
+                f"{total_time:.6f}",
+                max_memory_str,
+            ]
+        )
+
+        if result == "timeout":
+            logging.warning(f"Timeout occurred for {smt2_file_path.name}")
+        elif result != status:
+            logging.error(f"Unexpected result: {result}, expected: {status}")
+
         logging.info(
-            f"Successfully solved formula. Result: {result}, Expected: {status}"
+            "%-22s %-8s %-8s %10s %10s",
+            smt2_file_path.name,
+            result,
+            status,
+            f"{total_time:.6f}",
+            max_memory_str,
         )
 
 
