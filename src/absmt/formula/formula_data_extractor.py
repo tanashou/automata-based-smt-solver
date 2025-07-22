@@ -3,37 +3,19 @@ from collections import defaultdict
 
 from pysmt.exceptions import UnsupportedOperatorError
 from pysmt.fnode import FNode
-from pysmt.typing import BOOL
 from pysmt.walkers import DagWalker
 
-from absmt.formula.type import FormulaData, FormulaType
+from absmt.formula.type import FormulaData, FormulaType, QuantifierType
 
 
-class DataExtractor(DagWalker):
+class FormulaDataExtractor(DagWalker):
     def __init__(self) -> None:
         super().__init__(invalidate_memoization=True)
+
+    def extract(self, formula) -> list[list[FormulaData]]:  # [] 内は and, [] 同士が or
         self._coeffs: defaultdict[str, int] = defaultdict(int)
         self._const: int = 0
-        self._formula_type: FormulaType = FormulaType.BOOL
-        self._has_negation_before_bool_var: bool = False
         self._side_sign: int = 1
-
-    def extract(self, formula) -> FormulaData:
-        self._coeffs = defaultdict(int)
-        self._const = 0
-        self._formula_type = FormulaType.BOOL
-        self._has_negation_before_bool_var = False
-
-        arg_count = 2
-        # formulas with bool var have 1 argument
-        if len(formula.args()) != arg_count:
-            self.walk(formula)
-            return FormulaData(
-                dict(self._coeffs),
-                self._const,
-                self._formula_type,
-                self._has_negation_before_bool_var,
-            )
 
         if formula.is_equals():
             self._formula_type = FormulaType.EQ
@@ -46,6 +28,7 @@ class DataExtractor(DagWalker):
             msg = "Unsupported formula type. Only EQ, LE, and LT are supported."
             raise UnsupportedOperatorError(msg)
 
+        # 括弧展開済み、定数は右辺か左辺に単体として、または足し算、引き算にしか現れない
         lhs, rhs = formula.args()
         if lhs.is_int_constant():
             self._const -= lhs.constant_value()
@@ -59,6 +42,7 @@ class DataExtractor(DagWalker):
 
         final_coeffs = {k: v for k, v in self._coeffs.items() if v != 0}
         return FormulaData(
+            QuantifierType.NONE,
             final_coeffs,
             self._const,
             self._formula_type,
@@ -113,12 +97,6 @@ class DataExtractor(DagWalker):
             "extractor."
         )
         raise UnsupportedOperatorError(msg)
-
-    def walk_symbol(self, formula, args, **kwargs):
-        # for bool var, set the coeff to 1. use in AutomataBuilder
-        if formula.get_type() == BOOL:
-            self._coeffs[str(formula)] = 1
-        return formula
 
     def walk_int_constant(self, formula, args, **kwargs):
         return formula
