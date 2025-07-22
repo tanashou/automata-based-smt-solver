@@ -7,7 +7,7 @@ from .quantifier_type import QuantifierType
 @dataclass
 class FormulaData:
     quantifier_type: QuantifierType
-    quantifier_vars: list[str]
+    quantifier_vars: set[str]
     coeffs: dict[str, int]
     const: int
     formula_type: FormulaType
