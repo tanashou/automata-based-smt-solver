@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from absmt.formula.type import FormulaType, QuantifierType
+from .formula_type import FormulaType
+from .quantifier_type import QuantifierType
 
 
 @dataclass
