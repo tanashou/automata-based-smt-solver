@@ -1,238 +1,99 @@
-import pytest
-from pysmt.exceptions import UnsupportedOperatorError
-from pysmt.shortcuts import LE, LT, And, Equals, Int, Not, Plus, Symbol, Times
-from pysmt.typing import BOOL, INT
+from pysmt.shortcuts import LE, And, Exists, Int, Or, Symbol
+from pysmt.typing import INT
 
-from absmt.formula import DataExtractor
-from absmt.formula.type import FormulaData, FormulaType
+from absmt.formula.formula_data_extractor import (
+    FormulaDataExtractor,
+    collect_literals_from_tree,
+)
+from absmt.formula.type import FormulaType, QuantifierType
 
 
-# If the coeff of symbol is 1, it should be Times(Int(1), symbol).
-# No Minus is allowed. x - y should be represented as x + (-1) * y.
-class TestDataExtractor:
-    def setup_method(self):
-        self.extractor = DataExtractor()
-        self.x = Symbol("x", INT)
-        self.y = Symbol("y", INT)
-        self.z = Symbol("z", INT)
-        self.x_coeff_1 = Times(Int(1), self.x)
-        self.y_coeff_1 = Times(Int(1), self.y)
-        self.z_coeff_1 = Times(Int(1), self.z)
+def test_formula_data_extractor_qf_and_or():
+    """Tests simple AND/OR formulas by checking the collected literals."""
+    x = Symbol("x", INT)
+    y = Symbol("y", INT)
+    formula = And(LE(x, Int(1)), LE(y, Int(2)))
 
-    def test_extract_equality_formula(self):
-        """Test extracting data from an equality formula: x + 2*y = 5."""
-        const = 5
-        x_coeff = 1
-        y_coeff = 2
-        coeff_count = 2
+    # 1. Extractorで木構造を取得し、そこからリテラルのセットを収集
+    extractor = FormulaDataExtractor()
+    tree_result = extractor.extract_data(formula)
+    literals = collect_literals_from_tree(tree_result)
 
-        two_y = Times(Int(y_coeff), self.y)
-        left_side = Plus(self.x_coeff_1, two_y)
-        formula = Equals(left_side, Int(const))
+    # 2. 収集されたリテラルの内容を検証
+    assert len(literals) == 2
+    # 簡単にアクセスできるよう、変数名で辞書に変換
+    literals_by_var = {
+        next(iter(literal.coeffs.keys())): literal for literal in literals
+    }
 
-        data = self.extractor.extract(formula)
+    assert "x" in literals_by_var
+    assert literals_by_var["x"].const == 1
+    assert literals_by_var["x"].quantifier_type == QuantifierType.NONE
 
-        assert isinstance(data, FormulaData)
-        assert data.formula_type == FormulaType.EQ
-        assert data.const == const
-        assert len(data.coeffs) == coeff_count
-        assert data.coeffs[str(self.x)] == x_coeff
-        assert data.coeffs[str(self.y)] == y_coeff
-        assert not data.has_negation_before_bool_var
+    assert "y" in literals_by_var
+    assert literals_by_var["y"].const == 2
+    assert literals_by_var["y"].quantifier_type == QuantifierType.NONE
 
-    def test_extract_le_formula(self):
-        """Test extracting data from a less than or equal formula: x + 3*y <= 10."""
-        x_coeff = 1
-        y_coeff = 3
-        upper_bound = 10
-        coeff_count = 2
 
-        y_term = Times(Int(y_coeff), self.y)
-        left_side = Plus(self.x_coeff_1, y_term)
-        formula = LE(left_side, Int(upper_bound))
+def test_formula_data_extractor_qf_exists():
+    """Tests a simple EXISTS formula by checking the collected literal."""
+    x = Symbol("x", INT)
+    formula = Exists([x], LE(x, Int(5)))
 
-        data = self.extractor.extract(formula)
+    # 1. Extractorで木構造を取得し、そこからリテラルのセットを収集
+    extractor = FormulaDataExtractor()
+    tree_result = extractor.extract_data(formula)
+    literals = collect_literals_from_tree(tree_result)
 
-        assert data.formula_type == FormulaType.LE
-        assert data.const == upper_bound
-        assert len(data.coeffs) == coeff_count
-        assert data.coeffs[str(self.x)] == x_coeff
-        assert data.coeffs[str(self.y)] == y_coeff
-        assert not data.has_negation_before_bool_var
+    # 2. 収集されたリテラルの内容を検証
+    assert len(literals) == 1
 
-    def test_extract_lt_formula(self):
-        """Test extracting data from a less than formula.
+    # セットから唯一の要素を取得
+    data = literals.pop()
 
-        The formula 2*x + y < 7 is expected to be converted to a less-than-or-equal
-        formula: 2*x + y <= 6.
-        """
-        x_coeff = 2
-        y_coeff = 1
-        upper_bound = 7
-        coeff_count = 2
-        expected_upper_bound = upper_bound - 1
+    assert data.quantifier_type == QuantifierType.EXISTS
+    assert data.quantifier_vars == {"x"}
+    assert data.coeffs == {"x": 1}
+    assert data.const == 5
+    assert data.formula_type == FormulaType.LE
 
-        x_term = Times(Int(x_coeff), self.x)
-        left_side = Plus(x_term, self.y_coeff_1)
-        formula = LT(left_side, Int(upper_bound))
 
-        data = self.extractor.extract(formula)
+def test_formula_data_extractor_qf_nested():
+    """Tests a complex nested formula by checking the collected literals."""
+    x = Symbol("x", INT)
+    y = Symbol("y", INT)
+    z = Symbol("z", INT)
+    # ∃x (x ≤ 1 and (y ≤ 2 or ∃z (z ≤ 3)))
+    formula = Exists(
+        [x], And(LE(x, Int(1)), Or(LE(y, Int(2)), Exists([z], LE(z, Int(3)))))
+    )
 
-        assert data.formula_type == FormulaType.LE
-        assert data.const == expected_upper_bound
-        assert len(data.coeffs) == coeff_count
-        assert data.coeffs[str(self.x)] == x_coeff
-        assert data.coeffs[str(self.y)] == y_coeff
-        assert not data.has_negation_before_bool_var
+    # 1. Extractorで木構造を取得し、そこからリテラルのセットを収集
+    extractor = FormulaDataExtractor()
+    tree_result = extractor.extract_data(formula)
+    literals = collect_literals_from_tree(tree_result)
 
-    def test_extract_bool_formula(self):
-        """Test extracting data from a boolean formula: b."""
-        expected_coeff = 1
-        expected_const = 0
+    # 2. 収集された3つのリテラルの内容をそれぞれ検証
+    assert len(literals) == 3
+    # 簡単にアクセスできるよう、変数名で辞書に変換
+    literals_by_var = {
+        next(iter(literal.coeffs.keys())): literal for literal in literals
+    }
 
-        bv1 = Symbol("BV1", BOOL)
+    # Literal: x <= 1
+    data_x = literals_by_var["x"]
+    assert data_x.quantifier_type == QuantifierType.EXISTS
+    assert data_x.quantifier_vars == {"x"}
+    assert data_x.const == 1
 
-        data = self.extractor.extract(bv1)
+    # Literal: y <= 2
+    data_y = literals_by_var["y"]
+    assert data_y.quantifier_type == QuantifierType.EXISTS
+    assert data_y.quantifier_vars == {"x"}  # yはxのスコープ内にある
+    assert data_y.const == 2
 
-        assert data.formula_type == FormulaType.BOOL
-        assert data.coeffs[str(bv1)] == expected_coeff
-        assert data.const == expected_const
-        assert not data.has_negation_before_bool_var
-
-    def test_extract_negated_bool_formula(self):
-        """Test extracting data from a negated boolean formula: Not(bv1)."""
-        expected_coeff = 1
-        expected_const = 0
-
-        bv1 = Symbol("BV1", BOOL)
-        formula = Not(bv1)
-
-        data = self.extractor.extract(formula)
-
-        assert data.formula_type == FormulaType.BOOL
-        assert data.coeffs[str(bv1)] == expected_coeff
-        assert data.const == expected_const
-        assert data.has_negation_before_bool_var
-
-    def test_unsupported_operator(self):
-        """Test that unsupported operators raise the expected exception (e.g., And)."""
-        formula = And(Equals(self.x, Int(1)), Equals(self.y, Int(2)))
-        with pytest.raises(UnsupportedOperatorError):
-            self.extractor.extract(formula)
-
-    def test_extract_formula_with_multiple_constants_lhs_rhs(self):
-        """Test extracting data from a formula with constants on both LHS and RHS.
-
-        x + 2*y + 3 = 5 + 1 is expected to be converted to
-        x + 2*y = 5 + 1 - 3 = 3.
-        """
-        const_rhs = 5
-        const_lhs = 3
-        x_coeff = 1
-        y_coeff = 2
-        coeff_count = 2
-
-        two_y = Times(Int(y_coeff), self.y)
-        lhs = Plus(self.x_coeff_1, two_y, Int(const_lhs))
-        formula = Equals(lhs, Int(const_rhs))
-
-        data = self.extractor.extract(formula)
-
-        # The extractor should move all constants to RHS: x + 2*y = 2
-        assert data.formula_type == FormulaType.EQ
-        assert data.const == const_rhs - const_lhs
-        assert len(data.coeffs) == coeff_count
-        assert data.coeffs[str(self.x)] == x_coeff
-        assert data.coeffs[str(self.y)] == y_coeff
-        assert not data.has_negation_before_bool_var
-
-    def test_extract_formula_with_constants_on_both_sides_le(self):
-        """Test extracting data from a LE formula with constants on both sides.
-
-        x + 2*y + 4 <= 10 + 1 is expected to be converted to
-        x + 2*y <= 10 + 1 - 4 = 7.
-        """
-        lhs_const = 4
-        rhs_const = 1
-        x_coeff = 1
-        y_coeff = 2
-        upper_bound = 10
-
-        expected_upper_bound = upper_bound + rhs_const - lhs_const
-
-        two_y = Times(Int(y_coeff), self.y)
-        lhs = Plus(self.x_coeff_1, two_y, Int(lhs_const))
-        rhs = Plus(Int(upper_bound), Int(rhs_const))
-        formula = LE(lhs, rhs)
-
-        data = self.extractor.extract(formula)
-
-        assert data.formula_type == FormulaType.LE
-        assert data.const == expected_upper_bound
-        assert data.coeffs[str(self.x)] == x_coeff
-        assert data.coeffs[str(self.y)] == y_coeff
-        assert not data.has_negation_before_bool_var
-
-    def test_extract_formula_with_negative_constants(self):
-        """Test extracting data from a formula with negative constants.
-
-        x + 2*y - 3 = -5 is expected to be converted to
-        x + 2*y = -5 - (-3) = -2.
-        """
-        lhs_const = -3
-        rhs_const = -5
-        x_coeff = 1
-        y_coeff = 2
-        expected_const = rhs_const - lhs_const
-
-        two_y = Times(Int(y_coeff), self.y)
-        lhs = Plus(self.x_coeff_1, two_y, Int(lhs_const))
-        formula = Equals(lhs, Int(rhs_const))
-
-        data = self.extractor.extract(formula)
-
-        assert data.formula_type == FormulaType.EQ
-        assert data.const == expected_const
-        assert data.coeffs[str(self.x)] == x_coeff
-        assert data.coeffs[str(self.y)] == y_coeff
-        assert not data.has_negation_before_bool_var
-
-    def test_extract_formula_with_minus_symbol(self):
-        """Test extracting data from a formula with negative coefficients using Minus.
-
-        x - y = -3 should yield coeffs: {x: 1, y: -1}, const: -3
-        """
-        x_coeff = 1
-        y_coeff = -1
-        const = -3
-        coeff_count = 2
-
-        lhs = Plus(self.x_coeff_1, Times(Int(-1), self.y))
-        formula = Equals(lhs, Int(const))
-
-        data = self.extractor.extract(formula)
-
-        assert data.formula_type == FormulaType.EQ
-        assert data.const == const
-        assert len(data.coeffs) == coeff_count
-        assert data.coeffs[str(self.x)] == x_coeff
-        assert data.coeffs[str(self.y)] == y_coeff
-        assert not data.has_negation_before_bool_var
-
-    def test_extract_var_equals_const(self):
-        """Test extracting data from a formula: x = 10."""
-        const = 10
-
-        data = self.extractor.extract(Equals(self.x_coeff_1, Int(const)))
-
-        assert data.formula_type == FormulaType.EQ
-        assert data.const == const
-        assert len(data.coeffs) == 1
-        assert data.coeffs[str(self.x)] == 1
-        assert not data.has_negation_before_bool_var
-
-    def test_extract_var_times_var_raises(self):
-        """Test that extracting data from a formula with var * var raises an error."""
-        formula = Equals(Times(self.x, self.y), Int(0))
-        with pytest.raises(UnsupportedOperatorError):
-            self.extractor.extract(formula)
+    # Literal: z <= 3
+    data_z = literals_by_var["z"]
+    assert data_z.quantifier_type == QuantifierType.EXISTS
+    assert data_z.quantifier_vars == {"x", "z"}  # zはxとzの両方のスコープ内にある
+    assert data_z.const == 3

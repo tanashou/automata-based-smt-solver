@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 
-from absmt.formula.type.formula_type import FormulaType
+from .formula_type import FormulaType
+from .quantifier_type import QuantifierType
 
 
 @dataclass
 class FormulaData:
+    quantifier_type: QuantifierType
+    quantifier_vars: set[str]
     coeffs: dict[str, int]
     const: int
     formula_type: FormulaType
-    has_negation_before_bool_var: bool
