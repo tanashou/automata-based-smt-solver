@@ -1,7 +1,6 @@
 from pysmt.shortcuts import LE, And, Exists, Int, Or, Symbol
 from pysmt.typing import INT
 
-# FormulaDataExtractorQF と collect_literals_from_tree をインポート
 from absmt.formula.formula_data_extractor_qf import (
     FormulaDataExtractorQF,
     collect_literals_from_tree,
