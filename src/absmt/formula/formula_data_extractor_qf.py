@@ -1,63 +1,65 @@
-# ruff: noqa: ANN201, ANN204, ANN001, ANN003, ARG002
+# ruff: noqa: ANN201, ANN204, ANN001
+from pysmt.fnode import FNode
+from pysmt.operators import AND, EQUALS, EXISTS, LE, OR
 from pysmt.shortcuts import Minus
-from pysmt.walkers import DagWalker
 
 from absmt.formula.type import FormulaData, FormulaNodeType, FormulaType, QuantifierType
 
 from .polynomial_normalizer import PolynomialNormalizer
 
 
-class FormulaDataExtractorQF(DagWalker):
-    """Walker to extract a list of FormulaData from LIA formulas with quantifiers.
-
-    Improved robustness with top-down context propagation logic.
-    """
+class FormulaDataExtractorQF:
+    """A simple recursive walker to perform top-down context propagation."""
 
     def __init__(self, env=None):
-        # Memoization must be disabled to pass context
-        super().__init__(env=env, invalidate_memoization=True)
         self.normalizer = PolynomialNormalizer(env=env)
+        self.memoization = {}
+        # Map node types from pysmt.operators to walk methods.
+        self.functions = {
+            EXISTS: self.walk_exists,
+            AND: self.walk_and,
+            OR: self.walk_or,
+            LE: self.walk_le,
+            EQUALS: self.walk_equals,
+            # Assumes that LT and FORALL have been eliminated in a pre-processing step.
+        }
 
-    def extract_data(self, formula) -> object:
+    def extract_data(self, formula: FNode) -> object:
         initial_context = {
             "quantifier_type": QuantifierType.NONE,
-            "quantifier_vars": [],
+            "quantifier_vars": set(),
         }
-        return self.walk(formula, **initial_context)
+        return self._walk(formula, initial_context)
 
-    def _get_key(self, formula, *args, **kwargs):  # noqa: ANN002, ANN202
-        # kwargsのアイテムを処理し、リストがあればタプルに変換する
-        key_items = []
-        # 安定したハッシュ値を得るため、キーでソートしてから処理する
-        for key in sorted(kwargs.keys()):
-            value = kwargs[key]
-            if isinstance(value, list):
-                # リストをタプルに変換してハッシュ化可能にする
-                key_items.append((key, tuple(value)))
-            else:
-                key_items.append((key, value))
+    def _get_key(self, formula, context) -> tuple:
+        context_tuple = frozenset(
+            (
+                k,
+                frozenset(v) if isinstance(v, set) else v,
+            )  # Convert set to frozenset to make it hashable.
+            for k, v in sorted(context.items())
+        )
+        return (formula, context_tuple)
 
-        # イミュータブルなアイテムのリストからfrozensetを作成
-        context_frozenset = frozenset(key_items)
-        return (formula, context_frozenset)
+    def _walk(self, formula, context) -> object:
+        key = self._get_key(formula, context)
+        if key in self.memoization:
+            return self.memoization[key]
+
+        # Use the FNode type (int) directly as the key.
+        node_type = formula.node_type()
+        func = self.functions.get(node_type)
+
+        result = func(formula, context) if func else None
+        self.memoization[key] = result
+        return result
 
     def _get_normalized_data(self, formula, context) -> FormulaData:
         left, right = formula.arg(0), formula.arg(1)
-
-        # L <= R  -->  L - R <= 0
-        # L = R   -->  L - R = 0
         expr_to_normalize = Minus(left, right)
-
         coeffs, const = self.normalizer.walk(expr_to_normalize)
-
-        # Sum(c_i * x_i) + const <= 0  -->  Sum(c_i * x_i) <= -const
         final_const = -const
-
-        # Determine type based on FormulaType Enum
-        formula_type = FormulaType.LE
-        if formula.is_equals():
-            formula_type = FormulaType.EQ
-
+        formula_type = FormulaType.EQ if formula.is_equals() else FormulaType.LE
         return FormulaData(
             quantifier_type=context["quantifier_type"],
             quantifier_vars=context["quantifier_vars"],
@@ -66,44 +68,40 @@ class FormulaDataExtractorQF(DagWalker):
             formula_type=formula_type,
         )
 
-    def walk_forall(self, formula, args, **kwargs):
-        msg = "FORALL should be eliminated before this walker."
-        raise NotImplementedError(msg)
+    def walk_exists(self, formula, context):
+        q_vars = {v.symbol_name() for v in formula.quantifier_vars()}
+        new_context = context.copy()
+        new_context["quantifier_type"] = QuantifierType.EXISTS
+        new_context["quantifier_vars"] = q_vars | context.get("quantifier_vars", set())
 
-    def walk_exists(self, formula, args, **kwargs):
-        q_type = QuantifierType.EXISTS
-        q_vars = [v.symbol_name() for v in formula.quantifier_vars()]
-        new_context = kwargs.copy()
-        new_context["quantifier_type"] = q_type
-        # Add current scope variables to the front of the nested quantifier list
-        new_context["quantifier_vars"] = q_vars + kwargs.get("quantifier_vars", [])
+        # Process the child node with the new context.
+        child_result = self._walk(formula.arg(0), new_context)
 
-        # Recursively process child node with new context
-        return self.walk(formula.arg(0), **new_context)
+        # Wrap the result in a list if it's not already a list.
+        if isinstance(child_result, list):
+            return child_result
+        if child_result is not None:
+            return [child_result]
+        return []
 
-    def walk_le(self, formula, args, **kwargs):
-        return [self._get_normalized_data(formula, kwargs)]
+    def walk_and(self, formula, context):
+        args = [self._walk(arg, context) for arg in formula.args()]
+        return {
+            "type": FormulaNodeType.AND,
+            "args": [arg for arg in args if arg is not None],
+        }
 
-    def walk_lt(self, formula, args, **kwargs):
-        msg = "LT should be eliminated before this walker."
-        raise NotImplementedError(msg)
+    def walk_or(self, formula, context):
+        args = [self._walk(arg, context) for arg in formula.args()]
+        return {
+            "type": FormulaNodeType.OR,
+            "args": [arg for arg in args if arg is not None],
+        }
 
-    def walk_equals(self, formula, args, **kwargs):
-        # Distinguish Iff(bool, bool) and Equals(term, term)
+    def walk_le(self, formula, context):
+        return [self._get_normalized_data(formula, context)]
+
+    def walk_equals(self, formula, context):
         if formula.arg(0).get_type().is_bool_type():
-            return None
-        return [self._get_normalized_data(formula, kwargs)]
-
-    def walk_and(self, formula, args, **kwargs):
-        # Return a dictionary representing an 'and' node
-        return {"type": FormulaNodeType.AND, "args": args}
-
-    def walk_or(self, formula, args, **kwargs):
-        # Return a dictionary representing an 'or' node
-        return {"type": FormulaNodeType.OR, "args": args}
-
-    def walk_symbol(self, formula, args, **kwargs):
-        return formula
-
-    def walk_int_constant(self, formula, args, **kwargs):
-        return formula
+            return None  # Iff is not supported.
+        return [self._get_normalized_data(formula, context)]
