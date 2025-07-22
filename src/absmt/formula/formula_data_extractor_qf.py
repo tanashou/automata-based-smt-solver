@@ -105,3 +105,38 @@ class FormulaDataExtractorQF:
         if formula.arg(0).get_type().is_bool_type():
             return None  # Iff is not supported.
         return [self._get_normalized_data(formula, context)]
+
+
+def collect_literals_from_tree(tree_result: object) -> list[FormulaData]:
+    """Recursively collects all FormulaData objects (literals).
+
+    Args:
+        tree_result: The return value of extractor.extract_data().
+
+    Returns:
+        A set of all unique FormulaData objects contained in the formula.
+
+    """
+    literals = []
+    _recursive_collect(tree_result, literals)
+    return literals
+
+
+def _recursive_collect(node: object, literals: list[FormulaData]) -> None:
+    """Perform the recursive collection of FormulaData objects."""
+    if isinstance(node, dict):
+        # For AND/OR nodes, recurse on the list of children.
+        for child_node in node.get("args", []):
+            _recursive_collect(child_node, literals)
+
+    elif isinstance(node, list):
+        # If the object is a list.
+        if len(node) == 1 and isinstance(node[0], FormulaData):
+            # If the list contains a single FormulaData object, it's a literal (leaf).
+            literals.append(node[0])
+        else:
+            # Otherwise, it's an intermediate list; recurse on each item.
+            for item in node:
+                _recursive_collect(item, literals)
+
+    # Do nothing for FormulaData objects themselves or None.
