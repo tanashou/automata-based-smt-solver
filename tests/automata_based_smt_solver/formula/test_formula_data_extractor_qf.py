@@ -30,5 +30,34 @@ def test_formula_data_extractor_qf_exists():
     # Should be a list containing FormulaData with quantifier_type EXISTS
     assert isinstance(result, list)
     assert result[0].quantifier_type == QuantifierType.EXISTS
-    assert result[0].quantifier_vars == ["x"]
+    assert result[0].quantifier_vars == {"x"}
     assert result[0].const == 5
+
+
+def test_formula_data_extractor_qf_nested():
+    x = Symbol("x", INT)
+    y = Symbol("y", INT)
+    z = Symbol("z", INT)
+    # Nested exists and nested and/or
+    # ∃x (x ≤ 1 and (y ≤ 2 or ∃z (z ≤ 3)))
+    formula = Exists(
+        [x], And(LE(x, Int(1)), Or(LE(y, Int(2)), Exists([z], LE(z, Int(3)))))
+    )
+    extractor = FormulaDataExtractorQF()
+    result = extractor.extract_data(formula)
+    # Top-level should be a list (from exists)
+    assert isinstance(result, list)
+    # The first element should be an 'and' node
+    and_node = result[0]
+    assert isinstance(and_node, dict)
+    assert and_node["type"] == FormulaNodeType.AND
+    # The second argument of 'and' should be an 'or' node
+    or_node = and_node["args"][1]
+    assert isinstance(or_node, dict)
+    assert or_node["type"] == FormulaNodeType.OR
+    # The last argument of 'or' should be a list from nested exists
+    exists_node = or_node["args"][1]
+    assert isinstance(exists_node, list)
+    assert exists_node[0].quantifier_type == QuantifierType.EXISTS
+    assert exists_node[0].quantifier_vars == {"x", "z"}
+    assert exists_node[0].const == 3
