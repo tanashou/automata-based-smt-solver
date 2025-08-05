@@ -1,4 +1,6 @@
 # ruff: noqa: ANN201, ANN204, ANN001
+from typing import TypeAlias
+
 from pysmt.fnode import FNode
 from pysmt.operators import AND, EQUALS, EXISTS, LE, OR
 from pysmt.shortcuts import Minus
@@ -6,6 +8,10 @@ from pysmt.shortcuts import Minus
 from absmt.formula.type import FormulaData, FormulaNodeType, FormulaType, QuantifierType
 
 from .polynomial_normalizer import PolynomialNormalizer
+
+FormulaTree: TypeAlias = dict[
+    FormulaNodeType, list["FormulaData"] | list["FormulaTree"]
+]
 
 
 class FormulaDataExtractor:
@@ -24,7 +30,7 @@ class FormulaDataExtractor:
             # Assumes that LT and FORALL have been eliminated in a pre-processing step.
         }
 
-    def extract_data(self, formula: FNode) -> object:
+    def extract_data(self, formula: FNode) -> FormulaTree:
         initial_context = {
             "quantifier_type": QuantifierType.NONE,
             "quantifier_vars": set(),
@@ -41,7 +47,7 @@ class FormulaDataExtractor:
         )
         return (formula, context_tuple)
 
-    def _walk(self, formula, context) -> object:
+    def _walk(self, formula, context) -> FormulaTree:
         key = self._get_key(formula, context)
         if key in self.memoization:
             return self.memoization[key]
@@ -50,7 +56,7 @@ class FormulaDataExtractor:
         node_type = formula.node_type()
         func = self.functions.get(node_type)
 
-        result = func(formula, context) if func else None
+        result = func(formula, context) if func else {}
         self.memoization[key] = result
         return result
 
@@ -99,12 +105,18 @@ class FormulaDataExtractor:
         }
 
     def walk_le(self, formula, context):
-        return [self._get_normalized_data(formula, context)]
+        return {
+            "type": FormulaNodeType.ATOM,
+            "args": [self._get_normalized_data(formula, context)],
+        }
 
     def walk_equals(self, formula, context):
         if formula.arg(0).get_type().is_bool_type():
             return None  # Iff is not supported.
-        return [self._get_normalized_data(formula, context)]
+        return {
+            "type": FormulaNodeType.ATOM,
+            "args": [self._get_normalized_data(formula, context)],
+        }
 
 
 def collect_literals_from_tree(tree_result: object) -> list[FormulaData]:
