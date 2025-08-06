@@ -15,8 +15,6 @@ class MSBFAlphabetSymbol:
 
     """
 
-    bin_value: str
-    bin_mask: str
     value: int
     mask: int
     bin_length: int = 0
@@ -42,8 +40,6 @@ class MSBFAlphabetSymbol:
         if len(bin_value) != len(bin_mask):
             msg = "Value and mask must have the same length"
             raise ValueError(msg)
-        self.bin_value = bin_value
-        self.bin_mask = bin_mask
         self.value = int(bin_value, 2)
         self.mask = int(bin_mask, 2)
         self.bin_length = len(bin_value)
@@ -84,13 +80,6 @@ class MSBFAlphabetSymbol:
         return "".join(
             val_bits[i] if mask_bits[i] == "1" else "*" for i in range(self.bin_length)
         )
-
-    def __repr__(self) -> str:
-        """Return a string representation of the MSBFAlphabetSymbol."""
-        return self.__str__()
-
-    def __reduce__(self) -> tuple[type, tuple[str, str]]:
-        return (self.__class__, (self.bin_value, self.bin_mask))
 
     def apply_mask(self) -> int:
         """Apply the mask to the symbol's value."""
