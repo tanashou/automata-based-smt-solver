@@ -12,9 +12,13 @@ class TestMSBFAlphabetSymbol:
             (
                 "1010",
                 "",
-                "Non-epsilon symbol must have a mask",
+                "Both bin_value and bin_mask must be non-empty strings.",
             ),
-            ("", "1010", "Epsilon symbol cannot have a mask"),
+            (
+                "",
+                "1010",
+                "Both bin_value and bin_mask must be non-empty strings.",
+            ),
             (
                 "101",
                 "1111",

@@ -15,41 +15,36 @@ class MSBFAlphabetSymbol:
 
     """
 
-    bin_value: str
-    bin_mask: str
     value: int
     mask: int
+    # used in projection in automata_builder.py
+    bin_value: str
     bin_length: int = 0
 
     def __init__(self, bin_value: str, bin_mask: str) -> None:
         """Create a new MSBFAlphabetSymbol instance.
 
         Args:
-            bin_value (str): Binary value string (empty for epsilon).
+            bin_value (str): Binary value string.
             bin_mask (str): Mask string (must match bin_value's length).
 
         Raises:
-            ValueError: If a non-epsilon symbol is missing a mask.
-            ValueError: If an epsilon symbol is provided with a mask.
+            ValueError: If bin_value or bin_mask is empty.
             ValueError: If bin_value and bin_mask have different lengths.
 
         Returns:
             MSBFAlphabetSymbol: A new MSBFAlphabetSymbol instance.
 
         """
-        if bin_value and not bin_mask:
-            msg = "Non-epsilon symbol must have a mask"
-            raise ValueError(msg)
-        if not bin_value and bin_mask:
-            msg = "Epsilon symbol cannot have a mask"
+        if not bin_value or not bin_mask:
+            msg = "Both bin_value and bin_mask must be non-empty strings."
             raise ValueError(msg)
         if len(bin_value) != len(bin_mask):
             msg = "Value and mask must have the same length"
             raise ValueError(msg)
-        self.bin_value = bin_value
-        self.bin_mask = bin_mask
         self.value = int(bin_value, 2)
         self.mask = int(bin_mask, 2)
+        self.bin_value = bin_value
         self.bin_length = len(bin_value)
 
     def __hash__(self) -> int:
@@ -88,13 +83,6 @@ class MSBFAlphabetSymbol:
         return "".join(
             val_bits[i] if mask_bits[i] == "1" else "*" for i in range(self.bin_length)
         )
-
-    def __repr__(self) -> str:
-        """Return a string representation of the MSBFAlphabetSymbol."""
-        return self.__str__()
-
-    def __reduce__(self) -> tuple[type, tuple[str, str]]:
-        return (self.__class__, (self.bin_value, self.bin_mask))
 
     def apply_mask(self) -> int:
         """Apply the mask to the symbol's value."""

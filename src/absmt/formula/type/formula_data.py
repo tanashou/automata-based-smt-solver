@@ -11,3 +11,6 @@ class FormulaData:
     coeffs: dict[str, int]
     const: int
     formula_type: FormulaType
+
+    def all_vars_in_formula(self) -> set[str]:
+        return self.coeffs.keys() | self.quantifier_vars
