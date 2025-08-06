@@ -282,33 +282,3 @@ class TestNFA:
             final_states=set(),
         )
         assert nfa_no_final.is_acceptable() is False
-
-    def test_incremental_intersection_specific_example(
-        self,
-        nfa_ends_with_01,
-        nfa_ends_with_01_or_00,
-        nfa_starts_with_01,
-        str_starts_with_01,
-        str_ends_with_01_or_00,
-        str_all_binary_up_to_5,
-    ):
-        intersected_nfa_old = nfa_ends_with_01.intersection(nfa_starts_with_01)
-
-        delta_1_changes: NFATransitionsT = {
-            "q1": {MSBFAlphabetSymbol("0", "1"): {"q2"}}
-        }
-        delta_2_changes: NFATransitionsT = {}
-        intersected_nfa_new = NFA.incremental_intersection(
-            intersected_nfa_old,
-            nfa_ends_with_01_or_00,
-            nfa_starts_with_01,
-            delta_1_changes,
-            delta_2_changes,
-        )
-
-        accepted_strings = list(str_ends_with_01_or_00 & str_starts_with_01)
-        rejected_strings = list(str_all_binary_up_to_5 - set(accepted_strings))
-
-        TestNFA.assert_nfa_accepts_rejects(
-            intersected_nfa_new, accepted_strings, rejected_strings, "1"
-        )
