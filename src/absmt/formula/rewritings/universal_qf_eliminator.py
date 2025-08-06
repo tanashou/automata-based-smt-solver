@@ -15,7 +15,7 @@ class UniversalQFEliminator(IdentityDagWalker):
     def walk_forall(self, formula, args, **kwargs):
         """Rewrite forall to exists using De Morgan's laws.
 
-        ∀x.φ(x) → ¬∃x.(¬φ(x))
+        ∀x.φ(x) → ¬¬∀x.φ(x) → ¬∃x.(¬φ(x))
         """
         qvars = [self.walk_symbol(v, args, **kwargs) for v in formula.quantifier_vars()]
         inner_formula = args[0]
