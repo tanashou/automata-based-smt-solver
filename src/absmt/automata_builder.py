@@ -7,14 +7,12 @@ from absmt.build_status import BuildStatus
 from absmt.formula.type import FormulaData, FormulaType
 
 
-# 1つのリテラルに対してnfaを作成していくクラス
 class AutomataBuilder:
     def __init__(
         self,
         formula_data: FormulaData,
         all_vars: list[str],
         all_var_index_map: dict[str, int],
-        used_vars: list[str],
     ) -> None:
         self.formula_data: FormulaData = formula_data
         initial_state = "q0"
@@ -22,7 +20,7 @@ class AutomataBuilder:
         self.nfa = NFA(
             states={initial_state, self.formula_data.const},
             initial_state=initial_state,
-            alphabet=MSBFAlphabet(all_vars, used_vars),
+            alphabet=MSBFAlphabet(all_vars, list(self.formula_data.used_vars())),
             transitions=defaultdict(lambda: defaultdict(set)),
             final_states={self.formula_data.const},
         )
@@ -54,11 +52,6 @@ class AutomataBuilder:
                 self.eq_to_nfa()
             case FormulaType.LE:
                 self.le_to_nfa()
-            case FormulaType.BOOL:
-                if self.formula_data.has_negation_before_bool_var:
-                    self.false_to_nfa()
-                else:
-                    self.true_to_nfa()
 
     def eq_to_nfa(self) -> None:
         while self.work_list:
@@ -91,43 +84,3 @@ class AutomataBuilder:
                     self.nfa.add_transition(
                         self.nfa.initial_state, symbol, current_state
                     )
-
-    def false_to_nfa(self) -> None:
-        # add dead state
-        dead_state = -1
-        self.nfa.add_state(dead_state)
-        # add final state
-        final_state = self.formula_data.const
-        self.nfa.add_state(final_state)
-
-        # length of input_symbols is always 2 for boolean formulas
-        for symbol in self.nfa.alphabet.symbol_generator():
-            dot_value = self.dots[symbol]
-            if dot_value == 1:
-                self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
-            else:
-                self.nfa.add_transition(self.nfa.initial_state, symbol, dead_state)
-
-            # add loop to dead state and final state
-            self.nfa.add_transition(final_state, symbol, final_state)
-            self.nfa.add_transition(dead_state, symbol, dead_state)
-
-    def true_to_nfa(self) -> None:
-        # add dead state
-        dead_state = -1
-        self.nfa.add_state(dead_state)
-        # add final state
-        final_state = self.formula_data.const
-        self.nfa.add_state(final_state)
-
-        # length of input_symbols is always 2 for boolean formulas
-        for symbol in self.nfa.alphabet.symbol_generator():
-            dot_value = self.dots[symbol]
-            if dot_value == 0:
-                self.nfa.add_transition(self.nfa.initial_state, symbol, final_state)
-            else:
-                self.nfa.add_transition(self.nfa.initial_state, symbol, dead_state)
-
-            # add loop to dead state and final state
-            self.nfa.add_transition(final_state, symbol, final_state)
-            self.nfa.add_transition(dead_state, symbol, dead_state)
