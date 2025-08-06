@@ -4,6 +4,7 @@ from absmt.automata.msbf_alphabet import MSBFAlphabet
 from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
 from absmt.automata.nfa import NFA, NFATransitionsT
 from absmt.formula.type import FormulaData, FormulaType
+from absmt.formula.type.quantifier_type import QuantifierType
 
 
 class AutomataBuilder:
@@ -40,7 +41,7 @@ class AutomataBuilder:
             case FormulaType.LE:
                 self._le_to_nfa(nfa, work_list, dots)
 
-        return nfa
+        return self._projection(nfa)
 
     def _calc_dots(self, alphabet: MSBFAlphabet) -> dict[MSBFAlphabetSymbol, int]:
         result = {}
@@ -85,6 +86,9 @@ class AutomataBuilder:
                     nfa.add_transition(nfa.initial_state, symbol, current_state)
 
     def _projection(self, nfa: NFA) -> NFA:
+        if self.formula_data.quantifier_type == QuantifierType.NONE:
+            return nfa
+
         vars_to_mask = self.formula_data.quantifier_vars | (
             set(self.all_vars) - self.formula_data.all_vars_in_formula()
         )
