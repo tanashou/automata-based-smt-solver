@@ -17,6 +17,8 @@ class MSBFAlphabetSymbol:
 
     value: int
     mask: int
+    # used in projection in automata_builder.py
+    bin_value: str
     bin_length: int = 0
 
     def __init__(self, bin_value: str, bin_mask: str) -> None:
@@ -42,6 +44,7 @@ class MSBFAlphabetSymbol:
             raise ValueError(msg)
         self.value = int(bin_value, 2)
         self.mask = int(bin_mask, 2)
+        self.bin_value = bin_value
         self.bin_length = len(bin_value)
 
     def __hash__(self) -> int:
