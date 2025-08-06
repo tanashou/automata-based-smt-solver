@@ -11,6 +11,9 @@ class DoubleNegationEliminator(IdentityDagWalker):
     them as they are.
     """
 
+    def __init__(self) -> None:
+        super().__init__()
+
     def walk_not(self, formula, args, **kwargs):
         # args[0] is the result of walking the child of the current NOT node.
         rewritten_child = args[0]
