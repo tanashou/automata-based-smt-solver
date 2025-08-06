@@ -9,9 +9,7 @@ from absmt.formula.type import FormulaData, FormulaNodeType, FormulaType, Quanti
 
 from .polynomial_normalizer import PolynomialNormalizer
 
-FormulaTree: TypeAlias = dict[
-    FormulaNodeType, list["FormulaData"] | list["FormulaTree"]
-]
+FormulaTree: TypeAlias = dict[str, FormulaNodeType | list["FormulaTree | FormulaData"]]
 
 
 class FormulaDataExtractor:
@@ -119,36 +117,39 @@ class FormulaDataExtractor:
         }
 
 
-def collect_literals_from_tree(tree_result: object) -> list[FormulaData]:
+def collect_literals_from_tree(tree: FormulaTree) -> list[FormulaData]:
     """Recursively collects all FormulaData objects (literals).
 
     Args:
-        tree_result: The return value of extractor.extract_data().
+        tree: The return value of extractor.extract_data().
 
     Returns:
         A set of all unique FormulaData objects contained in the formula.
 
     """
     literals = []
-    _recursive_collect(tree_result, literals)
+    _recursive_collect(tree, literals)
     return literals
 
 
-def _recursive_collect(node: object, literals: list[FormulaData]) -> None:
+def _recursive_collect(
+    node: FormulaTree | FormulaData,
+    literals: list[FormulaData],
+) -> None:
     """Perform the recursive collection of FormulaData objects."""
     if isinstance(node, dict):
-        # For AND/OR nodes, recurse on the list of children.
-        for child_node in node.get("args", []):
-            _recursive_collect(child_node, literals)
-
+        # For AND/OR/ATOM nodes, recurse on the list of children.
+        args = node.get("args", [])
+        if isinstance(args, list):
+            for child_node in args:
+                _recursive_collect(child_node, literals)
+        elif isinstance(args, FormulaData):
+            literals.append(args)
     elif isinstance(node, list):
-        # If the object is a list.
-        if len(node) == 1 and isinstance(node[0], FormulaData):
-            # If the list contains a single FormulaData object, it's a literal (leaf).
-            literals.append(node[0])
-        else:
-            # Otherwise, it's an intermediate list; recurse on each item.
-            for item in node:
-                _recursive_collect(item, literals)
-
-    # Do nothing for FormulaData objects themselves or None.
+        # Recurse on each item in the list.
+        for item in node:
+            _recursive_collect(item, literals)
+    elif isinstance(node, FormulaData):
+        # If the node is a FormulaData object, it's a literal leaf.
+        literals.append(node)
+    # Do nothing for None or other types.
