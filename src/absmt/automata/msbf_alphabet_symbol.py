@@ -25,23 +25,19 @@ class MSBFAlphabetSymbol:
         """Create a new MSBFAlphabetSymbol instance.
 
         Args:
-            bin_value (str): Binary value string (empty for epsilon).
+            bin_value (str): Binary value string.
             bin_mask (str): Mask string (must match bin_value's length).
 
         Raises:
-            ValueError: If a non-epsilon symbol is missing a mask.
-            ValueError: If an epsilon symbol is provided with a mask.
+            ValueError: If bin_value or bin_mask is empty.
             ValueError: If bin_value and bin_mask have different lengths.
 
         Returns:
             MSBFAlphabetSymbol: A new MSBFAlphabetSymbol instance.
 
         """
-        if bin_value and not bin_mask:
-            msg = "Non-epsilon symbol must have a mask"
-            raise ValueError(msg)
-        if not bin_value and bin_mask:
-            msg = "Epsilon symbol cannot have a mask"
+        if not bin_value or not bin_mask:
+            msg = "Both bin_value and bin_mask must be non-empty strings."
             raise ValueError(msg)
         if len(bin_value) != len(bin_mask):
             msg = "Value and mask must have the same length"
