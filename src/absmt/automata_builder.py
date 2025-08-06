@@ -3,7 +3,6 @@ from collections import defaultdict
 from absmt.automata.msbf_alphabet import MSBFAlphabet
 from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
 from absmt.automata.nfa import NFA
-from absmt.build_status import BuildStatus
 from absmt.formula.type import FormulaData, FormulaType
 
 
@@ -15,72 +14,74 @@ class AutomataBuilder:
         all_var_index_map: dict[str, int],
     ) -> None:
         self.formula_data: FormulaData = formula_data
-        initial_state = "q0"
+        self.all_vars: list[str] = all_vars
+        self.all_var_index_map: dict[str, int] = all_var_index_map
 
-        self.nfa = NFA(
-            states={initial_state, self.formula_data.const},
+    def build(self) -> NFA:
+        initial_state = "q0"
+        final_state = self.formula_data.const
+
+        nfa = NFA(
+            states={initial_state, final_state},
             initial_state=initial_state,
-            alphabet=MSBFAlphabet(all_vars, list(self.formula_data.used_vars())),
+            alphabet=MSBFAlphabet(self.all_vars, list(self.formula_data.used_vars())),
             transitions=defaultdict(lambda: defaultdict(set)),
-            final_states={self.formula_data.const},
+            final_states={final_state},
         )
 
-        self.dots: dict[MSBFAlphabetSymbol, int] = self._calc_dots(all_var_index_map)
-        self.work_list = [self.formula_data.const]
+        dots = self._calc_dots(nfa.alphabet)
+        work_list = [final_state]
 
-        self._build_status = BuildStatus.UNTOUCHED
+        match self.formula_data.formula_type:
+            case FormulaType.EQ:
+                self._eq_to_nfa(nfa, work_list, dots)
+            case FormulaType.LE:
+                self._le_to_nfa(nfa, work_list, dots)
 
-    @property
-    def build_status(self) -> BuildStatus:
-        return self._build_status
+        return nfa
 
-    def _calc_dots(
-        self, all_var_index_map: dict[str, int]
-    ) -> dict[MSBFAlphabetSymbol, int]:
+    def _calc_dots(self, alphabet: MSBFAlphabet) -> dict[MSBFAlphabetSymbol, int]:
         result = {}
         var_coef_index_pairs = [
-            (coeff, all_var_index_map[var])
+            (coeff, self.all_var_index_map[var])
             for var, coeff in self.formula_data.coeffs.items()
         ]
-        for symbol in self.nfa.alphabet.symbol_generator():
+        for symbol in alphabet.symbol_generator():
             result[symbol] = symbol.dot(var_coef_index_pairs)
         return result
 
-    def build(self) -> None:
-        match self.formula_data.formula_type:
-            case FormulaType.EQ:
-                self.eq_to_nfa()
-            case FormulaType.LE:
-                self.le_to_nfa()
-
-    def eq_to_nfa(self) -> None:
-        while self.work_list:
-            current_state = self.work_list.pop()
-            for symbol in self.nfa.alphabet.symbol_generator():
-                dot = self.dots[symbol]
+    def _eq_to_nfa(
+        self, nfa: NFA, work_list: list[int], dots: dict[MSBFAlphabetSymbol, int]
+    ) -> None:
+        while work_list:
+            current_state = work_list.pop()
+            for symbol in nfa.alphabet.symbol_generator():
+                dot = dots[symbol]
                 if (current_state - dot) & 1 == 0:
                     previous_state = (current_state - dot) // 2
-                    if previous_state not in self.nfa.states:
-                        self.nfa.add_state(previous_state)
-                        self.work_list.append(previous_state)
-                    self.nfa.add_transition(previous_state, symbol, current_state)
+                    if previous_state not in nfa.states:
+                        nfa.add_state(previous_state)
+                        work_list.append(previous_state)
+                    nfa.add_transition(previous_state, symbol, current_state)
                 if current_state == -dot:
-                    self.nfa.add_transition(
-                        self.nfa.initial_state, symbol, current_state
-                    )
+                    nfa.add_transition(nfa.initial_state, symbol, current_state)
 
-    def le_to_nfa(self) -> None:
-        while self.work_list:
-            current_state = self.work_list.pop()
-            for symbol in self.nfa.alphabet.symbol_generator():
-                dot = self.dots[symbol]
+    def _le_to_nfa(
+        self, nfa: NFA, work_list: list[int], dots: dict[MSBFAlphabetSymbol, int]
+    ) -> None:
+        while work_list:
+            current_state = work_list.pop()
+            for symbol in nfa.alphabet.symbol_generator():
+                dot = dots[symbol]
                 previous_state = (current_state - dot) // 2
-                if previous_state not in self.nfa.states:
-                    self.nfa.add_state(previous_state)
-                    self.work_list.append(previous_state)
-                self.nfa.add_transition(previous_state, symbol, current_state)
+                if previous_state not in nfa.states:
+                    nfa.add_state(previous_state)
+                    work_list.append(previous_state)
+                nfa.add_transition(previous_state, symbol, current_state)
 
                 if current_state + dot >= 0:
-                    self.nfa.add_transition(
-                        self.nfa.initial_state, symbol, current_state
-                    )
+                    nfa.add_transition(nfa.initial_state, symbol, current_state)
+
+    def projection(self, nfa: NFA) -> NFA:
+        # TODO: Implement projection
+        return nfa
