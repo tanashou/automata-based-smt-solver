@@ -1,23 +1,18 @@
 import logging
-from collections.abc import Generator
 
-import pysmt.rewritings
-import spot
 from pysmt.fnode import FNode
-from pysmt.rewritings import TimesDistributor
 from pysmt.shortcuts import And
 from pysmt.smtlib.parser import SmtLibParser
 
 from absmt.automata.nfa import NFA
-from absmt.automata.spot_nfa import SpotNFA
 from absmt.automata_builder import AutomataBuilder
-from absmt.formula import DataExtractor
+from absmt.formula import FormulaDataExtractor
+from absmt.formula.formula_data_extractor import collect_literals_from_tree
 from absmt.formula.rewritings import (
-    CalculatingBracketExpander,
-    DNFGenerator,
+    DoubleNegationEliminator,
     NegationEliminator,
-    OrFlattener,
-    SymbolCoeffNormalizer,
+    QuantifierPreservingNNFizer,
+    UniversalQFEliminator,
 )
 from absmt.formula.type import FormulaData
 from absmt.sat_status import SatStatus
@@ -30,64 +25,25 @@ class Solver:
         self.parser = SmtLibParser()
         self._formulas: list[FNode] = []
 
-    def _rewrite_formula_to_cnf(self, formula: FNode) -> FNode:
-        cnf = pysmt.rewritings.cnf(formula)
-        negation_eliminated_cnf = NegationEliminator().walk(cnf)
-        flattened_cnf = OrFlattener().walk(negation_eliminated_cnf)
-        distributed = TimesDistributor().walk(flattened_cnf)
-        normalized_coeff = SymbolCoeffNormalizer().walk(distributed)
-        return CalculatingBracketExpander().walk(normalized_coeff)
+        self._universal_qf_eliminator = UniversalQFEliminator()
+        self._nnfizer = QuantifierPreservingNNFizer()
+        self._double_negation_eliminator = DoubleNegationEliminator()
+        self._negation_eliminator = NegationEliminator()
 
-    def _rewrite_formula_all_and(self, formula: FNode) -> FNode:
-        negation_eliminated_cnf = NegationEliminator().walk(formula)
-        flattened_cnf = OrFlattener().walk(negation_eliminated_cnf)
-        distributed = TimesDistributor().walk(flattened_cnf)
-        normalized_coeff = SymbolCoeffNormalizer().walk(distributed)
-        return CalculatingBracketExpander().walk(normalized_coeff)
+        self._data_extractor = FormulaDataExtractor()
 
-    def _rewrite_formula_to_dnf(self, formula: FNode) -> Generator[FNode]:
-        # 否定を除去してから dnf に変換。変換後の formula には否定が現れない。
-        nnf = pysmt.rewritings.nnf(formula)
-        negation_eliminated_nnf = NegationEliminator().walk(nnf)
-        flattened_nnf = OrFlattener().walk(negation_eliminated_nnf)
-        return DNFGenerator().get_conjunctions(flattened_nnf)
+    def _rewrite(self, formula: FNode) -> FNode:
+        quantifier_rewritten = self._universal_qf_eliminator.walk(formula)
+        nnf_formula = self._nnfizer.convert(quantifier_rewritten)
+        double_negation_eliminated = self._double_negation_eliminator.walk(nnf_formula)
+        return self._negation_eliminator.walk(double_negation_eliminated)
 
-    def _extract_data_from_conjunction(self, conjunction: FNode) -> list[FormulaData]:
-        times_distributor = TimesDistributor()
-        coeff_normalizer = SymbolCoeffNormalizer()
-        bracket_expander = CalculatingBracketExpander()
-
-        data_extractor = DataExtractor()
-
-        distributed = times_distributor.walk(conjunction)
-        normalized_coeff = coeff_normalizer.walk(distributed)
-        expanded = bracket_expander.walk(normalized_coeff)
-        if expanded.is_and():
-            return [data_extractor.extract(literal) for literal in expanded.args()]
-        current_literal = data_extractor.extract(expanded)
-        return [current_literal]
-
-    def _extract_data(self, cnf: FNode) -> list[list[FormulaData]]:
-        result = []
-        data_extractor = DataExtractor()
-        if cnf.is_and():
-            for clause in cnf.args():
-                if clause.is_or():
-                    literals = [
-                        data_extractor.extract(literal) for literal in clause.args()
-                    ]
-                    result.append(literals)
-                else:
-                    literal = data_extractor.extract(clause)
-                    result.append([literal])
-        elif cnf.is_or():
-            literals = [data_extractor.extract(literal) for literal in cnf.args()]
-            result.append(literals)
-        else:
-            literal = data_extractor.extract(cnf)
-            result.append([literal])
-
-        return result
+    def _extract_data(
+        self, preprocessed_formula: FNode
+    ) -> tuple[object, list[FormulaData]]:
+        formula_tree = self._data_extractor.extract_data(preprocessed_formula)
+        literals_data = collect_literals_from_tree(formula_tree)
+        return formula_tree, literals_data
 
     def add(self, formula: FNode) -> None:
         self._formulas.append(formula)
@@ -122,79 +78,16 @@ class Solver:
             all_nfa = all_nfa.intersection(union_nfa)
         return all_nfa
 
-    def solve_legacy(self) -> SatStatus:
-        if not self._formulas:
-            msg = "No formulas to solve."
-            raise ValueError(msg)
-
-        formula = And(self._formulas)
-        logger.debug("Solving formula: %s", formula.serialize(threshold=100))
-        dnf_generator = self._rewrite_formula_to_dnf(formula)
-        logger.debug("Rewritten formula to DNF.")
-
-        for i, conjunction in enumerate(dnf_generator):
-            logger.debug("Processing DNF conjunction #%d", i + 1)
-            logger.debug(
-                "Processing conjunction %s", conjunction.serialize(threshold=100)
-            )
-            all_vars_in_conj = [str(var) for var in conjunction.get_free_variables()]
-            var_index_map = {var: index for index, var in enumerate(all_vars_in_conj)}
-            data = self._extract_data_from_conjunction(conjunction)
-
-            literal_builders = self._setup_and_build(
-                data, all_vars_in_conj, var_index_map
-            )
-
-            logger.debug("intersecting NFA for conjunction #%d", i + 1)
-            all_nfa = self._intersect_all_nfa_(
-                [builder.nfa for builder in literal_builders]
-            )
-            logger.debug(
-                "Finished intersecting NFA for conjunction #%d",
-                i + 1,
-            )
-            if all_nfa and all_nfa.is_acceptable():
-                logger.debug("SAT condition found in current conjunction.")
-                return SatStatus.SAT
-
-        logger.debug(
-            "No satisfiable conjunction found after checking all possibilities."
-        )
-        return SatStatus.UNSAT
-
     def solve(self) -> SatStatus:
         if not self._formulas:
             msg = "No formulas to solve."
             raise ValueError(msg)
 
-        formula = And(self._formulas)
-        logger.debug("Solving formula: %s", formula.serialize(threshold=100))
-        dnf_generator = self._rewrite_formula_to_dnf(formula)
+        target_formula = And(self._formulas)
+        logger.debug("Solving formula: %s", target_formula.serialize(threshold=100))
+        target_formula_tree, literals_data = self._extract_data(target_formula)
         logger.debug("Rewritten formula to DNF.")
 
-        for i, conjunction in enumerate(dnf_generator):
-            logger.debug("Processing DNF conjunction #%d", i + 1)
-            logger.debug(
-                "Processing conjunction %s", conjunction.serialize(threshold=100)
-            )
-            all_vars_in_conj = [str(var) for var in conjunction.get_free_variables()]
-            var_index_map = {var: index for index, var in enumerate(all_vars_in_conj)}
-            data = self._extract_data_from_conjunction(conjunction)
+        # TODO: create a solver methodz
 
-            literal_builders = self._setup_and_build(
-                data, all_vars_in_conj, var_index_map
-            )
-
-            logger.debug("intersecting NFA for conjunction #%d", i + 1)
-            nfas = [builder.nfa for builder in literal_builders]
-            bdict = spot.make_bdd_dict()
-            bdd_nfas = [SpotNFA(nfa, bdict) for nfa in nfas]
-
-            if SpotNFA.has_common_language(*bdd_nfas):
-                logger.debug("SAT condition found in current conjunction.")
-                return SatStatus.SAT
-
-        logger.debug(
-            "No satisfiable conjunction found after checking all possibilities."
-        )
         return SatStatus.UNSAT
