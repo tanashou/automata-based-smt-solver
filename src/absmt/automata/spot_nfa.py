@@ -196,7 +196,7 @@ class SpotNFA:
         return result
 
     @staticmethod
-    def product_automaton(*nfas: "SpotNFA") -> "SpotNFA":
+    def product_all(*nfas: "SpotNFA") -> "SpotNFA":
         """Create a single automaton by taking the product of all given SpotNFA.
 
         Args:
