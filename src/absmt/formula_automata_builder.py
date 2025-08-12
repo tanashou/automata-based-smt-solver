@@ -41,7 +41,7 @@ class FormulaAutomataBuilder(DagWalker):
         return spot_nfa
 
     def walk_and(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
-        return SpotNFA.product_all(*args)
+        return SpotNFA.intersect_all(*args)
 
     def walk_or(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
         raise NotImplementedError("OR operator handling is not implemented yet.")
