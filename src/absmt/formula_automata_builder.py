@@ -29,7 +29,16 @@ class FormulaAutomataBuilder(DagWalker):
     # TODO: Implement walker methods
 
     def walk_exists(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
-        raise NotImplementedError("EXISTS operator handling is not implemented yet.")
+        if len(args) != 1:
+            msg = (
+                "The body of an exists expression must be represented as a single nfa. "
+            )
+            raise ValueError(msg)
+
+        quantifier_vars = formula.quantifier_vars()
+        spot_nfa = args[0]
+        spot_nfa.projection(quantifier_vars)
+        return spot_nfa
 
     def walk_and(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
         raise NotImplementedError("AND operator handling is not implemented yet.")
