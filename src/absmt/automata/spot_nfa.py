@@ -195,6 +195,42 @@ class SpotNFA:
         logger.debug("Final intersects computation finished")
         return result
 
+    @staticmethod
+    def product_automaton(*nfas: "SpotNFA") -> "SpotNFA":
+        """Create a single automaton by taking the product of all given SpotNFA.
+
+        Args:
+            *nfas: SpotNFA instances to combine
+
+        Returns:
+            spot.twa_graph: The product automaton of all input automata
+
+        """
+        if not nfas:
+            msg = "No NFAs provided for product."
+            raise ValueError(msg)
+
+        if len(nfas) == 1:
+            return nfas[0].twa_graph
+
+        automata_list = [nfa.twa_graph for nfa in nfas]
+
+        # 分割統治法のアイデア。
+        # TODO: 作成途中で受理不能になったらそれ以降の計算を省略したい。
+        while len(automata_list) > 1:
+            next_level_automata = []
+            for i in range(0, len(automata_list), 2):
+                if i + 1 >= len(automata_list):
+                    next_level_automata.append(automata_list[i])
+                    break
+                aut1 = automata_list[i]
+                aut2 = automata_list[i + 1]
+                product_aut = spot.product(aut1, aut2)
+                next_level_automata.append(product_aut)
+            automata_list = next_level_automata
+
+        return automata_list[0]
+
     def projection(self, quantified_vars: list[str]) -> None:
         """Remove the given ap from all transition guards in the automaton.
 
