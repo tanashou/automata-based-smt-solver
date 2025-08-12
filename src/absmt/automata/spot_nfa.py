@@ -196,8 +196,8 @@ class SpotNFA:
         return result
 
     @staticmethod
-    def product_all(*nfas: "SpotNFA") -> "SpotNFA":
-        """Create a single automaton by taking the product of all given SpotNFA.
+    def intersect_all(*nfas: "SpotNFA") -> "SpotNFA":
+        """Create a single automaton by taking the intersection of all given SpotNFA.
 
         Args:
             *nfas: SpotNFA instances to combine
