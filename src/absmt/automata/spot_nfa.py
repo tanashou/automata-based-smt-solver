@@ -1,5 +1,6 @@
 import logging
 from dataclasses import InitVar, dataclass, field
+from functools import reduce
 from typing import Any
 
 import buddy
@@ -230,6 +231,27 @@ class SpotNFA:
             automata_list = next_level_automata
 
         return automata_list[0]
+
+    @staticmethod
+    def union_all(*nfas: "SpotNFA") -> "SpotNFA":
+        """Create a single automaton by taking the union of all given SpotNFA.
+
+        Args:
+            *nfas: SpotNFA instances to combine
+
+        Returns:
+            spot.twa_graph: The union automaton of all input automata
+
+        """
+        if not nfas:
+            msg = "No NFAs provided for union."
+            raise ValueError(msg)
+
+        if len(nfas) == 1:
+            return nfas[0].twa_graph
+
+        automata_list = [nfa.twa_graph for nfa in nfas]
+        return reduce(spot.product_or, automata_list)
 
     def projection(self, quantified_vars: list[str]) -> None:
         """Remove the given ap from all transition guards in the automaton.
