@@ -35,6 +35,15 @@ class SpotNFA:
         self._set_initial_state(nfa.initial_state)
         self._add_transitions(nfa.transitions, nfa.final_states, nfa.alphabet)
 
+    @classmethod
+    def from_twa_graph(cls, twa_graph: Any) -> "SpotNFA":  # noqa: ANN401
+        """Create SpotNFA from an existing TWA graph."""
+        obj = cls.__new__(cls)
+        obj.twa_graph = twa_graph
+        obj._state_map = {}  # noqa: SLF001
+        obj._bdd_var_str_to_id = {}  # noqa: SLF001
+        return obj
+
     def _create_automaton(self, bdd_dict: Any) -> None:  # noqa: ANN401
         """Create BDD dictionary and Spot automaton."""
         self.twa_graph = spot.make_twa_graph(bdd_dict)
@@ -230,7 +239,7 @@ class SpotNFA:
                 next_level_automata.append(product_aut)
             automata_list = next_level_automata
 
-        return automata_list[0]
+        return SpotNFA.from_twa_graph(automata_list[0])
 
     @staticmethod
     def union_all(*nfas: "SpotNFA") -> "SpotNFA":
@@ -251,12 +260,21 @@ class SpotNFA:
             return nfas[0].twa_graph
 
         automata_list = [nfa.twa_graph for nfa in nfas]
-        return reduce(spot.product_or, automata_list)
+        result_nfa = reduce(spot.product_or, automata_list)
+        return SpotNFA.from_twa_graph(result_nfa)
 
-    def projection(self, quantified_vars: list[str]) -> None:
+    @staticmethod
+    def complement(nfa: "SpotNFA") -> "SpotNFA":
+        """Create a complement automaton from the nfa."""
+        twa_graph = spot.complement(nfa.twa_graph)
+        return SpotNFA.from_twa_graph(twa_graph)
+
+    @staticmethod
+    def projection(nfa: "SpotNFA", quantified_vars: list[str]) -> "SpotNFA":
         """Remove the given ap from all transition guards in the automaton.
 
         Args:
+            nfa (SpotNFA): The automaton from which atomic propositions will be removed.
             quantified_vars (list[str]):
                 List of atomic proposition names to remove (e.g., ["x", "y"]).
 
@@ -267,27 +285,27 @@ class SpotNFA:
             so we create a new automaton with the modified guards.
 
         """
-        new_twa = spot.make_twa_graph(self.twa_graph.get_dict())
+        new_twa = spot.make_twa_graph(nfa.twa_graph.get_dict())
         new_twa.set_buchi()
         new_twa.prop_state_acc(True)  # noqa: FBT003
-        new_twa.new_states(self.twa_graph.num_states())
-        new_twa.set_init_state(self.twa_graph.get_init_state_number())
+        new_twa.new_states(nfa.twa_graph.num_states())
+        new_twa.set_init_state(nfa.twa_graph.get_init_state_number())
 
         # Build a cube (conjunction) of all variables to eliminate
         # Using bddtrue() as neutral element for conjunction
         cube = buddy.bddtrue
         for name in quantified_vars:
-            varid = self._bdd_var_str_to_id[name]
+            varid = nfa._bdd_var_str_to_id[name]  # noqa: SLF001
             cube = buddy.bdd_and(cube, buddy.bdd_ithvar(varid))
 
         # Iterate over all edges and replace their guard with the quantified guard
-        for state in range(self.twa_graph.num_states()):
-            for edge in self.twa_graph.out(state):
+        for state in range(nfa.twa_graph.num_states()):
+            for edge in nfa.twa_graph.out(state):
                 old_guard = edge.cond()  # BDD of the transition condition
                 new_guard = buddy.bdd_exist(old_guard, cube)  # ∃(ap_names). old_guard
                 new_twa.new_edge(state, edge.dst(), new_guard, edge.acc())
 
         # If you plan to reuse the automaton, you may want to simplify/cleanup:
         # aut.merge_states() or spot.postprocess functions as appropriate
-        self.twa_graph.merge_states()
-        self.twa_graph = new_twa
+        new_twa.merge_states()
+        return SpotNFA.from_twa_graph(new_twa)
