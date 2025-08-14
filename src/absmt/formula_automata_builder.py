@@ -1,4 +1,4 @@
-# ruff: noqa: ANN001, ANN003, ARG002, EM101
+# ruff: noqa: ANN001, ANN003, ARG002
 import pysmt.operators as op
 import spot
 from pysmt.fnode import FNode
@@ -26,8 +26,6 @@ class FormulaAutomataBuilder(DagWalker):
         }
         return self.walk(formula, **walk_context)
 
-    # TODO: Implement walker methods
-
     def walk_exists(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
         if len(args) != 1:
             msg = (
@@ -37,8 +35,7 @@ class FormulaAutomataBuilder(DagWalker):
 
         quantifier_vars = formula.quantifier_vars()
         spot_nfa = args[0]
-        spot_nfa.projection(quantifier_vars)
-        return spot_nfa
+        return SpotNFA.projection(spot_nfa, quantifier_vars)
 
     def walk_and(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
         return SpotNFA.intersect_all(*args)
@@ -47,7 +44,10 @@ class FormulaAutomataBuilder(DagWalker):
         return SpotNFA.union_all(*args)
 
     def walk_not(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
-        raise NotImplementedError("NOT operator handling is not implemented yet.")
+        if len(args) != 1:
+            msg = "The body of a NOT expression must be represented as a single nfa."
+            raise ValueError(msg)
+        return SpotNFA.complement(args[0])
 
     @handles(op.LE, op.EQUALS)
     def walk_literal(self, formula: FNode, args, **kwargs) -> SpotNFA:
