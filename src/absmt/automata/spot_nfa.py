@@ -154,6 +154,10 @@ class SpotNFA:
         """Return string representation showing the HOA format."""
         return self.to_hoa()
 
+    def is_empty(self) -> bool:
+        """Check if the automaton's language is empty."""
+        return self.twa_graph.is_empty()
+
     @staticmethod
     def has_common_language(*nfas: "SpotNFA") -> bool:
         """Check if all given NFAs have a common language.
