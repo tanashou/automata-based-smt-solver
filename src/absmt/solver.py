@@ -58,13 +58,10 @@ class Solver:
         formula_automata_builder = FormulaAutomataBuilder()
 
         target_formula = And(self._formulas)
-        logger.debug("Solving formula: %s", target_formula.serialize(threshold=100))
         rewritten_formula = self._rewrite(target_formula)
         result_nfa = formula_automata_builder.build(rewritten_formula)
 
         if result_nfa.is_empty():
-            logger.debug("Formula is UNSAT.")
             return SatStatus.UNSAT
 
-        logger.debug("Formula is SAT.")
         return SatStatus.SAT
