@@ -15,8 +15,8 @@ FormulaTree: TypeAlias = dict[str, FormulaNodeType | list["FormulaTree | Formula
 class FormulaDataExtractor:
     """A simple recursive walker to perform top-down context propagation."""
 
-    def __init__(self, env=None):
-        self.normalizer = PolynomialNormalizer(env=env)
+    def __init__(self):
+        self.normalizer = PolynomialNormalizer()
         self.memoization = {}
         # Map node types from pysmt.operators to walk methods.
         self.functions = {
