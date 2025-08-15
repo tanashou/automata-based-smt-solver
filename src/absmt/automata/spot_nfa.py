@@ -88,12 +88,6 @@ class SpotNFA:
             start_state_id = self._state_map[start_state]
             is_state_from_final = start_state in final_states
 
-            # 受理状態からの遷移がない場合、Buchiオートマトンにするため自己ループを追加
-            if is_state_from_final and not trans:
-                self.twa_graph.new_edge(
-                    start_state_id, start_state_id, buddy.bddtrue, [0]
-                )
-
             # 受理状態からの遷移全てを受理条件に追加
             for symbol, end_states in trans.items():
                 for end_state in end_states:
@@ -114,9 +108,7 @@ class SpotNFA:
                 # If there are no transitions from the final state, create a self-loop
                 final_state_id = self._state_map[final_state]
                 self.twa_graph.new_edge(
-                    final_state_id,
-                    final_state_id,
-                    buddy.bddtrue,
+                    final_state_id, final_state_id, buddy.bddtrue, [0]
                 )
 
     def _symbol_to_formula(
