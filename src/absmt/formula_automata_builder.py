@@ -1,4 +1,5 @@
 # ruff: noqa: ANN001, ANN003, ARG002
+
 import pysmt.operators as op
 import spot
 from pysmt.fnode import FNode
@@ -18,13 +19,16 @@ class FormulaAutomataBuilder(DagWalker):
 
     def build(self, formula: FNode) -> SpotNFA:
         all_vars = [str(var) for var in formula.get_free_variables()]
-        all_vars += [str(var) for var in formula.quantifier_vars()]
+        all_vars += [str(var) for var in QuantVarCollector().collect(formula)]
         all_var_index_map = {var: index for index, var in enumerate(all_vars)}
         walk_context = {
             "all_vars": all_vars,
             "all_var_index_map": all_var_index_map,
         }
         return self.walk(formula, **walk_context)
+
+    def _get_key(self, formula: FNode, *args: list, **kwargs) -> FNode:
+        return formula
 
     def walk_exists(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
         if len(args) != 1:
@@ -49,7 +53,7 @@ class FormulaAutomataBuilder(DagWalker):
             raise ValueError(msg)
         return SpotNFA.complement(args[0])
 
-    @handles(op.LE, op.EQUALS)
+    @handles(op.LT, op.LE, op.EQUALS)
     def walk_literal(self, formula: FNode, args, **kwargs) -> SpotNFA:
         literal_data = self._literal_data_extractor.extract(formula)
         all_vars = kwargs["all_vars"]
@@ -58,3 +62,36 @@ class FormulaAutomataBuilder(DagWalker):
         builder = AutomataBuilder(literal_data, all_vars, all_var_index_map)
         nfa = builder.build()
         return SpotNFA(nfa, self._bdict)
+
+    @handles(
+        op.SYMBOL,
+        *op.CONSTANTS,
+    )
+    def walk_others(self, formula: FNode, args, **kwargs) -> None:
+        return
+
+
+class QuantVarCollector(DagWalker):
+    """A simple walker to collect quantifier variables from a formula."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.quantifier_vars: set[str] = set()
+
+    def collect(self, formula: FNode) -> set[str]:
+        """Collect quantifier variables from the given formula."""
+        self.walk(formula)
+        return self.quantifier_vars
+
+    def walk_exists(self, formula: FNode, args, **kwargs) -> None:
+        self.quantifier_vars.update(formula.quantifier_vars())
+
+    @handles(
+        op.SYMBOL,
+        *op.BOOL_CONNECTIVES,
+        *op.CONSTANTS,
+        *op.RELATIONS,
+    )
+    def walk_others(self, formula: FNode, args, **kwargs) -> None:
+        """Handle other formula types without collecting quantifier variables."""
+        return
