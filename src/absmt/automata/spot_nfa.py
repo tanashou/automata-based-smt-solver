@@ -25,7 +25,6 @@ class SpotNFA:
     # twa: transition-based ω automata
     twa_graph: Any = field(init=False)  # spot.twa_graph
     _state_map: dict[NFAStateT, int] = field(default_factory=dict, init=False)
-    _bdd_var_str_to_id: dict[str, Any] = field(default_factory=dict, init=False)
 
     def __post_init__(self, nfa: NFA, bdd_dict: Any) -> None:  # noqa: ANN401
         """Initialize the Spot automaton after creation."""
@@ -41,7 +40,6 @@ class SpotNFA:
         obj = cls.__new__(cls)
         obj.twa_graph = twa_graph
         obj._state_map = {}  # noqa: SLF001
-        obj._bdd_var_str_to_id = {}  # noqa: SLF001
         return obj
 
     def _create_automaton(self, bdd_dict: Any) -> None:  # noqa: ANN401
@@ -54,8 +52,7 @@ class SpotNFA:
     def _register_ap(self, alphabet: MSBFAlphabet) -> None:
         """Register atomic propositions for each variable in the BDD."""
         for var in alphabet.used_vars:
-            bdd_var_id = self.twa_graph.register_ap(var)
-            self._bdd_var_str_to_id[var] = bdd_var_id
+            self.twa_graph.register_ap(var)
 
     def _add_states(self, states: set[NFAStateT]) -> None:
         """Add states to the automaton."""
@@ -124,11 +121,11 @@ class SpotNFA:
             var_name = str(all_vars[i])
 
             if bit == "1":
-                bdd_var_id = self._bdd_var_str_to_id[var_name]
+                bdd_var_id = self.twa_graph.register_ap(var_name)
                 # Bit is 1 means variable is True
                 result = result & buddy.bdd_ithvar(bdd_var_id)
             elif bit == "0":
-                bdd_var_id = self._bdd_var_str_to_id[var_name]
+                bdd_var_id = self.twa_graph.register_ap(var_name)
                 # Bit is 0 means variable is False (negated)
                 result = result & (-buddy.bdd_ithvar(bdd_var_id))
             # Skip wildcards
@@ -297,7 +294,7 @@ class SpotNFA:
         # Using bddtrue() as neutral element for conjunction
         cube = buddy.bddtrue
         for name in quantified_vars:
-            varid = nfa._bdd_var_str_to_id[str(name)]  # noqa: SLF001
+            varid = nfa.twa_graph.register_ap(str(name))
             cube = buddy.bdd_and(cube, buddy.bdd_ithvar(varid))
 
         # Iterate over all edges and replace their guard with the quantified guard
