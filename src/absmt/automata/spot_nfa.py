@@ -299,7 +299,7 @@ class SpotNFA:
         # Using bddtrue() as neutral element for conjunction
         cube = buddy.bddtrue
         for name in quantified_vars:
-            varid = nfa._bdd_var_str_to_id[name]  # noqa: SLF001
+            varid = nfa._bdd_var_str_to_id[str(name)]  # noqa: SLF001
             cube = buddy.bdd_and(cube, buddy.bdd_ithvar(varid))
 
         # Iterate over all edges and replace their guard with the quantified guard
