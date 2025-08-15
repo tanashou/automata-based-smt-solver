@@ -1,13 +1,11 @@
 {
-    "pythonVersion": "3.13",
+    "pythonVersion": "3.12",
     "pythonPlatform": "All",
-    "venvPath": "./",
-    "venv": ".venv",
+    "pythonPath": "/opt/conda/envs/absmt/bin/python",
     "include": [],
     "exclude": [
         "**/__pycache__",
         ".pytest_cache",
         ".ruff_cache",
-        ".venv"
-    ],
+    ]
 }
