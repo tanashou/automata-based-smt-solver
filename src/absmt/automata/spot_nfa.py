@@ -305,9 +305,9 @@ class SpotNFA:
         # Iterate over all edges and replace their guard with the quantified guard
         for state in range(nfa.twa_graph.num_states()):
             for edge in nfa.twa_graph.out(state):
-                old_guard = edge.cond  # BDD of the transition condition
-                new_guard = buddy.bdd_exist(old_guard, cube)  # ∃(ap_names). old_guard
-                new_twa.new_edge(state, edge.dst, new_guard, edge.acc)
+                old_cond = edge.cond  # BDD of the transition condition
+                new_cond = buddy.bdd_exist(old_cond, cube)  # ∃(ap_names). old_guard
+                new_twa.new_edge(state, edge.dst, new_cond, edge.acc)
 
         # If you plan to reuse the automaton, you may want to simplify/cleanup:
         # aut.merge_states() or spot.postprocess functions as appropriate
