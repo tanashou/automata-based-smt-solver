@@ -62,6 +62,7 @@ class LiteralDataExtractor(DagWalker):
     @handles(
         op.SYMBOL,
         *op.CONSTANTS,
+        *op.IRA_OPERATORS,
     )
     def walk_others(self, formula: FNode, args: list, **kwargs) -> None:
         return
