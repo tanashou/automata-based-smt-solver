@@ -4,8 +4,6 @@ from pysmt.fnode import FNode
 from pysmt.shortcuts import And
 from pysmt.smtlib.parser import SmtLibParser
 
-from absmt.automata.nfa import NFA
-from absmt.automata_builder import AutomataBuilder
 from absmt.formula import FormulaDataExtractor
 from absmt.formula.formula_data_extractor import collect_literals_from_tree
 from absmt.formula.rewritings import (
@@ -15,6 +13,7 @@ from absmt.formula.rewritings import (
     UniversalQFEliminator,
 )
 from absmt.formula.type import FormulaData
+from absmt.formula_automata_builder import FormulaAutomataBuilder
 from absmt.sat_status import SatStatus
 
 logger = logging.getLogger(__name__)
@@ -51,43 +50,21 @@ class Solver:
     def clear(self) -> None:
         self._formulas.clear()
 
-    def _setup_and_build(
-        self,
-        conjunction_data: list[FormulaData],
-        all_vars: list[str],
-        var_index_map: dict[str, int],
-    ) -> list[AutomataBuilder]:
-        builders: list[AutomataBuilder] = []
-        for literal_data in conjunction_data:
-            used_vars = list(literal_data.coeffs.keys())
-            builder = AutomataBuilder(
-                literal_data,
-                all_vars,
-                var_index_map,
-                used_vars,
-            )
-            builder.build()
-            builders.append(builder)
-        return builders
-
-    def _intersect_all_nfa_(self, union_nfas: list[NFA]) -> NFA | None:
-        if not union_nfas:
-            return None
-        all_nfa = union_nfas[0]
-        for union_nfa in union_nfas[1:]:
-            all_nfa = all_nfa.intersection(union_nfa)
-        return all_nfa
-
     def solve(self) -> SatStatus:
         if not self._formulas:
             msg = "No formulas to solve."
             raise ValueError(msg)
 
+        formula_automata_builder = FormulaAutomataBuilder()
+
         target_formula = And(self._formulas)
         logger.debug("Solving formula: %s", target_formula.serialize(threshold=100))
-        target_formula_tree, literals_data = self._extract_data(target_formula)
-        logger.debug("Rewritten formula to DNF.")
+        rewritten_formula = self._rewrite(target_formula)
+        result_nfa = formula_automata_builder.build(rewritten_formula)
 
-        # TODO: create a solver methodz
+        if result_nfa.is_empty():
+            logger.debug("Formula is UNSAT.")
+            return SatStatus.UNSAT
 
-        return SatStatus.UNSAT
+        logger.debug("Formula is SAT.")
+        return SatStatus.SAT

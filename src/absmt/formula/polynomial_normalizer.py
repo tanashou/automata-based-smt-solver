@@ -11,6 +11,9 @@ class PolynomialNormalizer(DagWalker):
     Example: Times(2, x) + 5 - y  ->  ({x: 2, y: -1}, 5)
     """
 
+    def __init__(self) -> None:
+        super().__init__()
+
     def walk_plus(self, formula: FNode, args: list, **kwargs) -> tuple:
         # Aggregate results from child nodes
         res_coeffs = collections.defaultdict(int)

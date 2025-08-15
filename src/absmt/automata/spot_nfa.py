@@ -1,5 +1,6 @@
 import logging
 from dataclasses import InitVar, dataclass, field
+from functools import reduce
 from typing import Any
 
 import buddy
@@ -17,9 +18,12 @@ class SpotNFA:
     """Wrapper class for converting NFA components to Spot automaton."""
 
     nfa: InitVar[NFA]
+    # must use the same bdd_dict instance for all SpotNFA instances
+    # when applying functions like spot.product
     bdd_dict: InitVar[Any]  # spot.bdd_dict
 
-    spot_automaton: Any = field(init=False)  # spot.twa_graph
+    # twa: transition-based ω automata
+    twa_graph: Any = field(init=False)  # spot.twa_graph
     _state_map: dict[NFAStateT, int] = field(default_factory=dict, init=False)
     _bdd_var_str_to_id: dict[str, Any] = field(default_factory=dict, init=False)
 
@@ -31,18 +35,27 @@ class SpotNFA:
         self._set_initial_state(nfa.initial_state)
         self._add_transitions(nfa.transitions, nfa.final_states, nfa.alphabet)
 
+    @classmethod
+    def from_twa_graph(cls, twa_graph: Any) -> "SpotNFA":  # noqa: ANN401
+        """Create SpotNFA from an existing TWA graph."""
+        obj = cls.__new__(cls)
+        obj.twa_graph = twa_graph
+        obj._state_map = {}  # noqa: SLF001
+        obj._bdd_var_str_to_id = {}  # noqa: SLF001
+        return obj
+
     def _create_automaton(self, bdd_dict: Any) -> None:  # noqa: ANN401
         """Create BDD dictionary and Spot automaton."""
-        self.spot_automaton = spot.make_twa_graph(bdd_dict)
-        self.spot_automaton.set_buchi()
+        self.twa_graph = spot.make_twa_graph(bdd_dict)
+        self.twa_graph.set_buchi()
         # Pretend this is state-based acceptance
-        self.spot_automaton.prop_state_acc(True)  # noqa: FBT003
+        self.twa_graph.prop_state_acc(True)  # noqa: FBT003
 
     def _register_ap(self, alphabet: MSBFAlphabet) -> None:
         """Register atomic propositions for each variable in the BDD."""
         for var in alphabet.used_vars:
-            bdd_var_id = self.spot_automaton.register_ap(str(var))
-            self._bdd_var_str_to_id[str(var)] = bdd_var_id
+            bdd_var_id = self.twa_graph.register_ap(var)
+            self._bdd_var_str_to_id[var] = bdd_var_id
 
     def _add_states(self, states: set[NFAStateT]) -> None:
         """Add states to the automaton."""
@@ -50,7 +63,7 @@ class SpotNFA:
 
         if states:
             # Add required number of states
-            self.spot_automaton.new_states(len(states))
+            self.twa_graph.new_states(len(states))
             # spot.aut の状態と NFA の状態を対応させるためのマップを作成
             for i, state in enumerate(states):
                 self._state_map[state] = i
@@ -59,7 +72,7 @@ class SpotNFA:
         """Set the initial state of the automaton."""
         if self._state_map is not None and initial_state in self._state_map:
             initial_state_id = self._state_map[initial_state]
-            self.spot_automaton.set_init_state(initial_state_id)
+            self.twa_graph.set_init_state(initial_state_id)
 
     def _add_transitions(
         self,
@@ -84,20 +97,18 @@ class SpotNFA:
 
                     # Buchiオートマトンに変換するため受理状態からの遷移を受理条件に追加
                     if is_state_from_final:
-                        self.spot_automaton.new_edge(
+                        self.twa_graph.new_edge(
                             state_from_id, state_to_id, formula, [0]
                         )
                     else:
-                        self.spot_automaton.new_edge(
-                            state_from_id, state_to_id, formula
-                        )
+                        self.twa_graph.new_edge(state_from_id, state_to_id, formula)
 
         # Buchiオートマトンに変換するため、無限語を受理できるようにする
         for final_state in final_states:
             if transitions.get(final_state) is None:
                 # If there are no transitions from the final state, create a self-loop
                 final_state_id = self._state_map[final_state]
-                self.spot_automaton.new_edge(
+                self.twa_graph.new_edge(
                     final_state_id,
                     final_state_id,
                     buddy.bddtrue,
@@ -128,11 +139,11 @@ class SpotNFA:
 
     def to_hoa(self) -> str:
         """Convert the automaton to HOA format string."""
-        return self.spot_automaton.to_str("hoa")
+        return self.twa_graph.to_str("hoa")
 
     def to_dot(self) -> str:
         """Convert the automaton to DOT format string."""
-        return self.spot_automaton.to_str("dot")
+        return self.twa_graph.to_str("dot")
 
     def accepts(self, word: str) -> bool:
         """Check if the automaton accepts a given word."""
@@ -142,6 +153,10 @@ class SpotNFA:
     def __str__(self) -> str:
         """Return string representation showing the HOA format."""
         return self.to_hoa()
+
+    def is_empty(self) -> bool:
+        """Check if the automaton's language is empty."""
+        return self.twa_graph.is_empty()
 
     @staticmethod
     def has_common_language(*nfas: "SpotNFA") -> bool:
@@ -159,9 +174,9 @@ class SpotNFA:
             return True  # If no NFAs are provided, consider it trivially true
 
         if len(nfas) == 1:
-            return not nfas[0].spot_automaton.is_empty()
+            return not nfas[0].twa_graph.is_empty()
 
-        automata_list: list[Any] = [nfa.spot_automaton for nfa in nfas]
+        automata_list: list[Any] = [nfa.twa_graph for nfa in nfas]
 
         # loop until the list has only two automata
         while len(automata_list) > 2:  # noqa: PLR2004
@@ -193,3 +208,108 @@ class SpotNFA:
         result = automata_list[0].intersects(automata_list[1])
         logger.debug("Final intersects computation finished")
         return result
+
+    @staticmethod
+    def intersect_all(*nfas: "SpotNFA") -> "SpotNFA":
+        """Create a single automaton by taking the intersection of all given SpotNFA.
+
+        Args:
+            *nfas: SpotNFA instances to combine
+
+        Returns:
+            spot.twa_graph: The product automaton of all input automata
+
+        """
+        if not nfas:
+            msg = "No NFAs provided for product."
+            raise ValueError(msg)
+
+        if len(nfas) == 1:
+            return nfas[0].twa_graph
+
+        automata_list = [nfa.twa_graph for nfa in nfas]
+
+        # 分割統治法のアイデア。
+        # TODO: 作成途中で受理不能になったらそれ以降の計算を省略したい。
+        while len(automata_list) > 1:
+            next_level_automata = []
+            for i in range(0, len(automata_list), 2):
+                if i + 1 >= len(automata_list):
+                    next_level_automata.append(automata_list[i])
+                    break
+                aut1 = automata_list[i]
+                aut2 = automata_list[i + 1]
+                product_aut = spot.product(aut1, aut2)
+                next_level_automata.append(product_aut)
+            automata_list = next_level_automata
+
+        return SpotNFA.from_twa_graph(automata_list[0])
+
+    @staticmethod
+    def union_all(*nfas: "SpotNFA") -> "SpotNFA":
+        """Create a single automaton by taking the union of all given SpotNFA.
+
+        Args:
+            *nfas: SpotNFA instances to combine
+
+        Returns:
+            spot.twa_graph: The union automaton of all input automata
+
+        """
+        if not nfas:
+            msg = "No NFAs provided for union."
+            raise ValueError(msg)
+
+        if len(nfas) == 1:
+            return nfas[0].twa_graph
+
+        automata_list = [nfa.twa_graph for nfa in nfas]
+        result_nfa = reduce(spot.product_or, automata_list)
+        return SpotNFA.from_twa_graph(result_nfa)
+
+    @staticmethod
+    def complement(nfa: "SpotNFA") -> "SpotNFA":
+        """Create a complement automaton from the nfa."""
+        twa_graph = spot.complement(nfa.twa_graph)
+        return SpotNFA.from_twa_graph(twa_graph)
+
+    @staticmethod
+    def projection(nfa: "SpotNFA", quantified_vars: list[str]) -> "SpotNFA":
+        """Remove the given ap from all transition guards in the automaton.
+
+        Args:
+            nfa (SpotNFA): The automaton from which atomic propositions will be removed.
+            quantified_vars (list[str]):
+                List of atomic proposition names to remove (e.g., ["x", "y"]).
+
+        Note:
+            Since all guards are conjunctions, applying buddy.bdd_exist
+            eliminates the quantified variables.
+            spot_aut does not allow modifying the guards directly,
+            so we create a new automaton with the modified guards.
+
+        """
+        new_twa = spot.make_twa_graph(nfa.twa_graph.get_dict())
+        new_twa.set_buchi()
+        new_twa.prop_state_acc(True)  # noqa: FBT003
+        new_twa.new_states(nfa.twa_graph.num_states())
+        new_twa.set_init_state(nfa.twa_graph.get_init_state_number())
+
+        # Build a cube (conjunction) of all variables to eliminate
+        # Using bddtrue() as neutral element for conjunction
+        cube = buddy.bddtrue
+        for name in quantified_vars:
+            varid = nfa._bdd_var_str_to_id[str(name)]  # noqa: SLF001
+            cube = buddy.bdd_and(cube, buddy.bdd_ithvar(varid))
+
+        # Iterate over all edges and replace their guard with the quantified guard
+        for state in range(nfa.twa_graph.num_states()):
+            for edge in nfa.twa_graph.out(state):
+                old_cond = edge.cond  # BDD of the transition condition
+                new_cond = buddy.bdd_exist(old_cond, cube)  # ∃(ap_names). old_guard
+                new_twa.new_edge(state, edge.dst, new_cond, edge.acc)
+
+        # If you plan to reuse the automaton, you may want to simplify/cleanup:
+        # aut.merge_states() or spot.postprocess functions as appropriate
+        new_twa.merge_states()
+        return SpotNFA.from_twa_graph(new_twa)
