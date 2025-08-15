@@ -83,6 +83,7 @@ class SpotNFA:
         """Add transitions to the automaton."""
         # Cache alphabet information to avoid repeated access
         all_vars = alphabet.all_vars
+        acceptance_set = 0
 
         for start_state, trans in transitions.items():
             start_state_id = self._state_map[start_state]
@@ -97,7 +98,7 @@ class SpotNFA:
                     # Buchiオートマトンに変換するため受理状態からの遷移を受理条件に追加
                     if is_state_from_final:
                         self.twa_graph.new_edge(
-                            start_state_id, end_state_id, formula, [0]
+                            start_state_id, end_state_id, formula, [acceptance_set]
                         )
                     else:
                         self.twa_graph.new_edge(start_state_id, end_state_id, formula)
@@ -108,7 +109,7 @@ class SpotNFA:
                 # If there are no transitions from the final state, create a self-loop
                 final_state_id = self._state_map[final_state]
                 self.twa_graph.new_edge(
-                    final_state_id, final_state_id, buddy.bddtrue, [0]
+                    final_state_id, final_state_id, buddy.bddtrue, [acceptance_set]
                 )
 
     def _symbol_to_formula(
