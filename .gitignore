@@ -168,6 +168,7 @@ cython_debug/
 *.log
 
 src/playground.py
+src/playground.ipynb
 images/*
 # only add the benchmarks dir in the project root
 /benchmarks/
