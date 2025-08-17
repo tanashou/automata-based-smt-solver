@@ -50,7 +50,7 @@ Examples:
     parser.add_argument(
         "--directory",
         default=None,
-        help="Custom benchmark directory path. Default: benchmarks/QF_LIA/prime-cone",
+        help="Custom benchmark directory path. Default: benchmarks/LIA/tptp",
     )
 
     args = parser.parse_args()
@@ -111,7 +111,7 @@ def main() -> None:
         benchmark_dir = Path(args.directory)
     else:
         benchmark_dir = (
-            Path(__file__).parent.parent.parent / "benchmarks" / "QF_LIA" / "prime-cone"
+            Path(__file__).parent.parent.parent / "benchmarks" / "LIA" / "tptp"
         )
 
     # Initialize counters for detailed error tracking
