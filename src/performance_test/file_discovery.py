@@ -132,6 +132,11 @@ def discover_smt2_files(directory: Path, pattern: str = "*.smt2") -> list[Path]:
             len(smt2_files),
             directory,
         )
+        # Also log a concise completion message (used by tests)
+        concise_msg = (
+            "File discovery completed: " + str(len(smt2_files)) + " SMT2 files found"
+        )
+        logger.info(concise_msg)
 
         # Handle empty directory case gracefully with enhanced guidance
         if not smt2_files:
