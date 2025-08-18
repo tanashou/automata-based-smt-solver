@@ -100,7 +100,7 @@ class SpotNFA:
                     else:
                         self.twa_graph.new_edge(start_state_id, end_state_id, formula)
 
-        # Buchiオートマトンに変換するため、無限語を受理できるようにする
+        # Buchiオートマトンに変換する。受理状態からの遷移がない場合の処理
         for final_state in final_states:
             if transitions.get(final_state) is None:
                 # If there are no transitions from the final state, create a self-loop
@@ -139,6 +139,30 @@ class SpotNFA:
     def to_dot(self) -> str:
         """Convert the automaton to DOT format string."""
         return self.twa_graph.to_str("dot")
+
+    def show(self, style: str = "v") -> None:
+        """Show the automaton using spot's visualizer (for debugging).
+
+        The `name` argument is forwarded to the underlying `twa_graph.show()`
+        call. This method intentionally swallows exceptions and logs them so
+        debug-printing won't break normal execution.
+        """
+        try:
+            try:
+                # spot.jupyter.display_inline renders automata inside notebooks
+                from spot.jupyter import display_inline  # noqa: PLC0415
+
+                display_inline(self.twa_graph)
+
+            except ImportError:
+                # Not in a Jupyter environment or display_inline not available.
+                logger.exception("Failed to import spot.jupyter.display_inline")
+
+            self.twa_graph.show(style)
+        except Exception:
+            logger.exception(
+                "Failed to show Spot automaton; fallback to HOA/DOT available"
+            )
 
     def accepts(self, word: str) -> bool:
         """Check if the automaton accepts a given word."""
@@ -306,5 +330,6 @@ class SpotNFA:
 
         # If you plan to reuse the automaton, you may want to simplify/cleanup:
         # aut.merge_states() or spot.postprocess functions as appropriate
+        new_twa.merge_edges()
         new_twa.merge_states()
         return SpotNFA.from_twa_graph(new_twa)
