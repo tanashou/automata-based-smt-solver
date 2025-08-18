@@ -33,9 +33,23 @@ class Solver:
 
     def _rewrite(self, formula: FNode) -> FNode:
         quantifier_rewritten = self._universal_qf_eliminator.walk(formula)
+        logger.debug(
+            "After eliminating universal quantifiers: %s",
+            quantifier_rewritten.serialize(threshold=20),
+        )
         nnf_formula = self._nnfizer.convert(quantifier_rewritten)
+        logger.debug("After converting to NNF: %s", nnf_formula.serialize(threshold=20))
         double_negation_eliminated = self._double_negation_eliminator.walk(nnf_formula)
-        return self._negation_eliminator.walk(double_negation_eliminated)
+        logger.debug(
+            "After eliminating double negations: %s",
+            double_negation_eliminated.serialize(threshold=20),
+        )
+        negation_eliminated = self._negation_eliminator.walk(double_negation_eliminated)
+        logger.debug(
+            "After eliminating negations: %s",
+            negation_eliminated.serialize(threshold=20),
+        )
+        return negation_eliminated
 
     def _extract_data(
         self, preprocessed_formula: FNode
