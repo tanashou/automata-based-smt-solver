@@ -1,5 +1,8 @@
 # ruff: noqa: ANN001, ANN003, ARG002
 
+import contextlib
+import logging
+
 import pysmt.operators as op
 import spot
 from pysmt.fnode import FNode
@@ -9,6 +12,8 @@ from pysmt.walkers.generic import handles
 from absmt.automata.spot_nfa import SpotNFA
 from absmt.automata_builder import AutomataBuilder
 from absmt.formula import LiteralDataExtractor
+
+logger = logging.getLogger(__name__)
 
 
 class FormulaAutomataBuilder(DagWalker):
@@ -39,19 +44,54 @@ class FormulaAutomataBuilder(DagWalker):
 
         quantifier_vars = formula.quantifier_vars()
         spot_nfa = args[0]
-        return SpotNFA.projection(spot_nfa, quantifier_vars)
+        res = SpotNFA.projection(spot_nfa, quantifier_vars)
+        # res is a SpotNFA instance; best-effort debug printing
+        with contextlib.suppress(Exception):
+            formula_str = str(formula)
+            logger.info(
+                "Showing automaton for 'exists' (quantified vars=%s) formula=%s",
+                quantifier_vars,
+                formula_str,
+            )
+            res.show("exists")
+        return res
 
     def walk_and(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
-        return SpotNFA.intersect_all(*args)
+        res = SpotNFA.intersect_all(*args)
+        # intersect_all returns a SpotNFA; best-effort debug printing
+        with contextlib.suppress(Exception):
+            formula_str = str(formula)
+            logger.info(
+                "Showing automaton for 'and' with %d operands; formula=%s",
+                len(args),
+                formula_str,
+            )
+            res.show("and")
+        return res
 
     def walk_or(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
-        return SpotNFA.union_all(*args)
+        res = SpotNFA.union_all(*args)
+        # best-effort debug printing
+        with contextlib.suppress(Exception):
+            formula_str = str(formula)
+            logger.info(
+                "Showing automaton for 'or' with %d operands; formula=%s",
+                len(args),
+                formula_str,
+            )
+            res.show("or")
+        return res
 
     def walk_not(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
         if len(args) != 1:
             msg = "The body of a NOT expression must be represented as a single nfa."
             raise ValueError(msg)
-        return SpotNFA.complement(args[0])
+        res = SpotNFA.complement(args[0])
+        with contextlib.suppress(Exception):
+            formula_str = str(formula)
+            logger.info("Showing automaton for 'not'; formula=%s", formula_str)
+            res.show("not")
+        return res
 
     @handles(op.LT, op.LE, op.EQUALS)
     def walk_literal(self, formula: FNode, args, **kwargs) -> SpotNFA:
@@ -61,7 +101,19 @@ class FormulaAutomataBuilder(DagWalker):
 
         builder = AutomataBuilder(literal_data, all_vars, all_var_index_map)
         nfa = builder.build()
-        return SpotNFA(nfa, self._bdict)
+        res = SpotNFA(nfa, self._bdict)
+        with contextlib.suppress(Exception):
+            # include a short description from literal_data if possible
+            # Use repr for a stable, non-raising description
+            lit_desc = repr(literal_data)
+            formula_str = str(formula)
+            logger.info(
+                "Showing automaton for 'literal': %s; formula=%s",
+                lit_desc,
+                formula_str,
+            )
+            res.show("literal")
+        return res
 
     @handles(
         op.SYMBOL,
