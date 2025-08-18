@@ -1,4 +1,5 @@
-# ruff: noqa: ANN201, ANN204, ANN001, ANN003
+# ruff: noqa: ANN001, ANN003
+from pysmt.fnode import FNode
 from pysmt.shortcuts import Exists, Not
 from pysmt.walkers import IdentityDagWalker
 
@@ -9,10 +10,10 @@ class UniversalQFEliminator(IdentityDagWalker):
     ドモルガンの法則を利用して、全称量化子を存在量化子に置き換える。
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def walk_forall(self, formula, args, **kwargs):
+    def walk_forall(self, formula, args, **kwargs) -> FNode:
         """Rewrite forall to exists using De Morgan's laws.
 
         ∀x.φ(x) → ¬¬∀x.φ(x) → ¬∃x.(¬φ(x))
