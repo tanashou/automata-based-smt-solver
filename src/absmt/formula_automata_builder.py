@@ -45,6 +45,7 @@ class FormulaAutomataBuilder(DagWalker):
         quantifier_vars = formula.quantifier_vars()
         spot_nfa = args[0]
         res = SpotNFA.projection(spot_nfa, quantifier_vars)
+        logger.info(res.to_hoa())
         # res is a SpotNFA instance; best-effort debug printing
         with contextlib.suppress(Exception):
             formula_str = str(formula)
@@ -53,11 +54,12 @@ class FormulaAutomataBuilder(DagWalker):
                 quantifier_vars,
                 formula_str,
             )
-            res.show("exists")
+            res.show()
         return res
 
     def walk_and(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
         res = SpotNFA.intersect_all(*args)
+        logger.info(res.to_hoa())
         # intersect_all returns a SpotNFA; best-effort debug printing
         with contextlib.suppress(Exception):
             formula_str = str(formula)
@@ -66,11 +68,12 @@ class FormulaAutomataBuilder(DagWalker):
                 len(args),
                 formula_str,
             )
-            res.show("and")
+            res.show()
         return res
 
     def walk_or(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
         res = SpotNFA.union_all(*args)
+        logger.info(res.to_hoa())
         # best-effort debug printing
         with contextlib.suppress(Exception):
             formula_str = str(formula)
@@ -79,7 +82,7 @@ class FormulaAutomataBuilder(DagWalker):
                 len(args),
                 formula_str,
             )
-            res.show("or")
+            res.show()
         return res
 
     def walk_not(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
@@ -87,10 +90,11 @@ class FormulaAutomataBuilder(DagWalker):
             msg = "The body of a NOT expression must be represented as a single nfa."
             raise ValueError(msg)
         res = SpotNFA.complement(args[0])
+        logger.info(res.to_hoa())
         with contextlib.suppress(Exception):
             formula_str = str(formula)
             logger.info("Showing automaton for 'not'; formula=%s", formula_str)
-            res.show("not")
+            res.show()
         return res
 
     @handles(op.LT, op.LE, op.EQUALS)
@@ -102,6 +106,7 @@ class FormulaAutomataBuilder(DagWalker):
         builder = AutomataBuilder(literal_data, all_vars, all_var_index_map)
         nfa = builder.build()
         res = SpotNFA(nfa, self._bdict)
+        logger.info(res.to_hoa())
         with contextlib.suppress(Exception):
             # include a short description from literal_data if possible
             # Use repr for a stable, non-raising description
@@ -112,7 +117,7 @@ class FormulaAutomataBuilder(DagWalker):
                 lit_desc,
                 formula_str,
             )
-            res.show("literal")
+            res.show()
         return res
 
     @handles(
