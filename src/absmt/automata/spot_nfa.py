@@ -100,7 +100,7 @@ class SpotNFA:
                     else:
                         self.twa_graph.new_edge(start_state_id, end_state_id, formula)
 
-        # Buchiオートマトンに変換するため、無限語を受理できるようにする
+        # # Buchiオートマトンに変換する。受理状態からの遷移がない場合の処理
         for final_state in final_states:
             if transitions.get(final_state) is None:
                 # If there are no transitions from the final state, create a self-loop
@@ -139,6 +139,30 @@ class SpotNFA:
     def to_dot(self) -> str:
         """Convert the automaton to DOT format string."""
         return self.twa_graph.to_str("dot")
+
+    def show(self, style: str = "v") -> None:
+        """Show the automaton using spot's visualizer (for debugging).
+
+        The `name` argument is forwarded to the underlying `twa_graph.show()`
+        call. This method intentionally swallows exceptions and logs them so
+        debug-printing won't break normal execution.
+        """
+        try:
+            try:
+                # spot.jupyter.display_inline renders automata inside notebooks
+                from spot.jupyter import display_inline  # noqa: PLC0415
+
+                display_inline(self.twa_graph)
+
+            except ImportError:
+                # Not in a Jupyter environment or display_inline not available.
+                logger.exception("Failed to import spot.jupyter.display_inline")
+
+            self.twa_graph.show(style)
+        except Exception:
+            logger.exception(
+                "Failed to show Spot automaton; fallback to HOA/DOT available"
+            )
 
     def accepts(self, word: str) -> bool:
         """Check if the automaton accepts a given word."""
@@ -269,11 +293,15 @@ class SpotNFA:
         return SpotNFA.from_twa_graph(twa_graph)
 
     @staticmethod
-    def projection(nfa: "SpotNFA", quantified_vars: list[str]) -> "SpotNFA":
+    def projection(
+        nfa: "SpotNFA", all_vars: list[str], quantified_vars: list[str]
+    ) -> "SpotNFA":
         """Remove the given ap from all transition guards in the automaton.
 
         Args:
             nfa (SpotNFA): The automaton from which atomic propositions will be removed.
+            all_vars (list[str]):
+                List of all atomic proposition names present in the automaton.
             quantified_vars (list[str]):
                 List of atomic proposition names to remove (e.g., ["x", "y"]).
 
@@ -290,11 +318,20 @@ class SpotNFA:
         new_twa.new_states(nfa.twa_graph.num_states())
         new_twa.set_init_state(nfa.twa_graph.get_init_state_number())
 
+        # TODO: 使用している変数だけ登録したい
+        for var in all_vars:
+            new_twa.register_ap(var)
+
         # Build a cube (conjunction) of all variables to eliminate
         # Using bddtrue() as neutral element for conjunction
         cube = buddy.bddtrue
+
         for name in quantified_vars:
-            varid = nfa.twa_graph.register_ap(str(name))
+            # Use the variable id from the original automaton's BDD
+            # context to build the existential cube. Also register the
+            # quantified variable name on the new automaton so that its
+            # HOA/DOT output is self-contained.
+            varid = new_twa.register_ap(str(name))
             cube = buddy.bdd_and(cube, buddy.bdd_ithvar(varid))
 
         # Iterate over all edges and replace their guard with the quantified guard
@@ -304,7 +341,7 @@ class SpotNFA:
                 new_cond = buddy.bdd_exist(old_cond, cube)  # ∃(ap_names). old_guard
                 new_twa.new_edge(state, edge.dst, new_cond, edge.acc)
 
-        # If you plan to reuse the automaton, you may want to simplify/cleanup:
-        # aut.merge_states() or spot.postprocess functions as appropriate
+        # clean redundant states and edges
+        new_twa.merge_edges()
         new_twa.merge_states()
         return SpotNFA.from_twa_graph(new_twa)
