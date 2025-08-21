@@ -47,7 +47,7 @@ class SpotNFA:
         self.twa_graph = spot.make_twa_graph(bdd_dict)
         self.twa_graph.set_buchi()
         # Pretend this is state-based acceptance
-        self.twa_graph.prop_state_acc(True)  # noqa: FBT003
+        # self.twa_graph.prop_state_acc(True)  # noqa: ERA001
 
     def _register_ap(self, alphabet: MSBFAlphabet) -> None:
         """Register atomic propositions for each variable in the BDD."""
@@ -100,7 +100,6 @@ class SpotNFA:
                     else:
                         self.twa_graph.new_edge(start_state_id, end_state_id, formula)
 
-        # # Buchiオートマトンに変換する。受理状態からの遷移がない場合の処理
         for final_state in final_states:
             if transitions.get(final_state) is None:
                 # If there are no transitions from the final state, create a self-loop
@@ -313,8 +312,8 @@ class SpotNFA:
 
         """
         new_twa = spot.make_twa_graph(nfa.twa_graph.get_dict())
-        new_twa.set_buchi()
-        new_twa.prop_state_acc(True)  # noqa: FBT003
+        new_twa.copy_acceptance_of(nfa.twa_graph)
+        # new_twa.prop_state_acc(True)  # noqa: ERA001
         new_twa.new_states(nfa.twa_graph.num_states())
         new_twa.set_init_state(nfa.twa_graph.get_init_state_number())
 
