@@ -20,7 +20,7 @@ dev-dependencies = [
     "pyright>=1.1.392.post0",
     "pytest>=8.3.4",
     "pytest-cov>=6.0.0",
-    "ruff==0.12.9",
+    "ruff==0.12.10",
     "ipykernel==6.30.1",
 ]
 
