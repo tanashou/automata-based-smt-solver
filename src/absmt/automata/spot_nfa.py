@@ -47,7 +47,7 @@ class SpotNFA:
         self.twa_graph = spot.make_twa_graph(bdd_dict)
         self.twa_graph.set_buchi()
         # Pretend this is state-based acceptance
-        # self.twa_graph.prop_state_acc(True)  # noqa: ERA001
+        self.twa_graph.prop_state_acc(True)  # noqa: FBT003
 
     def _register_ap(self, alphabet: MSBFAlphabet) -> None:
         """Register atomic propositions for each variable in the BDD."""
