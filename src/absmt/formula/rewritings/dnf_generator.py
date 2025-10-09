@@ -1,7 +1,9 @@
 # ruff: noqa: ANN201, ANN204, ANN001, ANN003, ARG002
 import itertools
+from collections.abc import Generator
 
 import pysmt.operators as op
+from pysmt.fnode import FNode
 from pysmt.walkers.dag import DagWalker
 from pysmt.walkers.generic import handles
 
@@ -22,13 +24,13 @@ class DNFGenerator(DagWalker):
         # Access the formula manager from the environment instance
         self.mgr = self.env.formula_manager
 
-    def get_conjunctions(self, formula):
+    def get_conjunctions(self, formula) -> Generator[FNode, None, None]:
         """Return a generator that yields the conjunctions of the DNF."""
         # The nnf conversion is a crucial first step for this algorithm
         return self.walk(formula)
 
     @handles(op.AND)
-    def walk_and(self, formula, args, **kwargs):
+    def walk_and(self, formula, args, **kwargs) -> Generator[FNode, None, None]:
         # itertools.product is lazy. It creates an iterator that will produce
         # the next combination only when we ask for it.
         product_iterator = itertools.product(*args)
@@ -66,9 +68,9 @@ class DNFGenerator(DagWalker):
         op.PLUS,
         op.MINUS,
     )
-    def walk_literal(self, formula, **kwargs):
+    def walk_literal(self, formula, **kwargs) -> Generator[FNode, None, None]:
         if formula.is_false():
             # An empty generator represents a False DNF
-            return
+            yield from ()
         else:
             yield formula
