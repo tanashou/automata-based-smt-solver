@@ -23,7 +23,6 @@ class FormulaAutomataBuilder(DagWalker):
 
     def build(self, formula: FNode) -> SpotNFA:
         all_vars = [str(var) for var in formula.get_free_variables()]
-        all_vars += [str(var) for var in QuantVarCollector().collect(formula)]
         all_var_index_map = {var: index for index, var in enumerate(all_vars)}
         walk_context = {
             "all_vars": all_vars,
@@ -208,31 +207,4 @@ class FormulaAutomataBuilder(DagWalker):
         *op.IRA_OPERATORS,
     )
     def walk_others(self, formula: FNode, args, **kwargs) -> None:
-        return
-
-
-class QuantVarCollector(DagWalker):
-    """A simple walker to collect quantifier variables from a formula."""
-
-    def __init__(self) -> None:
-        super().__init__(invalidate_memoization=True)
-        self.quantifier_vars: set[str] = set()
-
-    def collect(self, formula: FNode) -> set[str]:
-        """Collect quantifier variables from the given formula."""
-        self.walk(formula)
-        return self.quantifier_vars
-
-    def walk_exists(self, formula: FNode, args, **kwargs) -> None:
-        self.quantifier_vars.update(formula.quantifier_vars())
-
-    @handles(
-        op.SYMBOL,
-        *op.BOOL_CONNECTIVES,
-        *op.CONSTANTS,
-        *op.RELATIONS,
-        *op.IRA_OPERATORS,
-    )
-    def walk_others(self, formula: FNode, args, **kwargs) -> None:
-        """Handle other formula types without collecting quantifier variables."""
         return
