@@ -67,13 +67,6 @@ class FormulaAutomataBuilder(DagWalker):
                 "Error serializing automaton for 'exists'; formula=%s",
                 formula_str,
             )
-        try:
-            res.show()
-        except Exception:
-            logger.exception(
-                "Error showing automaton for 'exists'; formula=%s",
-                formula_str,
-            )
         return res
 
     def walk_and(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
