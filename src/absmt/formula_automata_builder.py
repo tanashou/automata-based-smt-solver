@@ -23,7 +23,6 @@ class FormulaAutomataBuilder(DagWalker):
 
     def build(self, formula: FNode) -> SpotNFA:
         all_vars = [str(var) for var in formula.get_free_variables()]
-        all_vars += [str(var) for var in QuantVarCollector().collect(formula)]
         all_var_index_map = {var: index for index, var in enumerate(all_vars)}
         walk_context = {
             "all_vars": all_vars,
@@ -45,9 +44,9 @@ class FormulaAutomataBuilder(DagWalker):
         quantifier_vars = formula.quantifier_vars()
         spot_nfa = args[0]
         res = SpotNFA.projection(spot_nfa, all_vars, quantifier_vars)
-        # Log formula information before attempting HOA/DOT serialization
+        # Log formula before attempting HOA/DOT serialization
         formula_str = formula.serialize(threshold=20)
-        logger.info(
+        logger.debug(
             "Prepared automaton for 'exists' (quantified vars=%s); formula=%s",
             quantifier_vars,
             formula_str,
@@ -55,55 +54,41 @@ class FormulaAutomataBuilder(DagWalker):
         # Attempt to print HOA and show the automaton. Log any errors so the
         # user can see the cause (e.g. unregistered APs) instead of silently
         # suppressing them.
-        logger.info(
+        logger.debug(
             "Showing automaton for 'exists' (quantified vars=%s) formula=%s",
             quantifier_vars,
             formula_str,
         )
         # Try to serialize to HOA; log but continue to attempt show() even if it fails
         try:
-            logger.info(res.to_hoa())
+            logger.debug(res.to_hoa())
         except Exception:
             logger.exception(
                 "Error serializing automaton for 'exists'; formula=%s",
-                formula_str,
-            )
-        try:
-            res.show()
-        except Exception:
-            logger.exception(
-                "Error showing automaton for 'exists'; formula=%s",
                 formula_str,
             )
         return res
 
     def walk_and(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
         res = SpotNFA.intersect_all(*args)
-        # Log formula info before attempting serialization
+        # Log formula debug before attempting serialization
         formula_str = formula.serialize(threshold=20)
-        logger.info(
+        logger.debug(
             "Prepared automaton for 'and' with %d operands; formula=%s",
             len(args),
             formula_str,
         )
         # intersect_all returns a SpotNFA; best-effort debug printing
-        logger.info(
+        logger.debug(
             "Showing automaton for 'and' with %d operands; formula=%s",
             len(args),
             formula_str,
         )
         try:
-            logger.info(res.to_hoa())
+            logger.debug(res.to_hoa())
         except Exception:
             logger.exception(
                 "Error serializing automaton for 'and'; formula=%s",
-                formula_str,
-            )
-        try:
-            res.show()
-        except Exception:
-            logger.exception(
-                "Error showing automaton for 'and'; formula=%s",
                 formula_str,
             )
         return res
@@ -111,29 +96,22 @@ class FormulaAutomataBuilder(DagWalker):
     def walk_or(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
         res = SpotNFA.union_all(*args)
         formula_str = formula.serialize(threshold=20)
-        logger.info(
+        logger.debug(
             "Prepared automaton for 'or' with %d operands; formula=%s",
             len(args),
             formula_str,
         )
         # best-effort debug printing
-        logger.info(
+        logger.debug(
             "Showing automaton for 'or' with %d operands; formula=%s",
             len(args),
             formula_str,
         )
         try:
-            logger.info(res.to_hoa())
+            logger.debug(res.to_hoa())
         except Exception:
             logger.exception(
                 "Error serializing automaton for 'or'; formula=%s",
-                formula_str,
-            )
-        try:
-            res.show()
-        except Exception:
-            logger.exception(
-                "Error showing automaton for 'or'; formula=%s",
                 formula_str,
             )
         return res
@@ -144,22 +122,16 @@ class FormulaAutomataBuilder(DagWalker):
             raise ValueError(msg)
         res = SpotNFA.complement(args[0])
         formula_str = formula.serialize(threshold=20)
-        logger.info("Prepared automaton for 'not'; formula=%s", formula_str)
-        logger.info("Showing automaton for 'not'; formula=%s", formula_str)
+        logger.debug("Prepared automaton for 'not'; formula=%s", formula_str)
+        logger.debug("Showing automaton for 'not'; formula=%s", formula_str)
         try:
-            logger.info(res.to_hoa())
+            logger.debug(res.to_hoa())
         except Exception:
             logger.exception(
                 "Error serializing automaton for 'not'; formula=%s",
                 formula_str,
             )
-        try:
-            res.show()
-        except Exception:
-            logger.exception(
-                "Error showing automaton for 'not'; formula=%s",
-                formula_str,
-            )
+
         return res
 
     @handles(op.LT, op.LE, op.EQUALS)
@@ -174,32 +146,25 @@ class FormulaAutomataBuilder(DagWalker):
         # Log formula and literal description before attempting serialization
         lit_desc = repr(literal_data)
         formula_str = formula.serialize(threshold=20)
-        logger.info(
+        logger.debug(
             "Prepared automaton for 'literal': %s; formula=%s",
             lit_desc,
             formula_str,
         )
-        logger.info(
+        logger.debug(
             "Showing automaton for 'literal': %s; formula=%s",
             lit_desc,
             formula_str,
         )
         try:
-            logger.info(res.to_hoa())
+            logger.debug(res.to_hoa())
         except Exception:
             logger.exception(
                 "Error serializing automaton for 'literal' (%s); formula=%s",
                 lit_desc,
                 formula_str,
             )
-        try:
-            res.show()
-        except Exception:
-            logger.exception(
-                "Error showing automaton for 'literal' (%s); formula=%s",
-                lit_desc,
-                formula_str,
-            )
+
         return res
 
     @handles(
@@ -208,31 +173,4 @@ class FormulaAutomataBuilder(DagWalker):
         *op.IRA_OPERATORS,
     )
     def walk_others(self, formula: FNode, args, **kwargs) -> None:
-        return
-
-
-class QuantVarCollector(DagWalker):
-    """A simple walker to collect quantifier variables from a formula."""
-
-    def __init__(self) -> None:
-        super().__init__(invalidate_memoization=True)
-        self.quantifier_vars: set[str] = set()
-
-    def collect(self, formula: FNode) -> set[str]:
-        """Collect quantifier variables from the given formula."""
-        self.walk(formula)
-        return self.quantifier_vars
-
-    def walk_exists(self, formula: FNode, args, **kwargs) -> None:
-        self.quantifier_vars.update(formula.quantifier_vars())
-
-    @handles(
-        op.SYMBOL,
-        *op.BOOL_CONNECTIVES,
-        *op.CONSTANTS,
-        *op.RELATIONS,
-        *op.IRA_OPERATORS,
-    )
-    def walk_others(self, formula: FNode, args, **kwargs) -> None:
-        """Handle other formula types without collecting quantifier variables."""
         return

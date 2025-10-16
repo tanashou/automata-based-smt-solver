@@ -47,7 +47,7 @@ class SpotNFA:
         self.twa_graph = spot.make_twa_graph(bdd_dict)
         self.twa_graph.set_buchi()
         # Pretend this is state-based acceptance
-        # self.twa_graph.prop_state_acc(True)  # noqa: ERA001
+        self.twa_graph.prop_state_acc(True)  # noqa: FBT003
 
     def _register_ap(self, alphabet: MSBFAlphabet) -> None:
         """Register atomic propositions for each variable in the BDD."""
@@ -100,13 +100,8 @@ class SpotNFA:
                     else:
                         self.twa_graph.new_edge(start_state_id, end_state_id, formula)
 
-        for final_state in final_states:
-            if transitions.get(final_state) is None:
-                # If there are no transitions from the final state, create a self-loop
-                final_state_id = self._state_map[final_state]
-                self.twa_graph.new_edge(
-                    final_state_id, final_state_id, buddy.bddtrue, [acceptance_set]
-                )
+        self.twa_graph.merge_edges()
+        self.twa_graph.merge_states()
 
     def _symbol_to_formula(
         self, all_vars: list[str], symbol: MSBFAlphabetSymbol

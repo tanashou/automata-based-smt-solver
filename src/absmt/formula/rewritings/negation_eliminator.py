@@ -18,9 +18,8 @@ class NegationEliminator(IdentityDagWalker):
         super().__init__()
 
     def walk_not(self, formula, args, **kwargs):
-        # CNF に変換後に実行されるので、not は単一リテラルにのみ現れる。
         if len(args) != 1:
-            msg = "NegationEliminator is intended for use after CNF conversion."
+            msg = "NegationEliminator is intended for use after NNF conversion."
             raise ValueError(msg)
 
         subformula = args[0]

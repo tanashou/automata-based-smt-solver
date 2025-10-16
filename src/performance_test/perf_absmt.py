@@ -106,7 +106,7 @@ def main() -> None:
         benchmark_dir = Path(args.directory)
     else:
         benchmark_dir = (
-            Path(__file__).parent.parent.parent / "benchmarks" / "LIA" / "tptp"
+            Path(__file__).parent.parent.parent / "benchmarks" / "QF_LIA" / "prime-cone"
         )
 
     # Initialize counters for detailed error tracking
