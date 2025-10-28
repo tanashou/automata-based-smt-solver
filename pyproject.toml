@@ -19,6 +19,8 @@ dev-dependencies = [
     "psutil>=7.0.0",
     "pyright>=1.1.392.post0",
     "pytest>=8.3.4",
+    "pytest-benchmark>=5.1.0",
+    "pytest-memray>=1.8.0",
     "pytest-cov>=6.0.0",
     "ruff==0.12.9",
     "ipykernel==6.30.1",
