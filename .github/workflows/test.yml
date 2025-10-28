@@ -21,6 +21,6 @@ jobs:
       - name: Run Pytest if directory exists
         run: |
           if [ -d "./tests/" ]; then
-            pytest -s
+            pytest --benchmark-skip
           fi
         shell: bash -el {0}
