@@ -8,6 +8,7 @@ This project is in progress.
 open this project in Dev Container using VSCode.
 
 ## Usage
+project root: `/workspaces/SMT-Solver`
 ```bash
 conda activate absmt
 ...
