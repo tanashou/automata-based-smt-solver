@@ -16,7 +16,7 @@ def _resolve_prime_cone_paths() -> list[Path]:
     repo_root = Path(__file__).resolve().parents[1]
     list_file = repo_root / "benchmarks" / "paths" / "prime-cone-sat.txt"
     if not list_file.exists():
-        pytest.skip(f"List file not found: {list_file}")
+        pytest.skip(f"List file not found: {list_file}", allow_module_level=True)
 
     base_dir = list_file.parent
     paths: list[Path] = []
@@ -30,7 +30,9 @@ def _resolve_prime_cone_paths() -> list[Path]:
                 paths.append(p)
 
     if not paths:
-        pytest.skip(f"No referenced .smt2 files found in {list_file}")
+        pytest.skip(
+            f"No referenced .smt2 files found in {list_file}", allow_module_level=True
+        )
     return paths
 
 
