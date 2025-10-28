@@ -22,6 +22,7 @@ dev-dependencies = [
     "pytest-benchmark>=5.1.0",
     "pytest-memray>=1.8.0",
     "pytest-cov>=6.0.0",
+    "pytest-timeout>=2.4.0",
     "ruff==0.12.9",
     "ipykernel==6.30.1",
 ]

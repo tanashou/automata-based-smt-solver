@@ -36,6 +36,7 @@ def _resolve_prime_cone_paths() -> list[Path]:
     return paths
 
 
+@pytest.mark.timeout(3)
 @pytest.mark.parametrize("path", _resolve_prime_cone_paths())
 def test_solver_benchmark(benchmark, path: Path):
     """Benchmark solver runtime for each SMT2 file listed in prime-cone-sat.txt.
