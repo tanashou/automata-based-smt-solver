@@ -8,8 +8,16 @@ This project is in progress.
 open this project in Dev Container using VSCode.
 
 ## Usage
+project root: `/workspaces/SMT-Solver`
+```bash
+conda activate absmt
+...
+```
 
-TODO
+### Benchmark test
+```bash
+pytest --benchmark-group-by=param:path
+```
 
 ## License
 This project is licensed under the GNU General Public License v3.0 (GPLv3).
