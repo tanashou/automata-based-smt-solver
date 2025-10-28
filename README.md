@@ -13,8 +13,6 @@ conda activate absmt
 ...
 ```
 
-TODO
-
 ### Benchmark test
 ```bash
 pytest --benchmark-group-by=param:path
