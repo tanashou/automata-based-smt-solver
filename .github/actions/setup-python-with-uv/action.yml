@@ -41,6 +41,6 @@ runs:
         uv pip install setuptools
         uv pip install --group dev-dependencies -r pyproject.toml
         uv pip install .
-      shell: bash -el {0}
+      shell: bash -l {0}
       env:
         UV_PYTHON: ${{ env.PYTHON_PATH }}
