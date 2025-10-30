@@ -70,6 +70,8 @@ def run_in_subprocess(path_str: str):
     process = psutil.Process(p.pid)
     start_time = time.time()
 
+    peak_memory_bytes = 0
+
     while p.is_alive():
         if time.time() - start_time > TIMEOUT_SECONDS:
             p.terminate()
@@ -78,6 +80,7 @@ def run_in_subprocess(path_str: str):
 
         try:
             mem_info = process.memory_info().rss
+            peak_memory_bytes = max(peak_memory_bytes, mem_info)
             if mem_info > MAX_MEMORY_BYTES:
                 p.terminate()
                 p.join()
@@ -99,18 +102,27 @@ def run_in_subprocess(path_str: str):
     if status == "error":
         raise result
 
-    return result[0], result[1]
+    return result[0], result[1], peak_memory_bytes
 
 
 @pytest.mark.parametrize("path", resolve_benchmark_paths(PRIME_CONE_SAT_LIST_PATH))
 def test_solver_benchmark_prime_cone_sat(benchmark, path: Path):
-    expected_status, actual_status = benchmark(run_in_subprocess, str(path))
+    expected_status, actual_status, peak_memory = benchmark(
+        run_in_subprocess, str(path)
+    )
+
+    peak_memory_mb = peak_memory / (1024 * 1024)
+    benchmark.extra_info["peak_memory_mb"] = f"{peak_memory_mb:.2f} MB"
 
     assert actual_status == expected_status
 
 
 @pytest.mark.parametrize("path", resolve_benchmark_paths(PRIME_CONE_UNSAT_LIST_PATH))
 def test_solver_benchmark_prime_cone_unsat(benchmark, path: Path):
-    expected_status, actual_status = benchmark(run_in_subprocess, str(path))
+    expected_status, actual_status, peak_memory = benchmark(
+        run_in_subprocess, str(path)
+    )
+    peak_memory_mb = peak_memory / (1024 * 1024)
+    benchmark.extra_info["peak_memory_mb"] = f"{peak_memory_mb:.2f} MB"
 
     assert actual_status == expected_status
