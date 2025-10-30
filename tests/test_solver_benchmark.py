@@ -16,26 +16,37 @@ R = TypeVar("R")
 MAX_MEMORY_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB
 TIMEOUT_SECONDS = 60
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
-def _resolve_prime_cone_paths() -> list[Path]:
-    repo_root = Path(__file__).resolve().parents[1]
-    list_file = repo_root / "benchmarks" / "paths" / "prime-cone-sat.txt"
-    if not list_file.exists():
-        pytest.skip(f"List file not found: {list_file}", allow_module_level=True)
-    base_dir = list_file.parent
+# benchmark file paths
+PRIME_CONE_SAT_LIST_PATH = REPO_ROOT / "benchmarks" / "paths" / "prime-cone-sat.txt"
+PRIME_CONE_UNSAT_LIST_PATH = REPO_ROOT / "benchmarks" / "paths" / "prime-cone-unsat.txt"
+
+
+def resolve_benchmark_paths(list_file_path: Path) -> list[Path]:
+    if not list_file_path.exists():
+        pytest.skip(f"List file not found: {list_file_path}", allow_module_level=True)
+
+    base_dir = list_file_path.parent
     paths: list[Path] = []
-    with list_file.open("r", encoding="utf-8") as fh:
+
+    with list_file_path.open("r", encoding="utf-8") as fh:
         for raw_line in fh:
             line = raw_line.strip()
+            # ignore empty lines and comments
             if not line or line.startswith("#"):
                 continue
+
             p = (base_dir / line).resolve()
             if p.exists():
                 paths.append(p)
+
     if not paths:
         pytest.skip(
-            f"No referenced .smt2 files found in {list_file}", allow_module_level=True
+            f"No referenced .smt2 files found in {list_file_path}",
+            allow_module_level=True,
         )
+
     return paths
 
 
@@ -91,8 +102,15 @@ def run_in_subprocess(path_str: str):
     return result[0], result[1]
 
 
-@pytest.mark.parametrize("path", _resolve_prime_cone_paths())
-def test_solver_benchmark(benchmark, path: Path):
+@pytest.mark.parametrize("path", resolve_benchmark_paths(PRIME_CONE_SAT_LIST_PATH))
+def test_solver_benchmark_prime_cone_sat(benchmark, path: Path):
+    expected_status, actual_status = benchmark(run_in_subprocess, str(path))
+
+    assert actual_status == expected_status
+
+
+@pytest.mark.parametrize("path", resolve_benchmark_paths(PRIME_CONE_UNSAT_LIST_PATH))
+def test_solver_benchmark_prime_cone_unsat(benchmark, path: Path):
     expected_status, actual_status = benchmark(run_in_subprocess, str(path))
 
     assert actual_status == expected_status
