@@ -16,7 +16,11 @@ conda activate absmt
 
 ### Benchmark test
 ```bash
-pytest --benchmark-group-by=param:path
+pytest --benchmark-only --benchmark-group-by=param:path
+```
+Add `-rA` option to see the peak memory usage.
+```bash
+pytest --benchmark-only --benchmark-group-by=param:path -rA
 ```
 
 ## License
