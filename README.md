@@ -15,6 +15,9 @@ conda activate absmt
 ```
 
 ### Benchmark test
+Benchmark files can be found in https://zenodo.org/records/16740866/files/QF_LIA.tar.zst?download=1
+
+Download and extract the files to `benchmarks/`.
 ```bash
 pytest --benchmark-only --benchmark-group-by=param:path
 ```
