@@ -7,7 +7,6 @@ import psutil
 import pytest
 from typing_extensions import ParamSpec
 
-from absmt.formula.smtlib_reader import SMTLIBReader
 from absmt.solver import Solver
 
 P = ParamSpec("P")
@@ -52,10 +51,8 @@ def resolve_benchmark_paths(list_file_path: Path) -> list[Path]:
 
 def solver_worker(path_str: str, result_queue: Queue):
     try:
-        reader = SMTLIBReader()
         solver = Solver()
-        expected_status, formula = reader.from_smt_lib(path_str, is_file_path=True)
-        solver.add(formula)
+        expected_status = solver.read_from_smtlib(path_str, is_file_path=True)
         actual_status = solver.solve()
         result_queue.put(("ok", (expected_status, actual_status)))
     except Exception as e:  # noqa: BLE001
