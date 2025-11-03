@@ -16,10 +16,50 @@ MAX_MEMORY_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB
 TIMEOUT_SECONDS = 60
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+PATHS_DIR = REPO_ROOT / "benchmarks" / "paths"
 
-# benchmark file paths
-PRIME_CONE_SAT_LIST_PATH = REPO_ROOT / "benchmarks" / "paths" / "prime-cone-sat.txt"
-PRIME_CONE_UNSAT_LIST_PATH = REPO_ROOT / "benchmarks" / "paths" / "prime-cone-unsat.txt"
+# benchmark file paths (constants)
+BROMBERGER = PATHS_DIR / "20180326-Bromberger.txt"
+SMPT = PATHS_DIR / "20220307-SMPT.txt"
+ULTIMATE_AUTOMIZER_SVCOMP_2023 = PATHS_DIR / "20230321-UltimateAutomizerSvcomp2023.txt"
+CALYPTO = PATHS_DIR / "calypto.txt"
+CAV = PATHS_DIR / "CAV_2009_benchmarks.txt"
+CHECK = PATHS_DIR / "check.txt"
+CIRC = PATHS_DIR / "CIRC.txt"
+CUT_LEMMAS = PATHS_DIR / "cut_lemmas.txt"
+DILLIG = PATHS_DIR / "dillig.txt"
+NEC_SMT = PATHS_DIR / "nec-smt.txt"
+PB2010 = PATHS_DIR / "pb2010.txt"
+PIDGEONS = PATHS_DIR / "pidgeons.txt"
+PRIME_CONE = PATHS_DIR / "prime-cone.txt"
+RINGS_PREPROCESSED = PATHS_DIR / "rings_preprocessed.txt"
+RINGS = PATHS_DIR / "rings.txt"
+SLACKS = PATHS_DIR / "slacks.txt"
+TIGHTRHOMBUS = PATHS_DIR / "tightrhombus.txt"
+
+PRIME_CONE_SAT_LIST_PATH = PATHS_DIR / "prime-cone-sat.txt"
+PRIME_CONE_UNSAT_LIST_PATH = PATHS_DIR / "prime-cone-unsat.txt"
+
+# All other benchmark list files to test (reuse the constant names above)
+ALL_BENCHMARK_LISTS = [
+    BROMBERGER,
+    SMPT,
+    ULTIMATE_AUTOMIZER_SVCOMP_2023,
+    CALYPTO,
+    CAV,
+    CHECK,
+    CIRC,
+    CUT_LEMMAS,
+    DILLIG,
+    NEC_SMT,
+    PB2010,
+    PIDGEONS,
+    PRIME_CONE,
+    RINGS_PREPROCESSED,
+    RINGS,
+    SLACKS,
+    TIGHTRHOMBUS,
+]
 
 
 def resolve_benchmark_paths(list_file_path: Path) -> list[Path]:
@@ -123,3 +163,24 @@ def test_solver_benchmark_prime_cone_unsat(benchmark, path: Path):
     benchmark.extra_info["peak_memory_mb"] = f"{peak_memory_mb:.2f} MB"
 
     assert actual_status == expected_status
+
+
+@pytest.mark.parametrize("list_path", ALL_BENCHMARK_LISTS)
+def test_solver_benchmark_lists(benchmark, list_path: Path):
+    """Run solver for every .smt2 referenced from each list file.
+
+    `ALL_BENCHMARK_LISTS`.
+    """
+    paths = resolve_benchmark_paths(list_path)
+    # `resolve_benchmark_paths` will skip the test if list file missing or
+    # no referenced .smt2 entries are found.
+    if not paths:
+        pytest.skip(f"No referenced .smt2 files found in {list_path}")
+
+    for p in paths:
+        expected_status, actual_status, peak_memory = benchmark(
+            run_in_subprocess, str(p)
+        )
+        peak_memory_mb = peak_memory / (1024 * 1024)
+        benchmark.extra_info[f"{list_path.name}:{p.name}"] = f"{peak_memory_mb:.2f} MB"
+        assert actual_status == expected_status
