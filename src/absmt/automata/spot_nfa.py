@@ -100,6 +100,12 @@ class SpotNFA:
                     else:
                         self.twa_graph.new_edge(start_state_id, end_state_id, formula)
 
+        for final_state in final_states:
+            final_state_id = self._state_map[final_state]
+            self.twa_graph.new_edge(
+                final_state_id, final_state_id, buddy.bddtrue, [acceptance_set]
+            )
+
         self.twa_graph.merge_edges()
         self.twa_graph.merge_states()
 
