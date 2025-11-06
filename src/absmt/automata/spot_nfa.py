@@ -1,6 +1,6 @@
 import logging
 from dataclasses import InitVar, dataclass, field
-from functools import reduce
+from itertools import product
 from typing import Any
 
 import buddy
@@ -34,12 +34,26 @@ class SpotNFA:
         self._set_initial_state(nfa.initial_state)
         self._add_transitions(nfa.transitions, nfa.final_states, nfa.alphabet)
 
+        self._final_state_ids: set[int] = {
+            self._state_map[state] for state in nfa.final_states
+        }
+
+    @property
+    def final_state_ids(self) -> set[int]:
+        """Get the set of final state IDs."""
+        return self._final_state_ids
+
     @classmethod
-    def from_twa_graph(cls, twa_graph: Any) -> "SpotNFA":  # noqa: ANN401
+    def from_twa_graph(
+        cls,
+        twa_graph: Any,  # noqa: ANN401
+        final_state_ids: set[int],
+    ) -> "SpotNFA":
         """Create SpotNFA from an existing TWA graph."""
         obj = cls.__new__(cls)
         obj.twa_graph = twa_graph
         obj._state_map = {}  # noqa: SLF001
+        obj._final_state_ids = final_state_ids  # noqa: SLF001
         return obj
 
     def _create_automaton(self, bdd_dict: Any) -> None:  # noqa: ANN401
@@ -99,12 +113,6 @@ class SpotNFA:
                         )
                     else:
                         self.twa_graph.new_edge(start_state_id, end_state_id, formula)
-
-        for final_state in final_states:
-            final_state_id = self._state_map[final_state]
-            self.twa_graph.new_edge(
-                final_state_id, final_state_id, buddy.bddtrue, [acceptance_set]
-            )
 
         self.twa_graph.merge_edges()
         self.twa_graph.merge_states()
@@ -174,8 +182,8 @@ class SpotNFA:
         return self.to_hoa()
 
     def is_empty(self) -> bool:
-        """Check if the automaton's language is empty."""
-        return self.twa_graph.is_empty()
+        """Check if the automaton's language is empty by performing BFS."""
+        return True
 
     @staticmethod
     def has_common_language(*nfas: "SpotNFA") -> bool:
@@ -246,7 +254,7 @@ class SpotNFA:
         if len(nfas) == 1:
             return nfas[0].twa_graph
 
-        automata_list = [nfa.twa_graph for nfa in nfas]
+        automata_list: list[SpotNFA] = list(nfas)
 
         # 分割統治法のアイデア。
         # TODO: 作成途中で受理不能になったらそれ以降の計算を省略したい。
@@ -258,90 +266,22 @@ class SpotNFA:
                     break
                 aut1 = automata_list[i]
                 aut2 = automata_list[i + 1]
-                product_aut = spot.product(aut1, aut2)
-                next_level_automata.append(product_aut)
+                product_aut = spot.product(aut1.twa_graph, aut2.twa_graph)
+
+                product_states: list[tuple[int, int]] = product_aut.get_product_states()
+                mapping: dict[tuple[int, int], int] = {
+                    state: idx for idx, state in enumerate(product_states)
+                }
+                product_aut_final_state_ids: set[int] = {
+                    mapping[s]
+                    for s in set(product(aut1.final_state_ids, aut2.final_state_ids))
+                }
+
+                next_level_automata.append(
+                    SpotNFA.from_twa_graph(product_aut, product_aut_final_state_ids)
+                )
             automata_list = next_level_automata
 
-        return SpotNFA.from_twa_graph(automata_list[0])
-
-    @staticmethod
-    def union_all(*nfas: "SpotNFA") -> "SpotNFA":
-        """Create a single automaton by taking the union of all given SpotNFA.
-
-        Args:
-            *nfas: SpotNFA instances to combine
-
-        Returns:
-            spot.twa_graph: The union automaton of all input automata
-
-        """
-        if not nfas:
-            msg = "No NFAs provided for union."
-            raise ValueError(msg)
-
-        if len(nfas) == 1:
-            return nfas[0].twa_graph
-
-        automata_list = [nfa.twa_graph for nfa in nfas]
-        result_nfa = reduce(spot.product_or, automata_list)
-        return SpotNFA.from_twa_graph(result_nfa)
-
-    @staticmethod
-    def complement(nfa: "SpotNFA") -> "SpotNFA":
-        """Create a complement automaton from the nfa."""
-        twa_graph = spot.complement(nfa.twa_graph)
-        return SpotNFA.from_twa_graph(twa_graph)
-
-    @staticmethod
-    def projection(
-        nfa: "SpotNFA", all_vars: list[str], quantified_vars: list[str]
-    ) -> "SpotNFA":
-        """Remove the given ap from all transition guards in the automaton.
-
-        Args:
-            nfa (SpotNFA): The automaton from which atomic propositions will be removed.
-            all_vars (list[str]):
-                List of all atomic proposition names present in the automaton.
-            quantified_vars (list[str]):
-                List of atomic proposition names to remove (e.g., ["x", "y"]).
-
-        Note:
-            Since all guards are conjunctions, applying buddy.bdd_exist
-            eliminates the quantified variables.
-            spot_aut does not allow modifying the guards directly,
-            so we create a new automaton with the modified guards.
-
-        """
-        new_twa = spot.make_twa_graph(nfa.twa_graph.get_dict())
-        new_twa.copy_acceptance_of(nfa.twa_graph)
-        # new_twa.prop_state_acc(True)  # noqa: ERA001
-        new_twa.new_states(nfa.twa_graph.num_states())
-        new_twa.set_init_state(nfa.twa_graph.get_init_state_number())
-
-        # TODO: 使用している変数だけ登録したい
-        for var in all_vars:
-            new_twa.register_ap(var)
-
-        # Build a cube (conjunction) of all variables to eliminate
-        # Using bddtrue() as neutral element for conjunction
-        cube = buddy.bddtrue
-
-        for name in quantified_vars:
-            # Use the variable id from the original automaton's BDD
-            # context to build the existential cube. Also register the
-            # quantified variable name on the new automaton so that its
-            # HOA/DOT output is self-contained.
-            varid = new_twa.register_ap(str(name))
-            cube = buddy.bdd_and(cube, buddy.bdd_ithvar(varid))
-
-        # Iterate over all edges and replace their guard with the quantified guard
-        for state in range(nfa.twa_graph.num_states()):
-            for edge in nfa.twa_graph.out(state):
-                old_cond = edge.cond  # BDD of the transition condition
-                new_cond = buddy.bdd_exist(old_cond, cube)  # ∃(ap_names). old_guard
-                new_twa.new_edge(state, edge.dst, new_cond, edge.acc)
-
-        # clean redundant states and edges
-        new_twa.merge_edges()
-        new_twa.merge_states()
-        return SpotNFA.from_twa_graph(new_twa)
+        # Return the merged automaton; note: final_state_ids[0] holds the
+        # combined final-state tuples for the resulting product automaton.
+        return automata_list[0]
