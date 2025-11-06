@@ -268,6 +268,7 @@ class SpotNFA:
                 aut2 = automata_list[i + 1]
                 product_aut = spot.product(aut1.twa_graph, aut2.twa_graph)
 
+                # keep track on final states by id
                 product_states: list[tuple[int, int]] = product_aut.get_product_states()
                 mapping: dict[tuple[int, int], int] = {
                     state: idx for idx, state in enumerate(product_states)
