@@ -16,8 +16,8 @@ class MSBFAlphabet:
         if not set(self.used_vars).issubset(set(self.all_vars)):
             msg = "used_vars must be a subset of all_vars"
             raise ValueError(msg)
-        self.all_vars = sorted(self.all_vars)
-        self.used_vars = sorted(self.used_vars)
+        self.all_vars = self.all_vars
+        self.used_vars = self.used_vars
 
     def has_same_symbols(self, other: "MSBFAlphabet") -> bool:
         return self.all_vars == other.all_vars

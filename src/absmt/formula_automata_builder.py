@@ -33,31 +33,6 @@ class FormulaAutomataBuilder(DagWalker):
     def _get_key(self, formula: FNode, *args: list, **kwargs) -> FNode:
         return formula
 
-    def walk_exists(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
-        if len(args) != 1:
-            msg = (
-                "The body of an exists expression must be represented as a single nfa. "
-            )
-            raise ValueError(msg)
-
-        all_vars = kwargs["all_vars"]
-        quantifier_vars = formula.quantifier_vars()
-        spot_nfa = args[0]
-
-        formula_str = formula.serialize(threshold=20)
-        logger.debug(
-            "Prepared automaton for 'exists'; formula=%s",
-            formula_str,
-        )
-
-        res = SpotNFA.projection(spot_nfa, all_vars, quantifier_vars)
-
-        logger.debug(
-            "Showing automaton for 'exists'; formula=%s",
-            formula_str,
-        )
-        return res
-
     def walk_and(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
         formula_str = formula.serialize(threshold=20)
         logger.debug(
@@ -70,28 +45,6 @@ class FormulaAutomataBuilder(DagWalker):
 
         logger.debug("Complete building for 'and'.")
 
-        return res
-
-    def walk_or(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
-        formula_str = formula.serialize(threshold=20)
-        logger.debug(
-            "Building automaton for 'or' with %d operands; formula=%s",
-            len(args),
-            formula_str,
-        )
-
-        res = SpotNFA.union_all(*args)
-
-        logger.debug("Complete building for 'or'.")
-        return res
-
-    def walk_not(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
-        if len(args) != 1:
-            msg = "The body of a NOT expression must be represented as a single nfa."
-            raise ValueError(msg)
-        res = SpotNFA.complement(args[0])
-        formula_str = formula.serialize(threshold=20)
-        logger.debug("Prepared automaton for 'not'; formula=%s", formula_str)
         return res
 
     @handles(op.LT, op.LE, op.EQUALS)
