@@ -204,57 +204,6 @@ class SpotNFA:
         return True
 
     @staticmethod
-    def has_common_language(*nfas: "SpotNFA") -> bool:
-        """Check if all given NFAs have a common language.
-
-        Args:
-            *nfas: SpotNFA instances to check
-
-        Returns:
-            bool: True if all NFAs have a common language, False otherwise
-
-        """
-        if not nfas:
-            logger.debug("No NFAs provided, returning True for common language check.")
-            return True  # If no NFAs are provided, consider it trivially true
-
-        if len(nfas) == 1:
-            return not nfas[0].twa_graph.is_empty()
-
-        automata_list: list[Any] = [nfa.twa_graph for nfa in nfas]
-
-        # loop until the list has only two automata
-        while len(automata_list) > 2:  # noqa: PLR2004
-            next_level_automata: list[Any] = []
-            for i in range(0, len(automata_list), 2):
-                # If there is only one element left at the end of the list
-                if i + 1 >= len(automata_list):
-                    next_level_automata.append(automata_list[i])
-                    break
-
-                aut1 = automata_list[i]
-                aut2 = automata_list[i + 1]
-                logger.debug("Computing product of automata %d and %d", i, i + 1)
-                product_aut = spot.product(aut1, aut2)
-                logger.debug(
-                    "Product computation finished for automata %d and %d", i, i + 1
-                )
-
-                # If the product automaton is empty, there is no common language
-                if product_aut.is_empty():
-                    return False
-
-                next_level_automata.append(product_aut)
-
-            # Update the list of automata for the next level
-            automata_list = next_level_automata
-
-        logger.debug("Computing final intersects for the last two automata")
-        result = automata_list[0].intersects(automata_list[1])
-        logger.debug("Final intersects computation finished")
-        return result
-
-    @staticmethod
     def intersect_all(*nfas: "SpotNFA") -> "SpotNFA":
         """Create a single automaton by taking the intersection of all given SpotNFA.
 
@@ -273,7 +222,6 @@ class SpotNFA:
             return nfas[0].twa_graph
 
         automata_list: list[SpotNFA] = list(nfas)
-
         # 分割統治法のアイデア。
         # TODO: 作成途中で受理不能になったらそれ以降の計算を省略したい。
         while len(automata_list) > 1:
@@ -291,10 +239,13 @@ class SpotNFA:
                 mapping: dict[tuple[int, int], int] = {
                     state: idx for idx, state in enumerate(product_states)
                 }
-                product_aut_final_state_ids: set[int] = {
-                    mapping[s]
-                    for s in set(product(aut1.final_state_ids, aut2.final_state_ids))
-                }
+                product_aut_final_states: set[tuple[int, int]] = set(
+                    product(aut1.final_state_ids, aut2.final_state_ids)
+                )
+                product_aut_final_state_ids: set[int] = set()
+                for state in product_aut_final_states:
+                    if state in mapping:
+                        product_aut_final_state_ids.add(mapping[state])
 
                 next_level_automata.append(
                     SpotNFA.from_twa_graph(product_aut, product_aut_final_state_ids)
