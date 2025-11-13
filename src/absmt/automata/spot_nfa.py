@@ -1,5 +1,4 @@
 import logging
-from collections import deque
 from dataclasses import InitVar, dataclass, field
 from itertools import product
 from typing import Any
@@ -183,25 +182,8 @@ class SpotNFA:
         return self.to_hoa()
 
     def is_empty(self) -> bool:
-        """Check if the automaton's language is empty by performing BFS."""
-        visited: list[bool] = [False] * self.twa_graph.num_states()
-        queue = deque()
-
-        initial_state = self.twa_graph.get_init_state_number()
-        queue.append(initial_state)
-        visited[initial_state] = True
-        while queue:
-            current_state = queue.popleft()
-            if current_state in self._final_state_ids:
-                return False
-
-            for edge in self.twa_graph.out(current_state):
-                next_state = edge.dst
-                if not visited[next_state]:
-                    visited[next_state] = True
-                    queue.append(next_state)
-
-        return True
+        # spot.product は到達可能な状態だけ構築するため、この方法で十分。
+        return bool(not self.final_state_ids)
 
     @staticmethod
     def intersect_all(*nfas: "SpotNFA") -> "SpotNFA":
