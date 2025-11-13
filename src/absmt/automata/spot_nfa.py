@@ -193,7 +193,7 @@ class SpotNFA:
             *nfas: SpotNFA instances to combine
 
         Returns:
-            spot.twa_graph: The product automaton of all input automata
+            SpotNFA: The product automaton of all input automata
 
         """
         if not nfas:
@@ -201,39 +201,37 @@ class SpotNFA:
             raise ValueError(msg)
 
         if len(nfas) == 1:
-            return nfas[0].twa_graph
+            return nfas[0]
 
         automata_list: list[SpotNFA] = list(nfas)
-        # 分割統治法のアイデア。
-        # TODO: 作成途中で受理不能になったらそれ以降の計算を省略したい。
+        # 分割統治法で効率的に積を計算
         while len(automata_list) > 1:
-            next_level_automata = []
+            next_level_automata: list[SpotNFA] = []
             for i in range(0, len(automata_list), 2):
                 if i + 1 >= len(automata_list):
+                    # 奇数個の場合、最後の要素をそのまま次のレベルへ
                     next_level_automata.append(automata_list[i])
-                    break
+                    continue
+
                 aut1 = automata_list[i]
                 aut2 = automata_list[i + 1]
                 product_aut = spot.product(aut1.twa_graph, aut2.twa_graph)
 
-                # keep track on final states by id
                 product_states: list[tuple[int, int]] = product_aut.get_product_states()
                 mapping: dict[tuple[int, int], int] = {
                     state: idx for idx, state in enumerate(product_states)
                 }
-                product_aut_final_states: set[tuple[int, int]] = set(
-                    product(aut1.final_state_ids, aut2.final_state_ids)
-                )
-                product_aut_final_state_ids: set[int] = set()
-                for state in product_aut_final_states:
-                    if state in mapping:
-                        product_aut_final_state_ids.add(mapping[state])
+
+                product_aut_final_state_ids: set[int] = {
+                    mapping[state]
+                    for state in product(aut1.final_state_ids, aut2.final_state_ids)
+                    if state in mapping
+                }
 
                 next_level_automata.append(
                     SpotNFA.from_twa_graph(product_aut, product_aut_final_state_ids)
                 )
+
             automata_list = next_level_automata
 
-        # Return the merged automaton; note: final_state_ids[0] holds the
-        # combined final-state tuples for the resulting product automaton.
         return automata_list[0]
