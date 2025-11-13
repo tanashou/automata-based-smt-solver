@@ -1,24 +1,73 @@
-"""Benchmark test for intersect_all with different permutations of operand order.
+"""Benchmark test for intersect_all with different tournament structures.
 
 This test measures the performance of SpotNFA.intersect_all() by trying all
-possible orderings of the input automata.
+possible tournament structures (orderings) for the intersections.
+The number of tournament structures follows the Catalan number sequence.
 """
 
+import csv
 import logging
 import statistics
-from itertools import permutations
+import time
+from pathlib import Path
 
 import psutil
 import pytest
 from pysmt.fnode import FNode
 from pysmt.rewritings import nnf
 
-from absmt.automata.spot_nfa import SpotNFA
+from absmt.automata.spot_nfa import SpotNFA, TournamentStructure
 from absmt.formula.rewritings import NegationEliminator
 from absmt.formula.smtlib_reader import SMTLIBReader
 from absmt.formula_automata_builder import FormulaAutomataBuilder
 
 logger = logging.getLogger(__name__)
+
+
+def generate_all_tournament_structures(n: int) -> list[TournamentStructure]:
+    """Generate all possible tournament structures for n automata.
+
+    The number of tournament structures follows the Catalan number sequence.
+    For n automata, there are C(n-1) different tournament structures, where
+    C(k) is the k-th Catalan number.
+
+    Args:
+        n: Number of automata
+
+    Returns:
+        List of all possible tournament structures
+
+    Examples:
+        >>> generate_all_tournament_structures(1)
+        [0]
+        >>> generate_all_tournament_structures(2)
+        [(0, 1)]
+        >>> generate_all_tournament_structures(3)
+        [((0, 1), 2), (0, (1, 2))]
+
+    """
+    if n <= 0:
+        return []
+    if n == 1:
+        return [0]
+
+    def generate_structures(indices: list[int]) -> list[TournamentStructure]:
+        """Generate tournament structures for given list of indices."""
+        k = len(indices)
+
+        if k == 1:
+            return [indices[0]]
+
+        # Split into left and right subtournaments
+        return [
+            (left, right)  # type: ignore[return-value]
+            for left_size in range(1, k)
+            for left in generate_structures(indices[:left_size])
+            for right in generate_structures(indices[left_size:])
+        ]
+
+    # Generate for consecutive indices 0, 1, ..., n-1
+    return generate_structures(list(range(n)))
 
 
 def extract_automata_from_conjunction(conjunction: FNode) -> list[SpotNFA]:
@@ -82,34 +131,35 @@ def prepare_automata_list(smt2_text: str) -> list[SpotNFA]:
     return extract_automata_from_conjunction(conjunction)
 
 
-def run_intersect_all_with_order(
-    automata_list: list[SpotNFA], order: tuple[int, ...]
-) -> tuple[SpotNFA, float]:
-    """Run intersect_all with a specific ordering of automata.
+def run_intersect_all_with_structure(
+    automata_list: list[SpotNFA], structure: TournamentStructure
+) -> tuple[SpotNFA, float, float]:
+    """Run intersect_all with a specific tournament structure.
 
     Args:
         automata_list: List of automata to intersect
-        order: Tuple of indices specifying the order
+        structure: Tournament structure specifying the order of intersections
 
     Returns:
-        Tuple of (result_nfa, peak_memory_mb)
+        Tuple of (result_nfa, peak_memory_mb, elapsed_time_sec)
 
     """
     process = psutil.Process()
     initial_memory = process.memory_info().rss
 
-    ordered_automata = [automata_list[i] for i in order]
-    result = SpotNFA.intersect_all(*ordered_automata)
+    start_time = time.perf_counter()
+    result = SpotNFA.intersect_all(*automata_list, tournament_structure=structure)
+    elapsed_time = time.perf_counter() - start_time
 
     peak_memory = process.memory_info().rss
     peak_memory_mb = (peak_memory - initial_memory) / (1024 * 1024)
 
-    return result, peak_memory_mb
+    return result, peak_memory_mb, elapsed_time
 
 
 # Configuration: Maximum number of automata to test
-# For n automata, the number of permutations is n!
-# Examples: 3->6, 4->24, 5->120, 6->720, 7->5040, 8->40320
+# For n automata, the number of tournament structures follows Catalan numbers
+# Examples: 2->1, 3->2, 4->5, 5->14, 6->42, 7->132, 8->429
 MAX_AUTOMATA = 10  # Set this to allow testing larger cases
 
 # Sample SMT2 text for testing
@@ -131,17 +181,22 @@ SAMPLE_SMT2 = """
 (assert (>= (+ x_0 x_1 x_2) 1))
 (check-sat)
 (exit)
+
+
 """
 
 
-def generate_permutation_id(val: tuple[tuple[int, ...], list[SpotNFA]]) -> str:
-    """Generate a readable test ID for each permutation."""
-    order, automata_list = val
-    return f"order_{'-'.join(map(str, order))}_of_{len(automata_list)}_automata"
+def format_tournament_structure(structure: TournamentStructure) -> str:
+    """Format tournament structure as a readable string."""
+    if isinstance(structure, int):
+        return str(structure)
+    left = format_tournament_structure(structure[0])
+    right = format_tournament_structure(structure[1])
+    return f"({left},{right})"
 
 
-class TestIntersectAllPermutationBenchmark:
-    """Benchmark tests for intersect_all with different orderings."""
+class TestIntersectAllTournamentBenchmark:
+    """Benchmark tests for intersect_all with different tournament structures."""
 
     @pytest.fixture(scope="class")
     def automata_list(self) -> list[SpotNFA]:
@@ -149,94 +204,169 @@ class TestIntersectAllPermutationBenchmark:
         return prepare_automata_list(SAMPLE_SMT2)
 
     @pytest.fixture(scope="class")
-    def all_permutations(self, automata_list: list[SpotNFA]) -> list[tuple[int, ...]]:
-        """Generate all permutations of automata indices."""
+    def all_tournament_structures(
+        self, automata_list: list[SpotNFA]
+    ) -> list[TournamentStructure]:
+        """Generate all tournament structures for the automata."""
         n = len(automata_list)
         if n > MAX_AUTOMATA:
             pytest.skip(
-                f"Too many automata ({n}) would generate {n}! permutations. "
+                f"Too many automata ({n}). "
                 "Skipping to avoid excessive test time. "
                 f"Increase MAX_AUTOMATA constant in the file (current: {MAX_AUTOMATA})"
             )
-        return list(permutations(range(n)))
+        structures = generate_all_tournament_structures(n)
+        logger.info(
+            "Generated %d tournament structures for %d automata (Catalan number)",
+            len(structures),
+            n,
+        )
+        return structures
 
     @pytest.mark.parametrize(
-        "order_idx",
-        range(100),  # Will be dynamically adjusted based on actual permutations
-        ids=lambda x: f"permutation_{x}",
+        "structure_idx",
+        range(1000),  # Will be dynamically adjusted based on actual structures
+        ids=lambda x: f"structure_{x}",
     )
-    def test_intersect_all_permutation(
+    def test_intersect_all_tournament(
         self,
         benchmark,
         automata_list: list[SpotNFA],
-        all_permutations: list[tuple[int, ...]],
-        order_idx: int,
+        all_tournament_structures: list[TournamentStructure],
+        structure_idx: int,
     ):
-        """Benchmark intersect_all with a specific permutation order.
+        """Benchmark intersect_all with a specific tournament structure.
 
-        Each permutation is tested as a separate benchmark case.
+        Each tournament structure is tested as a separate benchmark case.
         """
-        if order_idx >= len(all_permutations):
-            pytest.skip(f"Permutation index {order_idx} out of range")
+        if structure_idx >= len(all_tournament_structures):
+            pytest.skip(f"Structure index {structure_idx} out of range")
 
-        order = all_permutations[order_idx]
+        structure = all_tournament_structures[structure_idx]
 
-        result, peak_memory_mb = benchmark(
-            run_intersect_all_with_order, automata_list, order
+        result, peak_memory_mb, elapsed_time = benchmark(
+            run_intersect_all_with_structure, automata_list, structure
         )
 
         # Add extra information to benchmark results
-        benchmark.extra_info["order_pattern"] = "-".join(map(str, order))
+        benchmark.extra_info["structure_pattern"] = format_tournament_structure(
+            structure
+        )
         benchmark.extra_info["num_automata"] = str(len(automata_list))
         benchmark.extra_info["peak_memory_mb"] = f"{peak_memory_mb:.2f} MB"
         benchmark.extra_info["result_empty"] = str(result.is_empty())
 
-        # Verify the result is consistent (all orderings should give same result)
+        # Verify the result is consistent (all structures should give same result)
         assert result is not None
 
 
-def test_single_intersect_all_benchmark_all_orders(benchmark):
-    """Single benchmark that tries all permutation orders and reports statistics.
+def test_single_intersect_all_benchmark_all_structures(benchmark):
+    """Single benchmark that tries all tournament structures and reports statistics.
 
-    This test provides aggregate statistics across all orderings in a single
-    benchmark entry.
+    This test provides aggregate statistics across all tournament structures in a
+    single benchmark entry.
     """
     automata_list = prepare_automata_list(SAMPLE_SMT2)
     n = len(automata_list)
 
     if n > MAX_AUTOMATA:
         pytest.skip(
-            f"Too many automata ({n}) would generate {n}! permutations. "
+            f"Too many automata ({n}). "
             "Skipping to avoid excessive test time. "
             f"Increase MAX_AUTOMATA constant in the file (current: {MAX_AUTOMATA})"
         )
 
-    all_orders = list(permutations(range(n)))
-    memories: list[float] = []
+    all_structures = generate_all_tournament_structures(n)
+    logger.info(
+        "Testing %d tournament structures for %d automata", len(all_structures), n
+    )
 
-    def run_all_orders() -> SpotNFA:
+    memories: list[float] = []
+    times: list[float] = []
+    results_data: list[dict[str, str | float]] = []
+
+    def run_all_structures() -> SpotNFA:
         result: SpotNFA | None = None
-        for order in all_orders:
-            result, peak_memory = run_intersect_all_with_order(automata_list, order)
+        for structure in all_structures:
+            result, peak_memory, elapsed_time = run_intersect_all_with_structure(
+                automata_list, structure
+            )
             memories.append(peak_memory)
+            times.append(elapsed_time)
+            results_data.append(
+                {
+                    "structure": format_tournament_structure(structure),
+                    "time_sec": elapsed_time,
+                    "memory_mb": peak_memory,
+                }
+            )
 
         if result is None:
-            msg = "No orders were tested, result is None"
+            msg = "No structures were tested, result is None"
             raise ValueError(msg)
 
         return result
 
-    result = benchmark(run_all_orders)
+    result = benchmark(run_all_structures)
 
     # Calculate statistics
     if len(memories) > 1:
-        benchmark.extra_info["num_orders_tested"] = str(len(all_orders))
+        benchmark.extra_info["num_structures_tested"] = str(len(all_structures))
         benchmark.extra_info["mean_memory_mb"] = f"{statistics.mean(memories):.2f} MB"
         benchmark.extra_info["median_memory_mb"] = (
             f"{statistics.median(memories):.2f} MB"
         )
         benchmark.extra_info["max_memory_mb"] = f"{max(memories):.2f} MB"
         benchmark.extra_info["min_memory_mb"] = f"{min(memories):.2f} MB"
+        benchmark.extra_info["mean_time_sec"] = f"{statistics.mean(times):.4f} sec"
+        benchmark.extra_info["median_time_sec"] = f"{statistics.median(times):.4f} sec"
+        benchmark.extra_info["max_time_sec"] = f"{max(times):.4f} sec"
+        benchmark.extra_info["min_time_sec"] = f"{min(times):.4f} sec"
+
+        # Find best and worst orders
+        best_time_idx = times.index(min(times))
+        worst_time_idx = times.index(max(times))
+        best_memory_idx = memories.index(min(memories))
+        worst_memory_idx = memories.index(max(memories))
+
+        benchmark.extra_info["fastest_structure"] = results_data[best_time_idx][
+            "structure"
+        ]
+        benchmark.extra_info["fastest_time"] = (
+            f"{results_data[best_time_idx]['time_sec']:.4f} sec"
+        )
+        benchmark.extra_info["slowest_structure"] = results_data[worst_time_idx][
+            "structure"
+        ]
+        benchmark.extra_info["slowest_time"] = (
+            f"{results_data[worst_time_idx]['time_sec']:.4f} sec"
+        )
+        benchmark.extra_info["lowest_memory_structure"] = results_data[best_memory_idx][
+            "structure"
+        ]
+        benchmark.extra_info["lowest_memory"] = (
+            f"{results_data[best_memory_idx]['memory_mb']:.2f} MB"
+        )
+        benchmark.extra_info["highest_memory_structure"] = results_data[
+            worst_memory_idx
+        ]["structure"]
+        benchmark.extra_info["highest_memory"] = (
+            f"{results_data[worst_memory_idx]['memory_mb']:.2f} MB"
+        )
 
     benchmark.extra_info["num_automata"] = str(n)
     benchmark.extra_info["result_empty"] = str(result.is_empty())
+
+    # Output detailed results to a CSV file
+    _save_results_to_csv(results_data)
+
+
+def _save_results_to_csv(results_data: list[dict[str, str | float]]) -> None:
+    """Save detailed tournament structure results to CSV file."""
+    output_file = Path("benchmark_tournament_results.csv")
+    with output_file.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["structure", "time_sec", "memory_mb"])
+        writer.writeheader()
+        writer.writerows(results_data)
+
+    logger.info("Detailed results written to %s", output_file)

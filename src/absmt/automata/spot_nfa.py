@@ -12,6 +12,9 @@ from absmt.automata.nfa import NFA, NFAStateT, NFATransitionsT
 
 logger = logging.getLogger(__name__)
 
+# Tournament structure type: int for leaf (automaton index), tuple for internal node
+TournamentStructure = int | tuple["TournamentStructure", "TournamentStructure"]
+
 
 @dataclass
 class SpotNFA:
@@ -186,11 +189,54 @@ class SpotNFA:
         return bool(not self.final_state_ids)
 
     @staticmethod
-    def intersect_all(*nfas: "SpotNFA") -> "SpotNFA":
+    def _intersect_by_structure(
+        nfas: list["SpotNFA"], structure: TournamentStructure
+    ) -> "SpotNFA":
+        """Execute intersection following a specific tournament structure.
+
+        Args:
+            nfas: List of automata to intersect
+            structure: Tournament structure specifying the order of intersections
+
+        Returns:
+            SpotNFA: The result of the intersection
+
+        """
+        if isinstance(structure, int):
+            # Leaf node: return the automaton at the specified index
+            return nfas[structure]
+
+        # Internal node: recursively intersect left and right
+        left_result = SpotNFA._intersect_by_structure(nfas, structure[0])
+        right_result = SpotNFA._intersect_by_structure(nfas, structure[1])
+
+        # Perform binary intersection
+        product_aut = spot.product(left_result.twa_graph, right_result.twa_graph)
+        product_states: list[tuple[int, int]] = product_aut.get_product_states()
+        mapping: dict[tuple[int, int], int] = {
+            state: idx for idx, state in enumerate(product_states)
+        }
+
+        product_aut_final_state_ids: set[int] = {
+            mapping[state]
+            for state in product(
+                left_result.final_state_ids, right_result.final_state_ids
+            )
+            if state in mapping
+        }
+
+        return SpotNFA.from_twa_graph(product_aut, product_aut_final_state_ids)
+
+    @staticmethod
+    def intersect_all(
+        *nfas: "SpotNFA", tournament_structure: TournamentStructure | None = None
+    ) -> "SpotNFA":
         """Create a single automaton by taking the intersection of all given SpotNFA.
 
         Args:
             *nfas: SpotNFA instances to combine
+            tournament_structure: Optional tournament structure specifying the order
+                of intersections. If None, uses default left-to-right pairing.
 
         Returns:
             SpotNFA: The product automaton of all input automata
@@ -203,8 +249,12 @@ class SpotNFA:
         if len(nfas) == 1:
             return nfas[0]
 
+        # If a tournament structure is specified, use it
+        if tournament_structure is not None:
+            return SpotNFA._intersect_by_structure(list(nfas), tournament_structure)
+
+        # Default: use divide-and-conquer approach (left-to-right pairing)
         automata_list: list[SpotNFA] = list(nfas)
-        # 分割統治法で効率的に積を計算
         while len(automata_list) > 1:
             next_level_automata: list[SpotNFA] = []
             for i in range(0, len(automata_list), 2):
