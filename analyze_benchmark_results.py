@@ -1,0 +1,139 @@
+# ruff: noqa: T201
+"""Analyze benchmark tournament structure results from CSV file.
+
+This script reads the benchmark_tournament_results.csv file and displays
+the fastest and slowest tournament structure patterns for intersect_all operations.
+"""
+
+import csv
+import sys
+from pathlib import Path
+
+
+def analyze_results(csv_path: str = "benchmark_tournament_results.csv") -> None:  # noqa: PLR0915
+    """Analyze benchmark results and display statistics.
+
+    Args:
+        csv_path: Path to the CSV file containing benchmark results
+
+    """
+    csv_file = Path(csv_path)
+    if not csv_file.exists():
+        print(f"Error: File '{csv_path}' not found.")
+        print("Run the benchmark test first:")
+        print(
+            "  pytest tests/test_intersect_all_permutation_benchmark.py::"
+            "test_single_intersect_all_benchmark_all_structures --benchmark-only"
+        )
+        sys.exit(1)
+
+    # Read CSV data
+    with csv_file.open() as f:
+        reader = csv.DictReader(f)
+        data = list(reader)
+
+    if not data:
+        print("Error: CSV file is empty.")
+        sys.exit(1)
+
+    # Sort by time
+    sorted_by_time = sorted(data, key=lambda x: float(x["time_sec"]))
+
+    # Display results
+    print("=" * 80)
+    print("BENCHMARK RESULTS ANALYSIS")
+    print("=" * 80)
+    print(f"\nTotal tournament structures tested: {len(data)}")
+    print()
+
+    # Top 10 fastest
+    print("=" * 80)
+    print("TOP 10 FASTEST TOURNAMENT STRUCTURES")
+    print("=" * 80)
+    print(f"{'Rank':<6} {'Structure Pattern':<30} {'Time (sec)':<15} {'Memory (MB)'}")
+    print("-" * 80)
+    for i, row in enumerate(sorted_by_time[:10], 1):
+        structure = row["structure"]
+        time_sec = float(row["time_sec"])
+        memory_mb = float(row["memory_mb"])
+        print(f"{i:<6} {structure:<30} {time_sec:<15.6f} {memory_mb:.2f}")
+
+    print()
+
+    # Top 10 slowest
+    print("=" * 80)
+    print("TOP 10 SLOWEST TOURNAMENT STRUCTURES")
+    print("=" * 80)
+    print(f"{'Rank':<6} {'Structure Pattern':<30} {'Time (sec)':<15} {'Memory (MB)'}")
+    print("-" * 80)
+    for i, row in enumerate(sorted_by_time[-10:], 1):
+        structure = row["structure"]
+        time_sec = float(row["time_sec"])
+        memory_mb = float(row["memory_mb"])
+        print(f"{i:<6} {structure:<30} {time_sec:<15.6f} {memory_mb:.2f}")
+
+    print()
+
+    # Statistics
+    fastest = sorted_by_time[0]
+    slowest = sorted_by_time[-1]
+    fastest_time = float(fastest["time_sec"])
+    slowest_time = float(slowest["time_sec"])
+
+    all_times = [float(row["time_sec"]) for row in data]
+    all_memories = [float(row["memory_mb"]) for row in data]
+    avg_time = sum(all_times) / len(all_times)
+    avg_memory = sum(all_memories) / len(all_memories)
+
+    print("=" * 80)
+    print("SUMMARY STATISTICS")
+    print("=" * 80)
+    print(f"Fastest structure:     {fastest['structure']}")
+    print(f"  Time:                {fastest_time:.6f} sec")
+    print(f"  Memory:              {float(fastest['memory_mb']):.2f} MB")
+    print()
+    print(f"Slowest structure:     {slowest['structure']}")
+    print(f"  Time:                {slowest_time:.6f} sec")
+    print(f"  Memory:              {float(slowest['memory_mb']):.2f} MB")
+    print()
+    print(f"Time difference:       {slowest_time - fastest_time:.6f} sec")
+    print(f"Slowdown factor:       {slowest_time / fastest_time:.2f}x")
+    print(f"Percentage slower:     {(slowest_time / fastest_time - 1) * 100:.1f}%")
+    print()
+    print(f"Average time:          {avg_time:.6f} sec")
+    print(f"Average memory:        {avg_memory:.2f} MB")
+    print()
+
+    # Sort by memory
+    sorted_by_memory = sorted(data, key=lambda x: float(x["memory_mb"]))
+    lowest_mem = sorted_by_memory[0]
+    highest_mem = sorted_by_memory[-1]
+
+    print("=" * 80)
+    print("MEMORY USAGE")
+    print("=" * 80)
+    print(f"Lowest memory structure:  {lowest_mem['structure']}")
+    print(f"  Memory:                 {float(lowest_mem['memory_mb']):.2f} MB")
+    print(f"  Time:                   {float(lowest_mem['time_sec']):.6f} sec")
+    print()
+    print(f"Highest memory structure: {highest_mem['structure']}")
+    print(f"  Memory:                 {float(highest_mem['memory_mb']):.2f} MB")
+    print(f"  Time:                   {float(highest_mem['time_sec']):.6f} sec")
+    print()
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Analyze benchmark tournament structure results"
+    )
+    parser.add_argument(
+        "csv_file",
+        nargs="?",
+        default="benchmark_tournament_results.csv",
+        help="Path to CSV file (default: benchmark_tournament_results.csv)",
+    )
+    args = parser.parse_args()
+
+    analyze_results(args.csv_file)
