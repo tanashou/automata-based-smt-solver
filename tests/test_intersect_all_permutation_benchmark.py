@@ -23,6 +23,27 @@ from absmt.formula_automata_builder import FormulaAutomataBuilder
 
 logger = logging.getLogger(__name__)
 
+# Sample SMT2 text for testing
+# You can replace this with any SMT2 text you want to test
+SAMPLE_SMT2 = """
+(set-info :smt-lib-version 2.6)
+(set-logic QF_LIA)
+(set-info :category "crafted")
+(set-info :status sat)
+(declare-fun x_0 () Int)
+(declare-fun x_1 () Int)
+(declare-fun x_2 () Int)
+(assert (>= x_0 0))
+(assert (>= x_1 0))
+(assert (>= x_2 0))
+(assert (<= (+ (* (- 9) x_0) (* 2 x_1) (* 2 x_2)) 0))
+(assert (<= (+ (* 3 x_0) (* (- 8) x_1) (* 3 x_2)) 0))
+(assert (<= (+ (* 5 x_0) (* 5 x_1) (* (- 6) x_2)) 0))
+(assert (>= (+ x_0 x_1 x_2) 1))
+(check-sat)
+(exit)
+"""
+
 
 def generate_all_tournament_structures(n: int) -> list[TournamentStructure]:
     """Generate all possible tournament structures for n automata.
@@ -157,35 +178,6 @@ def run_intersect_all_with_structure(
     return result, peak_memory_mb, elapsed_time
 
 
-# Configuration: Maximum number of automata to test
-# For n automata, the number of tournament structures follows Catalan numbers
-# Examples: 2->1, 3->2, 4->5, 5->14, 6->42, 7->132, 8->429
-MAX_AUTOMATA = 10  # Set this to allow testing larger cases
-
-# Sample SMT2 text for testing
-# You can replace this with any SMT2 text you want to test
-SAMPLE_SMT2 = """
-(set-info :smt-lib-version 2.6)
-(set-logic QF_LIA)
-(set-info :category "crafted")
-(set-info :status sat)
-(declare-fun x_0 () Int)
-(declare-fun x_1 () Int)
-(declare-fun x_2 () Int)
-(assert (>= x_0 0))
-(assert (>= x_1 0))
-(assert (>= x_2 0))
-(assert (<= (+ (* (- 9) x_0) (* 2 x_1) (* 2 x_2)) 0))
-(assert (<= (+ (* 3 x_0) (* (- 8) x_1) (* 3 x_2)) 0))
-(assert (<= (+ (* 5 x_0) (* 5 x_1) (* (- 6) x_2)) 0))
-(assert (>= (+ x_0 x_1 x_2) 1))
-(check-sat)
-(exit)
-
-
-"""
-
-
 def format_tournament_structure(structure: TournamentStructure) -> str:
     """Format tournament structure as a readable string."""
     if isinstance(structure, int):
@@ -209,12 +201,6 @@ class TestIntersectAllTournamentBenchmark:
     ) -> list[TournamentStructure]:
         """Generate all tournament structures for the automata."""
         n = len(automata_list)
-        if n > MAX_AUTOMATA:
-            pytest.skip(
-                f"Too many automata ({n}). "
-                "Skipping to avoid excessive test time. "
-                f"Increase MAX_AUTOMATA constant in the file (current: {MAX_AUTOMATA})"
-            )
         structures = generate_all_tournament_structures(n)
         logger.info(
             "Generated %d tournament structures for %d automata (Catalan number)",
@@ -268,13 +254,6 @@ def test_single_intersect_all_benchmark_all_structures(benchmark):
     """
     automata_list = prepare_automata_list(SAMPLE_SMT2)
     n = len(automata_list)
-
-    if n > MAX_AUTOMATA:
-        pytest.skip(
-            f"Too many automata ({n}). "
-            "Skipping to avoid excessive test time. "
-            f"Increase MAX_AUTOMATA constant in the file (current: {MAX_AUTOMATA})"
-        )
 
     all_structures = generate_all_tournament_structures(n)
     logger.info(
