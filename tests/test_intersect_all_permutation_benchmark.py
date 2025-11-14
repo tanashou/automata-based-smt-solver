@@ -394,7 +394,9 @@ def test_single_intersect_all_benchmark_all_structures(benchmark):
 
     def run_all_structures() -> SpotNFA:
         result: SpotNFA | None = None
-        for structure in all_structures:
+        total = len(all_structures)
+
+        for idx, structure in enumerate(all_structures, 1):
             result, peak_memory, elapsed_time = run_intersect_all_with_structure(
                 automata_list, structure
             )
@@ -407,6 +409,17 @@ def test_single_intersect_all_benchmark_all_structures(benchmark):
                     "memory_mb": peak_memory,
                 }
             )
+
+            # Progress logging every 10% or at significant milestones
+            if idx % max(1, total // 10) == 0 or idx == total:
+                logger.info(
+                    "Progress: %d/%d (%.1f%%) - Last: %.4fs, %.2fMB",
+                    idx,
+                    total,
+                    (idx / total) * 100,
+                    elapsed_time,
+                    peak_memory,
+                )
 
         if result is None:
             msg = "No structures were tested, result is None"
@@ -514,7 +527,9 @@ def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) ->
 
     # Run benchmarks
     results_data: list[dict[str, str | float]] = []
-    for structure in all_structures:
+    total = len(all_structures)
+
+    for idx, structure in enumerate(all_structures, 1):
         _, peak_memory, elapsed_time = run_intersect_all_with_structure(
             automata_list, structure
         )
@@ -525,6 +540,17 @@ def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) ->
                 "memory_mb": peak_memory,
             }
         )
+
+        # Progress logging every 10% or at significant milestones
+        if idx % max(1, total // 10) == 0 or idx == total:
+            logger.info(
+                "Progress: %d/%d (%.1f%%) - Last: %.4fs, %.2fMB",
+                idx,
+                total,
+                (idx / total) * 100,
+                elapsed_time,
+                peak_memory,
+            )
 
     # Save metadata
     save_benchmark_metadata(
