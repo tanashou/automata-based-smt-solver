@@ -12,9 +12,9 @@ import json
 import logging
 import statistics
 import time
+import tracemalloc
 from pathlib import Path
 
-import psutil
 import pytest
 from pysmt.fnode import FNode
 from pysmt.rewritings import nnf
@@ -276,16 +276,27 @@ def run_intersect_all_with_structure(
     Returns:
         Tuple of (result_nfa, peak_memory_mb, elapsed_time_sec)
 
+    Note:
+        Uses tracemalloc to measure peak memory usage during the operation.
+        This accurately captures the maximum memory allocated, even if garbage
+        collection occurs before the operation completes.
+
     """
-    process = psutil.Process()
-    initial_memory = process.memory_info().rss
+    # Start memory tracing to capture peak memory
+    tracemalloc.start()
 
-    start_time = time.perf_counter()
-    result = SpotNFA.intersect_all(*automata_list, tournament_structure=structure)
-    elapsed_time = time.perf_counter() - start_time
+    try:
+        start_time = time.perf_counter()
+        result = SpotNFA.intersect_all(*automata_list, tournament_structure=structure)
+        elapsed_time = time.perf_counter() - start_time
 
-    peak_memory = process.memory_info().rss
-    peak_memory_mb = (peak_memory - initial_memory) / (1024 * 1024)
+        # Get peak memory usage (in bytes)
+        current, peak = tracemalloc.get_traced_memory()
+        peak_memory_mb = peak / (1024 * 1024)
+
+    finally:
+        # Always stop tracing to free resources
+        tracemalloc.stop()
 
     return result, peak_memory_mb, elapsed_time
 
