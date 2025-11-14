@@ -413,12 +413,10 @@ def test_single_intersect_all_benchmark_all_structures(benchmark):
             # Progress logging every 10% or at significant milestones
             if idx % max(1, total // 10) == 0 or idx == total:
                 logger.info(
-                    "Progress: %d/%d (%.1f%%) - Last: %.4fs, %.2fMB",
+                    "Progress: %d/%d (%.1f%%)",
                     idx,
                     total,
                     (idx / total) * 100,
-                    elapsed_time,
-                    peak_memory,
                 )
 
         if result is None:
@@ -549,12 +547,10 @@ def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) ->
         # Progress logging every 10% or at significant milestones
         if idx % max(1, total // 10) == 0 or idx == total:
             logger.info(
-                "Progress: %d/%d (%.1f%%) - Last: %.4fs, %.2fMB",
+                "Progress: %d/%d (%.1f%%)",
                 idx,
                 total,
                 (idx / total) * 100,
-                elapsed_time,
-                peak_memory,
             )
 
     # Save metadata

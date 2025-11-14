@@ -7,6 +7,7 @@ Usage:
 """
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -18,6 +19,13 @@ from test_intersect_all_permutation_benchmark import run_benchmark_for_file
 
 def main() -> None:
     """Run the benchmark runner."""
+    # Configure logging to show progress
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
     parser = argparse.ArgumentParser(
         description="Run tournament structure benchmark for an SMT2 file"
     )
