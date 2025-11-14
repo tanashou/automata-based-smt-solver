@@ -6,6 +6,8 @@ The number of tournament structures follows the Catalan number sequence.
 """
 
 import csv
+import hashlib
+import json
 import logging
 import statistics
 import time
@@ -43,6 +45,60 @@ SAMPLE_SMT2 = """
 (check-sat)
 (exit)
 """
+
+
+def generate_benchmark_id(smt2_content: str, file_path: str | None = None) -> str:
+    """Generate a unique ID for the benchmark based on SMT2 content or file path.
+
+    Args:
+        smt2_content: The SMT2 content used in the benchmark
+        file_path: Optional file path (if loaded from a file)
+
+    Returns:
+        A unique identifier string
+
+    """
+    if file_path:
+        # Use the file name (without extension) if available
+        return Path(file_path).stem
+    # Use hash of content for inline SMT2
+    content_hash = hashlib.sha256(smt2_content.encode()).hexdigest()[:16]
+    return f"inline_{content_hash}"
+
+
+def save_benchmark_metadata(
+    benchmark_id: str,
+    smt2_content: str,
+    num_automata: int,
+    num_structures: int,
+    file_path: str | None = None,
+) -> None:
+    """Save metadata about the benchmark.
+
+    Args:
+        benchmark_id: Unique identifier for this benchmark
+        smt2_content: The SMT2 content used
+        num_automata: Number of automata in the benchmark
+        num_structures: Number of tournament structures tested
+        file_path: Optional original file path
+
+    """
+    results_dir = Path(__file__).parent.parent / ".benchmarks" / "tournament_structures"
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    metadata = {
+        "benchmark_id": benchmark_id,
+        "num_automata": num_automata,
+        "num_structures": num_structures,
+        "smt2_content": smt2_content,
+        "file_path": file_path,
+    }
+
+    metadata_file = results_dir / f"{benchmark_id}_meta.json"
+    with metadata_file.open("w") as f:
+        json.dump(metadata, f, indent=2)
+
+    logger.info("Metadata written to %s", metadata_file)
 
 
 def generate_all_tournament_structures(n: int) -> list[TournamentStructure]:
@@ -260,6 +316,9 @@ def test_single_intersect_all_benchmark_all_structures(benchmark):
         "Testing %d tournament structures for %d automata", len(all_structures), n
     )
 
+    # Generate benchmark ID
+    benchmark_id = generate_benchmark_id(SAMPLE_SMT2)
+
     memories: list[float] = []
     times: list[float] = []
     results_data: list[dict[str, str | float]] = []
@@ -335,17 +394,44 @@ def test_single_intersect_all_benchmark_all_structures(benchmark):
 
     benchmark.extra_info["num_automata"] = str(n)
     benchmark.extra_info["result_empty"] = str(result.is_empty())
+    benchmark.extra_info["benchmark_id"] = benchmark_id
+
+    # Save metadata
+    save_benchmark_metadata(
+        benchmark_id=benchmark_id,
+        smt2_content=SAMPLE_SMT2,
+        num_automata=n,
+        num_structures=len(all_structures),
+        file_path=None,
+    )
 
     # Output detailed results to a CSV file
-    _save_results_to_csv(results_data)
+    csv_path = _save_results_to_csv(results_data, benchmark_id)
+    benchmark.extra_info["csv_file"] = str(csv_path)
 
 
-def _save_results_to_csv(results_data: list[dict[str, str | float]]) -> None:
-    """Save detailed tournament structure results to CSV file."""
-    output_file = Path("benchmark_tournament_results.csv")
+def _save_results_to_csv(
+    results_data: list[dict[str, str | float]], benchmark_id: str
+) -> Path:
+    """Save detailed tournament structure results to CSV file.
+
+    Args:
+        results_data: List of benchmark results
+        benchmark_id: Unique identifier for this benchmark
+
+    Returns:
+        Path to the saved CSV file
+
+    """
+    # Use .benchmarks/tournament_structures directory
+    results_dir = Path(__file__).parent.parent / ".benchmarks" / "tournament_structures"
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    output_file = results_dir / f"{benchmark_id}.csv"
     with output_file.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["structure", "time_sec", "memory_mb"])
         writer.writeheader()
         writer.writerows(results_data)
 
     logger.info("Detailed results written to %s", output_file)
+    return output_file

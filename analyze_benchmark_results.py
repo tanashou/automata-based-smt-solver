@@ -1,31 +1,96 @@
 # ruff: noqa: T201
 """Analyze benchmark tournament structure results from CSV file.
 
-This script reads the benchmark_tournament_results.csv file and displays
+This script reads tournament structure benchmark results and displays
 the fastest and slowest tournament structure patterns for intersect_all operations.
 """
 
 import csv
+import json
 import sys
 from pathlib import Path
 
 
-def analyze_results(csv_path: str = "benchmark_tournament_results.csv") -> None:  # noqa: PLR0915
+def list_available_benchmarks() -> list[str]:
+    """List all available benchmark IDs."""
+    results_dir = Path(".benchmarks/tournament_structures")
+    if not results_dir.exists():
+        return []
+
+    # Find all CSV files
+    csv_files = results_dir.glob("*.csv")
+    return sorted([f.stem for f in csv_files])
+
+
+def get_benchmark_metadata(benchmark_id: str) -> dict | None:
+    """Get metadata for a specific benchmark.
+
+    Args:
+        benchmark_id: The benchmark identifier
+
+    Returns:
+        Metadata dictionary or None if not found
+
+    """
+    metadata_file = (
+        Path(".benchmarks/tournament_structures") / f"{benchmark_id}_meta.json"
+    )
+    if not metadata_file.exists():
+        return None
+
+    with metadata_file.open() as f:
+        return json.load(f)
+
+
+def analyze_results(  # noqa: C901, PLR0912, PLR0915
+    csv_path: str | None = None, benchmark_id: str | None = None
+) -> None:
     """Analyze benchmark results and display statistics.
 
     Args:
         csv_path: Path to the CSV file containing benchmark results
+        benchmark_id: Benchmark ID to analyze (alternative to csv_path)
 
     """
-    csv_file = Path(csv_path)
-    if not csv_file.exists():
-        print(f"Error: File '{csv_path}' not found.")
-        print("Run the benchmark test first:")
-        print(
-            "  pytest tests/test_intersect_all_permutation_benchmark.py::"
-            "test_single_intersect_all_benchmark_all_structures --benchmark-only"
-        )
-        sys.exit(1)
+    # Determine CSV file path
+    if benchmark_id:
+        csv_file = Path(".benchmarks/tournament_structures") / f"{benchmark_id}.csv"
+        if not csv_file.exists():
+            print(f"Error: Benchmark '{benchmark_id}' not found.")
+            print("\nAvailable benchmarks:")
+            for bid in list_available_benchmarks():
+                print(f"  - {bid}")
+            sys.exit(1)
+    elif csv_path:
+        csv_file = Path(csv_path)
+        if not csv_file.exists():
+            print(f"Error: File '{csv_path}' not found.")
+            print("Run the benchmark test first:")
+            print(
+                "  pytest tests/test_intersect_all_permutation_benchmark.py::"
+                "test_single_intersect_all_benchmark_all_structures --benchmark-only"
+            )
+            sys.exit(1)
+        # Extract benchmark_id from filename
+        benchmark_id = csv_file.stem
+    else:
+        # No arguments provided, list available benchmarks
+        available = list_available_benchmarks()
+        if not available:
+            print("No benchmark results found in .benchmarks/tournament_structures/")
+            print("Run the benchmark test first:")
+            print(
+                "  pytest tests/test_intersect_all_permutation_benchmark.py::"
+                "test_single_intersect_all_benchmark_all_structures --benchmark-only"
+            )
+            sys.exit(1)
+
+        print("Available benchmarks:")
+        for bid in available:
+            print(f"  - {bid}")
+        print(f"\nAnalyzing latest: {available[-1]}")
+        csv_file = Path(".benchmarks/tournament_structures") / f"{available[-1]}.csv"
+        benchmark_id = available[-1]
 
     # Read CSV data
     with csv_file.open() as f:
@@ -43,6 +108,15 @@ def analyze_results(csv_path: str = "benchmark_tournament_results.csv") -> None:
     print("=" * 80)
     print("BENCHMARK RESULTS ANALYSIS")
     print("=" * 80)
+    print(f"\nBenchmark ID: {benchmark_id}")
+
+    # Display metadata if available
+    metadata = get_benchmark_metadata(benchmark_id)
+    if metadata:
+        print(f"Number of automata: {metadata.get('num_automata', 'N/A')}")
+        if metadata.get("file_path"):
+            print(f"Source file: {metadata['file_path']}")
+
     print(f"\nTotal tournament structures tested: {len(data)}")
     print()
 
@@ -129,11 +203,15 @@ if __name__ == "__main__":
         description="Analyze benchmark tournament structure results"
     )
     parser.add_argument(
-        "csv_file",
+        "benchmark_id",
         nargs="?",
-        default="benchmark_tournament_results.csv",
-        help="Path to CSV file (default: benchmark_tournament_results.csv)",
+        help="Benchmark ID to analyze (e.g., 'inline_abc123')",
+    )
+    parser.add_argument(
+        "--csv",
+        dest="csv_file",
+        help="Direct path to CSV file (alternative to benchmark_id)",
     )
     args = parser.parse_args()
 
-    analyze_results(args.csv_file)
+    analyze_results(csv_path=args.csv_file, benchmark_id=args.benchmark_id)
