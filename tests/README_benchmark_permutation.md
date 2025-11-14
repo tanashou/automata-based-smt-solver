@@ -1,60 +1,117 @@
-# Intersect_all 順列ベンチマークの使い方
+# Intersect_all トーナメント構造ベンチマークの使い方
 
-このドキュメントでは、`test_intersect_all_permutation_benchmark.py`を使って、
-`intersect_all`の順序依存性を測定する方法を説明します。
+このドキュメントでは、`test_intersect_all_permutation_benchmark.py`と`run_tournament_benchmark.py`を使って、
+`intersect_all`のトーナメント構造（実行順序）による性能差を測定する方法を説明します。
 
-## 設定
+## 概要
 
-### MAX_AUTOMATA 定数
+このベンチマークは、n個のオートマトンの交差演算において、全ての可能なトーナメント構造（順列×二分木構造）を試し、
+最速/最遅の構造やメモリ使用量を比較します。
 
-テストファイル内の`MAX_AUTOMATA`定数で、テストするオートマトンの最大数を制御します。
+### トーナメント構造の数
 
-```python
-# test_intersect_all_permutation_benchmark.py 内
-MAX_AUTOMATA = 10  # この値を変更してください
-```
+オートマトンの数 `n` に対して、テストされる構造の数は **(n! × C(n-1)) / 2^(n-1)** となります:
+- 3個: 3通り
+- 4個: 15通り
+- 5個: 105通り
+- 6個: 945通り
+- 7個: 10,395通り
+- 8個: 135,135通り
 
-オートマトンの数 `n` に対して、順列の数は `n!` となります:
-- 3個: 6通り
-- 4個: 24通り
-- 5個: 120通り
-- 6個: 720通り
-- 7個: 5,040通り（デフォルトのMAX_AUTOMATA=10で実行可能）
-- 8個: 40,320通り
-
+※ C(n-1)はカタラン数（Catalan number）です
 ## 基本的な使い方
 
-### 1. 全順列を一度に実行して統計を取る（推奨）
+### 1. 特定のSMT2ファイルでベンチマークを実行（推奨）
 
 ```bash
-pytest tests/test_intersect_all_permutation_benchmark.py::test_single_intersect_all_benchmark_all_orders --benchmark-only
+python tests/run_tournament_benchmark.py benchmarks/QF_LIA/path/to/file.smt2
 ```
 
-このテストは、全ての順列を実行し、以下の統計情報を出力します:
-- `num_orders_tested`: テストした順列の数
+実行中は進捗が表示されます：
+```
+================================================================================
+Starting benchmark: 10395 tournament structures for 7 automata
+Source file: benchmarks/QF_LIA/prime-cone/prime_cone_sat_3.smt2
+================================================================================
+Progress: 1039/10395 (10.0%)
+Progress: 2079/10395 (20.0%)
+Progress: 3119/10395 (30.0%)
+...
+Progress: 10395/10395 (100.0%)
+================================================================================
+✓ Benchmark completed: prime_cone_sat_3
+Results saved to: .benchmarks/tournament_structures/prime_cone_sat_3.csv
+================================================================================
+```
+
+カスタム名を指定することもできます：
+```bash
+python tests/run_tournament_benchmark.py path/to/file.smt2 --name custom_name
+```
+
+### 2. 結果を解析
+
+```bash
+python analyze_benchmark_results.py prime_cone_sat_3
+```
+
+出力例：
+```
+================================================================================
+BENCHMARK RESULTS ANALYSIS
+================================================================================
+Benchmark ID: prime_cone_sat_3
+Number of automata: 7
+Source file: benchmarks/QF_LIA/prime-cone/prime_cone_sat_3.smt2
+Total tournament structures tested: 10395
+
+================================================================================
+TOP 10 FASTEST TOURNAMENT STRUCTURES
+================================================================================
+...
+
+================================================================================
+SUMMARY STATISTICS
+================================================================================
+Fastest structure:     ((2,(6,(0,1))),(4,(3,5)))
+  Time:                0.010867 sec
+  Memory:              0.00 MB
+
+Slowest structure:     (1,(0,(4,(2,(3,(5,6))))))
+  Time:                0.027903 sec
+  Memory:              9.47 MB
+...
+```
+
+### 3. pytestでベンチマークを実行（開発用）
+
+```bash
+pytest tests/test_intersect_all_permutation_benchmark.py::test_single_intersect_all_benchmark_all_structures --benchmark-only
+```
+
+このテストは、全てのトーナメント構造を実行し、以下の統計情報を出力します:
+- `num_structures_tested`: テストしたトーナメント構造の数
 - `mean_memory_mb`: 平均メモリ使用量
 - `median_memory_mb`: メモリ使用量の中央値
 - `max_memory_mb`: 最大メモリ使用量
 - `min_memory_mb`: 最小メモリ使用量
-- `num_automata`: オートマトンの数
-- `result_empty`: 結果が空かどうか
+- `fastest_structure` / `slowest_structure`: 最速/最遅の構造
+- `lowest_memory_structure` / `highest_memory_structure`: 最小/最大メモリの構造
 
-### 2. 個別の順列ごとにベンチマークを取る
+## メモリ測定について
 
-```bash
-pytest tests/test_intersect_all_permutation_benchmark.py::TestIntersectAllPermutationBenchmark::test_intersect_all_permutation --benchmark-only
-```
+このベンチマークは**ピークメモリ**を測定します：
+- `tracemalloc`を使用して、処理中の最大メモリ使用量を正確に測定
+- ガベージコレクションの影響を受けない
+- 常に正の値（負の値は発生しない）
 
-このテストは、各順列を個別のベンチマークケースとして実行します。
-各ケースには以下の情報が含まれます:
-- `order_pattern`: 実行した順序パターン（例: "0-1-2-3-4-5-6"）
-- `num_automata`: オートマトンの数
-- `peak_memory_mb`: ピークメモリ使用量
-- `result_empty`: 結果が空かどうか
+メモリ表示：
+- 10 KB未満: KB単位で表示（例: `5.12 KB`）
+- 10 KB以上: MB単位で表示（例: `2.45 MB`）
 
 ## カスタマイズ
 
-### テスト対象のSMT2を変更する
+### pytestで使用するSMT2を変更する
 
 ファイル内の`SAMPLE_SMT2`変数を編集して、テストしたいSMT2テキストを設定します:
 
@@ -73,93 +130,99 @@ SAMPLE_SMT2 = """
 """
 ```
 
-### オートマトン数の上限を変更する
-
-より多くのオートマトンをテストしたい場合は、`MAX_AUTOMATA`を増やします:
-
-```python
-MAX_AUTOMATA = 15  # 例: 15個まで許可
-```
-
-**注意**: オートマトンの数が増えると、実行時間が急激に増加します。
+**注意**: オートマトンの数が増えると、実行時間が急激に増加します。7個を超える場合は数時間かかる可能性があります。
 
 ## 注意事項
 
 ### テスト実行時間
 
-オートマトンの数による実行時間の目安:
-- 3個: 6通り（数秒）
-- 4個: 24通り（数秒）
-- 5個: 120通り（数十秒）
-- 6個: 720通り（数分）
-- 7個: 5,040通り（10分以上）
-- 8個: 40,320通り（1時間以上）
+オートマトンの数によるトーナメント構造数と実行時間の目安:
+- 3個: 3通り（数秒）
+- 4個: 15通り（数秒）
+- 5個: 105通り（数十秒）
+- 6個: 945通り（数分）
+- 7個: 10,395通り（30分〜数時間）
+- 8個: 135,135通り（数時間〜1日）
+- 9個以上: 非推奨（1日以上かかる可能性が高い）
 
-### 結果の確認
+### 進捗表示
 
-ベンチマーク結果は、以下のオプションで詳細に確認できます:
-
-```bash
-# すべての詳細情報を表示
-pytest ... --benchmark-only -rA
-
-# 順序パターンでグループ化
-pytest ... --benchmark-only --benchmark-group-by=param:order_pattern
-
-# 結果をJSONで保存
-pytest ... --benchmark-only --benchmark-json=output.json
-
-# 結果を比較
-pytest ... --benchmark-only --benchmark-compare=output.json
+ベンチマーク実行中は10%ごとに進捗が表示されます：
+```
+Progress: 1039/10395 (10.0%)
+Progress: 2079/10395 (20.0%)
+...
 ```
 
-### CSV出力
+進捗を表示するには、`run_tournament_benchmark.py`を使用するか、
+pytestで`-s`オプションを指定してください：
+```bash
+pytest tests/test_intersect_all_permutation_benchmark.py::test_single_intersect_all_benchmark_all_structures --benchmark-only -s
+```
 
-結果をCSV形式で保存するには、以下のようにします:
+### CSV結果ファイル
+
+ベンチマーク結果は自動的にCSV形式で保存されます：
+- 保存先: `.benchmarks/tournament_structures/<benchmark_id>.csv`
+- メタデータ: `.benchmarks/tournament_structures/<benchmark_id>_meta.json`
+
+CSVファイルには各トーナメント構造ごとに以下が記録されます：
+- `structure`: トーナメント構造のパターン（例: `((2,(6,(0,1))),(4,(3,5)))`）
+- `time_sec`: 実行時間（秒）
+- `memory_mb`: ピークメモリ使用量（MB）
+
+### 利用可能なベンチマークの確認
 
 ```bash
-pytest tests/test_intersect_all_permutation_benchmark.py::test_single_intersect_all_benchmark_all_orders \
-  --benchmark-only \
-  --benchmark-json=benchmark_results.json
+# 実行済みベンチマーク一覧を表示
+python analyze_benchmark_results.py
 
-# JSONをCSVに変換（別途スクリプトが必要）
-python -c "
-import json
-import csv
-
-with open('benchmark_results.json') as f:
-    data = json.load(f)
-
-with open('benchmark_results.csv', 'w', newline='') as f:
-    writer = csv.writer(f)
-    writer.writerow(['Name', 'Min', 'Max', 'Mean', 'Median', 'StdDev', 'Rounds', 'Extra Info'])
-    for benchmark in data['benchmarks']:
-        extra = benchmark.get('extra_info', {})
-        writer.writerow([
-            benchmark['name'],
-            benchmark['stats']['min'],
-            benchmark['stats']['max'],
-            benchmark['stats']['mean'],
-            benchmark['stats']['median'],
-            benchmark['stats']['stddev'],
-            benchmark['stats']['rounds'],
-            str(extra)
-        ])
-"
+# 出力例:
+# Available benchmarks:
+#   - prime_cone_sat_2
+#   - prime_cone_sat_3
+#   - inline_abc123
 ```
 
 ## 実行例
 
-### 7個のオートマトンのケース
-
-デフォルトの`SAMPLE_SMT2`には7個のアサーションがあり、7! = 5,040通りの順列をテストします:
+### 1. 実際のSMT2ファイルでベンチマーク
 
 ```bash
-# 全順列の統計を取得（約10-15分）
-pytest tests/test_intersect_all_permutation_benchmark.py::test_single_intersect_all_benchmark_all_orders --benchmark-only
+# prime-coneベンチマークを実行（7個のオートマトン = 10,395通りのトーナメント構造）
+python tests/run_tournament_benchmark.py benchmarks/QF_LIA/prime-cone/prime_cone_sat_3.smt2
 
-# 詳細な出力を確認
-pytest tests/test_intersect_all_permutation_benchmark.py::test_single_intersect_all_benchmark_all_orders --benchmark-only -rA
+# 結果を分析
+python analyze_benchmark_results.py prime_cone_sat_3
 ```
 
-結果には、最も速い順序パターンと最も遅い順序パターンのメモリ使用量の差が表示されます。
+### 2. 複数のファイルをバッチ実行
+
+```bash
+# 特定ディレクトリ内の全ファイルを実行
+for file in benchmarks/QF_LIA/prime-cone/*.smt2; do
+    echo "Running benchmark for: $file"
+    python tests/run_tournament_benchmark.py "$file"
+done
+
+# 全結果を確認
+for csv in .benchmarks/tournament_structures/*.csv; do
+    id=$(basename "$csv" .csv)
+    echo "=== $id ==="
+    python analyze_benchmark_results.py "$id" | head -20
+done
+```
+
+### 3. pytestでサンプルをテスト（開発用）
+
+デフォルトの`SAMPLE_SMT2`には7個のアサーションがあり、10,395通りのトーナメント構造をテストします:
+
+```bash
+# 全構造の統計を取得（進捗表示あり）
+pytest tests/test_intersect_all_permutation_benchmark.py::test_single_intersect_all_benchmark_all_structures --benchmark-only -s
+
+# 詳細な出力を確認
+pytest tests/test_intersect_all_permutation_benchmark.py::test_single_intersect_all_benchmark_all_structures --benchmark-only -rA
+```
+
+結果には、最も速い構造と最も遅い構造、メモリ使用量の差などが表示されます。
