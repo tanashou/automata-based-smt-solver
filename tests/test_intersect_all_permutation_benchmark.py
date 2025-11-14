@@ -7,6 +7,7 @@ The number of tournament structures follows the Catalan number sequence.
 
 import csv
 import hashlib
+import itertools
 import json
 import logging
 import statistics
@@ -101,50 +102,92 @@ def save_benchmark_metadata(
     logger.info("Metadata written to %s", metadata_file)
 
 
-def generate_all_tournament_structures(n: int) -> list[TournamentStructure]:
-    """Generate all possible tournament structures for n automata.
+def normalize_tournament_strict(structure: TournamentStructure) -> TournamentStructure:
+    """トーナメント構造を再帰的に正規化する (厳密な順序付け).
 
-    The number of tournament structures follows the Catalan number sequence.
-    For n automata, there are C(n-1) different tournament structures, where
-    C(k) is the k-th Catalan number.
-
-    Args:
-        n: Number of automata
-
-    Returns:
-        List of all possible tournament structures
-
-    Examples:
-        >>> generate_all_tournament_structures(1)
-        [0]
-        >>> generate_all_tournament_structures(2)
-        [(0, 1)]
-        >>> generate_all_tournament_structures(3)
-        [((0, 1), 2), (0, (1, 2))]
-
+    intは常にtupleより小さいとみなす。
     """
+    if isinstance(structure, int):
+        return structure
+
+    left, right = structure
+
+    norm_left = normalize_tournament_strict(left)
+    norm_right = normalize_tournament_strict(right)
+
+    # 比較ロジック
+    is_left_int = isinstance(norm_left, int)
+    is_right_int = isinstance(norm_right, int)
+
+    swap = False
+    if is_left_int and is_right_int:
+        # 両方 int: 数値で比較
+        if norm_left > norm_right:
+            swap = True
+    elif not is_left_int and not is_right_int:
+        # 両方 tuple: 文字列で辞書順比較
+        if str(norm_left) > str(norm_right):
+            swap = True
+    elif is_left_int and not is_right_int:
+        # 左が int, 右が tuple: int < tuple なので swap しない
+        swap = False
+    elif not is_left_int and is_right_int:
+        # 左が tuple, 右が int: int < tuple なので swap する
+        swap = True
+
+    if swap:
+        return (norm_right, norm_left)
+    return (norm_left, norm_right)
+
+
+def generate_all_tournament_structures_with_permutations(
+    n: int,
+) -> list[TournamentStructure]:
+    def generate_structures(indices: list[int]) -> list[TournamentStructure]:
+        k = len(indices)
+        if k == 1:
+            return [indices[0]]
+
+        structures = []
+        for left_size in range(1, k):
+            left_indices = indices[:left_size]
+            right_indices = indices[left_size:]
+
+            left_structures = generate_structures(left_indices)
+            right_structures = generate_structures(right_indices)
+
+            structures.extend(
+                (left, right)  # type: ignore[misc]
+                for left in left_structures
+                for right in right_structures
+            )
+        return structures
+
+    # --- ここまで内部関数 ---
+
     if n <= 0:
         return []
     if n == 1:
         return [0]
 
-    def generate_structures(indices: list[int]) -> list[TournamentStructure]:
-        """Generate tournament structures for given list of indices."""
-        k = len(indices)
+    # 正規化されたユニークな構造を保持するためのセット
+    unique_normalized_structures: set[TournamentStructure] = set()
 
-        if k == 1:
-            return [indices[0]]
+    initial_indices = list(range(n))
+    all_permutations = itertools.permutations(initial_indices)
 
-        # Split into left and right subtournaments
-        return [
-            (left, right)  # type: ignore[return-value]
-            for left_size in range(1, k)
-            for left in generate_structures(indices[:left_size])
-            for right in generate_structures(indices[left_size:])
-        ]
+    for perm in all_permutations:
+        indices_list = list(perm)
 
-    # Generate for consecutive indices 0, 1, ..., n-1
-    return generate_structures(list(range(n)))
+        # この順列に基づいた全ての構造を生成
+        structures_for_perm = generate_structures(indices_list)
+
+        # 生成された各構造を「正規化」してからセットに追加する
+        for structure in structures_for_perm:
+            normalized_structure = normalize_tournament_strict(structure)
+            unique_normalized_structures.add(normalized_structure)
+
+    return list(unique_normalized_structures)
 
 
 def extract_automata_from_conjunction(conjunction: FNode) -> list[SpotNFA]:
@@ -270,7 +313,7 @@ class TestIntersectAllTournamentBenchmark:
     ) -> list[TournamentStructure]:
         """Generate all tournament structures for the automata."""
         n = len(automata_list)
-        structures = generate_all_tournament_structures(n)
+        structures = generate_all_tournament_structures_with_permutations(n)
         logger.info(
             "Generated %d tournament structures for %d automata (Catalan number)",
             len(structures),
@@ -324,9 +367,11 @@ def test_single_intersect_all_benchmark_all_structures(benchmark):
     automata_list = prepare_automata_list(SAMPLE_SMT2)
     n = len(automata_list)
 
-    all_structures = generate_all_tournament_structures(n)
+    all_structures = generate_all_tournament_structures_with_permutations(n)
     logger.info(
-        "Testing %d tournament structures for %d automata", len(all_structures), n
+        "Testing %d tournament structures (with permutations) for %d automata",
+        len(all_structures),
+        n,
     )
 
     # Generate benchmark ID
@@ -444,10 +489,10 @@ def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) ->
     automata_list = prepare_automata_list(smt2_file=smt2_path)
     n = len(automata_list)
 
-    # Generate all tournament structures
-    all_structures = generate_all_tournament_structures(n)
+    # Generate all tournament structures with permutations
+    all_structures = generate_all_tournament_structures_with_permutations(n)
     logger.info(
-        "Testing %d tournament structures for %d automata from %s",
+        "Testing %d tournament structures (with permutations) for %d automata from %s",
         len(all_structures),
         n,
         smt2_path,
