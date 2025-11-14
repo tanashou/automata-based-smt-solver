@@ -515,12 +515,17 @@ def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) ->
 
     # Generate all tournament structures with permutations
     all_structures = generate_all_tournament_structures_with_permutations(n)
+    logger.info("=" * 80)
     logger.info(
-        "Testing %d tournament structures (with permutations) for %d automata from %s",
+        "Starting benchmark: %d tournament structures for %d automata",
         len(all_structures),
         n,
+    )
+    logger.info(
+        "Source file: %s",
         smt2_path,
     )
+    logger.info("=" * 80)
 
     # Generate benchmark ID
     benchmark_id = benchmark_name or generate_benchmark_id(smt2_content, smt2_path)
@@ -563,8 +568,10 @@ def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) ->
 
     # Save results
     csv_path = _save_results_to_csv(results_data, benchmark_id)
-    logger.info("Benchmark completed: %s", benchmark_id)
+    logger.info("=" * 80)
+    logger.info("✓ Benchmark completed: %s", benchmark_id)
     logger.info("Results saved to: %s", csv_path)
+    logger.info("=" * 80)
 
 
 def _save_results_to_csv(
