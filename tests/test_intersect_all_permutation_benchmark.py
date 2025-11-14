@@ -183,18 +183,31 @@ def extract_automata_from_conjunction(conjunction: FNode) -> list[SpotNFA]:
     return automata_list
 
 
-def prepare_automata_list(smt2_text: str) -> list[SpotNFA]:
-    """Parse SMT2 text and extract automata list.
+def prepare_automata_list(
+    smt2_text: str | None = None, smt2_file: str | None = None
+) -> list[SpotNFA]:
+    """Parse SMT2 text or file and extract automata list.
 
     Args:
-        smt2_text: SMT-LIB2 format text
+        smt2_text: SMT-LIB2 format text (if provided, takes precedence)
+        smt2_file: Path to SMT-LIB2 file
 
     Returns:
         List of SpotNFA instances extracted from the first conjunction
 
     """
+    if smt2_text is None and smt2_file is None:
+        msg = "Either smt2_text or smt2_file must be provided"
+        raise ValueError(msg)
+
     reader = SMTLIBReader()
-    _, formula = reader.from_smt_lib(smt2_text, is_file_path=False)
+    if smt2_text:
+        _, formula = reader.from_smt_lib(smt2_text, is_file_path=False)
+    elif smt2_file:
+        _, formula = reader.from_smt_lib(smt2_file, is_file_path=True)
+    else:
+        msg = "Either smt2_text or smt2_file must be provided"
+        raise ValueError(msg)
 
     # Apply NNF and negation elimination (same as Solver)
     negation_eliminator = NegationEliminator()
@@ -408,6 +421,68 @@ def test_single_intersect_all_benchmark_all_structures(benchmark):
     # Output detailed results to a CSV file
     csv_path = _save_results_to_csv(results_data, benchmark_id)
     benchmark.extra_info["csv_file"] = str(csv_path)
+
+
+def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) -> None:
+    """Run tournament structure benchmark for a specific SMT2 file.
+
+    Args:
+        smt2_path: Path to the SMT2 file
+        benchmark_name: Optional custom name for the benchmark
+
+    """
+    # Read SMT2 file
+    smt2_file = Path(smt2_path)
+    if not smt2_file.exists():
+        msg = f"SMT2 file not found: {smt2_path}"
+        raise FileNotFoundError(msg)
+
+    with smt2_file.open() as f:
+        smt2_content = f.read()
+
+    # Prepare automata
+    automata_list = prepare_automata_list(smt2_file=smt2_path)
+    n = len(automata_list)
+
+    # Generate all tournament structures
+    all_structures = generate_all_tournament_structures(n)
+    logger.info(
+        "Testing %d tournament structures for %d automata from %s",
+        len(all_structures),
+        n,
+        smt2_path,
+    )
+
+    # Generate benchmark ID
+    benchmark_id = benchmark_name or generate_benchmark_id(smt2_content, smt2_path)
+
+    # Run benchmarks
+    results_data: list[dict[str, str | float]] = []
+    for structure in all_structures:
+        _, peak_memory, elapsed_time = run_intersect_all_with_structure(
+            automata_list, structure
+        )
+        results_data.append(
+            {
+                "structure": format_tournament_structure(structure),
+                "time_sec": elapsed_time,
+                "memory_mb": peak_memory,
+            }
+        )
+
+    # Save metadata
+    save_benchmark_metadata(
+        benchmark_id=benchmark_id,
+        smt2_content=smt2_content,
+        num_automata=n,
+        num_structures=len(all_structures),
+        file_path=smt2_path,
+    )
+
+    # Save results
+    csv_path = _save_results_to_csv(results_data, benchmark_id)
+    logger.info("Benchmark completed: %s", benchmark_id)
+    logger.info("Results saved to: %s", csv_path)
 
 
 def _save_results_to_csv(
