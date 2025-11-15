@@ -12,6 +12,9 @@ from absmt.automata.nfa import NFA, NFAStateT, NFATransitionsT
 
 logger = logging.getLogger(__name__)
 
+# Tournament structure type: int for leaf (automaton index), tuple for internal node
+TournamentStructure = int | tuple["TournamentStructure", "TournamentStructure"]
+
 
 @dataclass
 class SpotNFA:
@@ -185,15 +188,77 @@ class SpotNFA:
         # spot.product は到達可能な状態だけ構築するため、この方法で十分。
         return bool(not self.final_state_ids)
 
+    def num_states(self) -> int:
+        """Get the number of states in the automaton."""
+        return self.twa_graph.num_states()
+
     @staticmethod
-    def intersect_all(*nfas: "SpotNFA") -> "SpotNFA":
+    def _intersect_by_structure(
+        nfas: list["SpotNFA"],
+        structure: TournamentStructure,
+        state_counts: dict[str, int] | None = None,
+    ) -> "SpotNFA":
+        """Execute intersection following a specific tournament structure.
+
+        Args:
+            nfas: List of automata to intersect
+            structure: Tournament structure specifying the order of intersections
+            state_counts: Optional dict to record state counts for each
+                intermediate result
+
+        Returns:
+            SpotNFA: The result of the intersection
+
+        """
+        if isinstance(structure, int):
+            # Leaf node: return the automaton at the specified index
+            return nfas[structure]
+
+        # Internal node: recursively intersect left and right
+        left_result = SpotNFA._intersect_by_structure(nfas, structure[0], state_counts)
+        right_result = SpotNFA._intersect_by_structure(nfas, structure[1], state_counts)
+
+        # Perform binary intersection
+        product_aut = spot.product(left_result.twa_graph, right_result.twa_graph)
+        product_states: list[tuple[int, int]] = product_aut.get_product_states()
+        mapping: dict[tuple[int, int], int] = {
+            state: idx for idx, state in enumerate(product_states)
+        }
+
+        product_aut_final_state_ids: set[int] = {
+            mapping[state]
+            for state in product(
+                left_result.final_state_ids, right_result.final_state_ids
+            )
+            if state in mapping
+        }
+
+        result = SpotNFA.from_twa_graph(product_aut, product_aut_final_state_ids)
+
+        # Record state count if dict is provided
+        if state_counts is not None:
+            structure_str = str(structure)
+            state_counts[structure_str] = result.num_states()
+
+        return result
+
+    @staticmethod
+    def intersect_all(
+        *nfas: "SpotNFA",
+        tournament_structure: TournamentStructure | None = None,
+        state_counts: dict[str, int] | None = None,
+    ) -> "SpotNFA":
         """Create a single automaton by taking the intersection of all given SpotNFA.
 
         Args:
             *nfas: SpotNFA instances to combine
+            tournament_structure: Optional tournament structure specifying the order
+                of intersections. If None, uses default left-to-right pairing.
+            state_counts: Optional dict to record state counts for each
+                intermediate result
 
         Returns:
-            spot.twa_graph: The product automaton of all input automata
+            SpotNFA: The product automaton of all input automata
 
         """
         if not nfas:
@@ -201,39 +266,43 @@ class SpotNFA:
             raise ValueError(msg)
 
         if len(nfas) == 1:
-            return nfas[0].twa_graph
+            return nfas[0]
 
+        # If a tournament structure is specified, use it
+        if tournament_structure is not None:
+            return SpotNFA._intersect_by_structure(
+                list(nfas), tournament_structure, state_counts
+            )
+
+        # Default: use divide-and-conquer approach (left-to-right pairing)
         automata_list: list[SpotNFA] = list(nfas)
-        # 分割統治法のアイデア。
-        # TODO: 作成途中で受理不能になったらそれ以降の計算を省略したい。
         while len(automata_list) > 1:
-            next_level_automata = []
+            next_level_automata: list[SpotNFA] = []
             for i in range(0, len(automata_list), 2):
                 if i + 1 >= len(automata_list):
+                    # 奇数個の場合、最後の要素をそのまま次のレベルへ
                     next_level_automata.append(automata_list[i])
-                    break
+                    continue
+
                 aut1 = automata_list[i]
                 aut2 = automata_list[i + 1]
                 product_aut = spot.product(aut1.twa_graph, aut2.twa_graph)
 
-                # keep track on final states by id
                 product_states: list[tuple[int, int]] = product_aut.get_product_states()
                 mapping: dict[tuple[int, int], int] = {
                     state: idx for idx, state in enumerate(product_states)
                 }
-                product_aut_final_states: set[tuple[int, int]] = set(
-                    product(aut1.final_state_ids, aut2.final_state_ids)
-                )
-                product_aut_final_state_ids: set[int] = set()
-                for state in product_aut_final_states:
-                    if state in mapping:
-                        product_aut_final_state_ids.add(mapping[state])
+
+                product_aut_final_state_ids: set[int] = {
+                    mapping[state]
+                    for state in product(aut1.final_state_ids, aut2.final_state_ids)
+                    if state in mapping
+                }
 
                 next_level_automata.append(
                     SpotNFA.from_twa_graph(product_aut, product_aut_final_state_ids)
                 )
+
             automata_list = next_level_automata
 
-        # Return the merged automaton; note: final_state_ids[0] holds the
-        # combined final-state tuples for the resulting product automaton.
         return automata_list[0]
