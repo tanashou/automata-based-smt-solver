@@ -193,11 +193,48 @@ class SpotNFA:
         return self.twa_graph.num_states()
 
     @staticmethod
-    def _intersect_by_structure(
+    def _generate_default_structure(n: int) -> TournamentStructure:
+        """Generate a default left-to-right balanced tournament structure.
+
+        Args:
+            n: Number of automata
+
+        Returns:
+            TournamentStructure: A balanced binary tree structure
+
+        """
+        if n == 1:
+            return 0
+
+        # Create a balanced binary tree by dividing in half
+        mid = n // 2
+        left = 0 if mid == 1 else SpotNFA._generate_default_structure(mid)
+
+        # Adjust indices for the right subtree
+        def shift_indices(
+            structure: TournamentStructure, offset: int
+        ) -> TournamentStructure:
+            if isinstance(structure, int):
+                return structure + offset
+            return (
+                shift_indices(structure[0], offset),
+                shift_indices(structure[1], offset),
+            )
+
+        right = (
+            mid
+            if n - mid == 1
+            else shift_indices(SpotNFA._generate_default_structure(n - mid), mid)
+        )
+
+        return (left, right)
+
+    @staticmethod
+    def intersect_by_structure(
         nfas: list["SpotNFA"],
         structure: TournamentStructure,
         state_counts: dict[str, int] | None = None,
-    ) -> "SpotNFA":
+    ) -> "SpotNFA | None":
         """Execute intersection following a specific tournament structure.
 
         Args:
@@ -207,7 +244,8 @@ class SpotNFA:
                 intermediate result
 
         Returns:
-            SpotNFA: The result of the intersection
+            SpotNFA | None: The result of the intersection, or None if the
+                intersection is empty
 
         """
         if isinstance(structure, int):
@@ -215,8 +253,16 @@ class SpotNFA:
             return nfas[structure]
 
         # Internal node: recursively intersect left and right
-        left_result = SpotNFA._intersect_by_structure(nfas, structure[0], state_counts)
-        right_result = SpotNFA._intersect_by_structure(nfas, structure[1], state_counts)
+        left_result = SpotNFA.intersect_by_structure(nfas, structure[0], state_counts)
+        right_result = SpotNFA.intersect_by_structure(nfas, structure[1], state_counts)
+
+        # Early return if either side is empty
+        if left_result is None or right_result is None:
+            # Record empty result as -1
+            if state_counts is not None:
+                structure_str = str(structure)
+                state_counts[structure_str] = -1
+            return None
 
         # Perform binary intersection
         product_aut = spot.product(left_result.twa_graph, right_result.twa_graph)
@@ -235,6 +281,14 @@ class SpotNFA:
 
         result = SpotNFA.from_twa_graph(product_aut, product_aut_final_state_ids)
 
+        # Early return if the result is empty
+        if result.is_empty():
+            # Record empty result as -1
+            if state_counts is not None:
+                structure_str = str(structure)
+                state_counts[structure_str] = -1
+            return None
+
         # Record state count if dict is provided
         if state_counts is not None:
             structure_str = str(structure)
@@ -247,18 +301,19 @@ class SpotNFA:
         *nfas: "SpotNFA",
         tournament_structure: TournamentStructure | None = None,
         state_counts: dict[str, int] | None = None,
-    ) -> "SpotNFA":
+    ) -> "SpotNFA | None":
         """Create a single automaton by taking the intersection of all given SpotNFA.
 
         Args:
             *nfas: SpotNFA instances to combine
             tournament_structure: Optional tournament structure specifying the order
-                of intersections. If None, uses default left-to-right pairing.
+                of intersections. If None, generates a default balanced structure.
             state_counts: Optional dict to record state counts for each
                 intermediate result
 
         Returns:
-            SpotNFA: The product automaton of all input automata
+            SpotNFA | None: The product automaton of all input automata, or None
+                if the intersection is empty
 
         """
         if not nfas:
@@ -268,41 +323,14 @@ class SpotNFA:
         if len(nfas) == 1:
             return nfas[0]
 
-        # If a tournament structure is specified, use it
-        if tournament_structure is not None:
-            return SpotNFA._intersect_by_structure(
-                list(nfas), tournament_structure, state_counts
+        automata_list = list(nfas)
+
+        # Generate default structure if not provided
+        if tournament_structure is None:
+            tournament_structure = SpotNFA._generate_default_structure(
+                len(automata_list)
             )
 
-        # Default: use divide-and-conquer approach (left-to-right pairing)
-        automata_list: list[SpotNFA] = list(nfas)
-        while len(automata_list) > 1:
-            next_level_automata: list[SpotNFA] = []
-            for i in range(0, len(automata_list), 2):
-                if i + 1 >= len(automata_list):
-                    # 奇数個の場合、最後の要素をそのまま次のレベルへ
-                    next_level_automata.append(automata_list[i])
-                    continue
-
-                aut1 = automata_list[i]
-                aut2 = automata_list[i + 1]
-                product_aut = spot.product(aut1.twa_graph, aut2.twa_graph)
-
-                product_states: list[tuple[int, int]] = product_aut.get_product_states()
-                mapping: dict[tuple[int, int], int] = {
-                    state: idx for idx, state in enumerate(product_states)
-                }
-
-                product_aut_final_state_ids: set[int] = {
-                    mapping[state]
-                    for state in product(aut1.final_state_ids, aut2.final_state_ids)
-                    if state in mapping
-                }
-
-                next_level_automata.append(
-                    SpotNFA.from_twa_graph(product_aut, product_aut_final_state_ids)
-                )
-
-            automata_list = next_level_automata
-
-        return automata_list[0]
+        return SpotNFA.intersect_by_structure(
+            automata_list, tournament_structure, state_counts
+        )

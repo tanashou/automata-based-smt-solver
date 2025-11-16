@@ -266,7 +266,7 @@ def prepare_automata_list(
 
 def run_intersect_all_with_structure(
     automata_list: list[SpotNFA], structure: TournamentStructure
-) -> tuple[SpotNFA, float, float, dict[str, int]]:
+) -> tuple[SpotNFA | None, float, float, dict[str, int]]:
     """Run intersect_all with a specific tournament structure.
 
     Args:
@@ -275,7 +275,8 @@ def run_intersect_all_with_structure(
 
     Returns:
         Tuple of (result_nfa, peak_memory_mb, elapsed_time_sec, state_counts)
-        where state_counts is a dict mapping structure representations to state counts
+        where result_nfa can be None if the intersection is empty,
+        and state_counts is a dict mapping structure representations to state counts
 
     Note:
         Uses tracemalloc to measure peak memory usage during the operation.
