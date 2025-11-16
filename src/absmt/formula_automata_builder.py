@@ -21,7 +21,7 @@ class FormulaAutomataBuilder(DagWalker):
         self._literal_data_extractor = LiteralDataExtractor()
         self._bdict = spot.make_bdd_dict()
 
-    def build(self, formula: FNode) -> SpotNFA:
+    def build(self, formula: FNode) -> SpotNFA | None:
         all_vars = [str(var) for var in formula.get_free_variables()]
         all_var_index_map = {var: index for index, var in enumerate(all_vars)}
         walk_context = {
@@ -33,7 +33,7 @@ class FormulaAutomataBuilder(DagWalker):
     def _get_key(self, formula: FNode, *args: list, **kwargs) -> FNode:
         return formula
 
-    def walk_and(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
+    def walk_and(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA | None:
         formula_str = formula.serialize(threshold=20)
         logger.debug(
             "Building automaton for 'and' with %d operands; formula=%s",
@@ -43,7 +43,10 @@ class FormulaAutomataBuilder(DagWalker):
 
         res = SpotNFA.intersect_all(*args)
 
-        logger.debug("Complete building for 'and'.")
+        if res is None:
+            logger.debug("Complete building for 'and': result is empty (None).")
+        else:
+            logger.debug("Complete building for 'and'.")
 
         return res
 

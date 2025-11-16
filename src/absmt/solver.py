@@ -64,6 +64,10 @@ class Solver:
         for conjunction in conjunctions:
             result_nfa = formula_automata_builder.build(conjunction)
 
+            # If result_nfa is None, the intersection is empty (continue to next)
+            if result_nfa is None:
+                continue
+
             if not result_nfa.is_empty():
                 if self._sat_status == SatStatus.UNSAT:
                     logger.error(
