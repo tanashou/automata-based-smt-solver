@@ -258,6 +258,10 @@ class SpotNFA:
 
         # Early return if either side is empty
         if left_result is None or right_result is None:
+            # Record empty result as -1
+            if state_counts is not None:
+                structure_str = str(structure)
+                state_counts[structure_str] = -1
             return None
 
         # Perform binary intersection
@@ -279,6 +283,10 @@ class SpotNFA:
 
         # Early return if the result is empty
         if result.is_empty():
+            # Record empty result as -1
+            if state_counts is not None:
+                structure_str = str(structure)
+                state_counts[structure_str] = -1
             return None
 
         # Record state count if dict is provided
