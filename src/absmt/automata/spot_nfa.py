@@ -197,7 +197,7 @@ class SpotNFA:
         nfas: list["SpotNFA"],
         structure: TournamentStructure,
         state_counts: dict[str, int] | None = None,
-    ) -> "SpotNFA":
+    ) -> "SpotNFA | None":
         """Execute intersection following a specific tournament structure.
 
         Args:
@@ -207,7 +207,8 @@ class SpotNFA:
                 intermediate result
 
         Returns:
-            SpotNFA: The result of the intersection
+            SpotNFA | None: The result of the intersection, or None if the
+                intersection is empty
 
         """
         if isinstance(structure, int):
@@ -217,6 +218,10 @@ class SpotNFA:
         # Internal node: recursively intersect left and right
         left_result = SpotNFA._intersect_by_structure(nfas, structure[0], state_counts)
         right_result = SpotNFA._intersect_by_structure(nfas, structure[1], state_counts)
+
+        # Early return if either side is empty
+        if left_result is None or right_result is None:
+            return None
 
         # Perform binary intersection
         product_aut = spot.product(left_result.twa_graph, right_result.twa_graph)
@@ -235,6 +240,10 @@ class SpotNFA:
 
         result = SpotNFA.from_twa_graph(product_aut, product_aut_final_state_ids)
 
+        # Early return if the result is empty
+        if result.is_empty():
+            return None
+
         # Record state count if dict is provided
         if state_counts is not None:
             structure_str = str(structure)
@@ -247,7 +256,7 @@ class SpotNFA:
         *nfas: "SpotNFA",
         tournament_structure: TournamentStructure | None = None,
         state_counts: dict[str, int] | None = None,
-    ) -> "SpotNFA":
+    ) -> "SpotNFA | None":
         """Create a single automaton by taking the intersection of all given SpotNFA.
 
         Args:
@@ -258,7 +267,8 @@ class SpotNFA:
                 intermediate result
 
         Returns:
-            SpotNFA: The product automaton of all input automata
+            SpotNFA | None: The product automaton of all input automata, or None
+                if the intersection is empty
 
         """
         if not nfas:
@@ -299,9 +309,15 @@ class SpotNFA:
                     if state in mapping
                 }
 
-                next_level_automata.append(
-                    SpotNFA.from_twa_graph(product_aut, product_aut_final_state_ids)
+                result = SpotNFA.from_twa_graph(
+                    product_aut, product_aut_final_state_ids
                 )
+
+                # Early return if the result is empty
+                if result.is_empty():
+                    return None
+
+                next_level_automata.append(result)
 
             automata_list = next_level_automata
 
