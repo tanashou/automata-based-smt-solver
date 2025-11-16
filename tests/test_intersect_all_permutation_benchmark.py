@@ -6,16 +6,14 @@ The number of tournament structures follows the Catalan number sequence.
 """
 
 import csv
+import functools
 import hashlib
-import itertools
 import json
 import logging
-import statistics
 import time
 import tracemalloc
 from pathlib import Path
 
-import pytest
 from pysmt.fnode import FNode
 from pysmt.rewritings import nnf
 
@@ -26,26 +24,189 @@ from absmt.formula_automata_builder import FormulaAutomataBuilder
 
 logger = logging.getLogger(__name__)
 
-# Sample SMT2 text for testing
-# You can replace this with any SMT2 text you want to test
-SAMPLE_SMT2 = """
-(set-info :smt-lib-version 2.6)
-(set-logic QF_LIA)
-(set-info :category "crafted")
-(set-info :status sat)
-(declare-fun x_0 () Int)
-(declare-fun x_1 () Int)
-(declare-fun x_2 () Int)
-(assert (>= x_0 0))
-(assert (>= x_1 0))
-(assert (>= x_2 0))
-(assert (<= (+ (* (- 9) x_0) (* 2 x_1) (* 2 x_2)) 0))
-(assert (<= (+ (* 3 x_0) (* (- 8) x_1) (* 3 x_2)) 0))
-(assert (<= (+ (* 5 x_0) (* 5 x_1) (* (- 6) x_2)) 0))
-(assert (>= (+ x_0 x_1 x_2) 1))
-(check-sat)
-(exit)
+"""Tournament structure generation for benchmark testing.
+
+This module provides efficient generation of all unique tournament structures
+using dynamic programming with memoization.
 """
+
+
+@functools.cache
+def _normalize_fast(structure: TournamentStructure) -> TournamentStructure:
+    """トーナメント構造を高速に正規化する (メモ化付き).
+
+    Args:
+        structure: 正規化するトーナメント構造
+
+    Returns:
+        正規化されたトーナメント構造
+
+    Note:
+        intは常にtupleより小さいとみなす。
+        lru_cacheによりメモ化されるため、同じ構造の正規化は1度だけ計算される。
+
+    """
+    if isinstance(structure, int):
+        return structure
+
+    norm_left = _normalize_fast(structure[0])
+    norm_right = _normalize_fast(structure[1])
+
+    is_left_int = isinstance(norm_left, int)
+    is_right_int = isinstance(norm_right, int)
+
+    swap = False
+    if is_left_int and is_right_int:
+        # 両方 int: 数値で比較
+        if norm_left > norm_right:
+            swap = True
+    elif not is_left_int and not is_right_int:
+        # 両方 tuple: 再帰的に比較
+        cmp = _compare_structures(norm_left[0], norm_right[0])
+        if cmp > 0 or (
+            cmp == 0 and _compare_structures(norm_left[1], norm_right[1]) > 0
+        ):
+            swap = True
+    elif not is_left_int and is_right_int:
+        # 左が tuple, 右が int: int < tuple なので swap
+        swap = True
+
+    if swap:
+        return (norm_right, norm_left)
+    return (norm_left, norm_right)
+
+
+def _compare_structures(left: TournamentStructure, right: TournamentStructure) -> int:
+    """2つのトーナメント構造を比較する.
+
+    Args:
+        left: 左側の構造
+        right: 右側の構造
+
+    Returns:
+        left < right なら -1, left == right なら 0, left > right なら 1
+
+    """
+    is_left_int = isinstance(left, int)
+    is_right_int = isinstance(right, int)
+
+    if is_left_int and is_right_int:
+        return (left > right) - (left < right)
+    if is_left_int:
+        # int < tuple
+        return -1
+    if is_right_int:
+        # tuple > int
+        return 1
+
+    # 両方 tuple: 再帰的に比較
+    left_cmp = _compare_structures(left[0], right[0])
+    if left_cmp != 0:
+        return left_cmp
+    return _compare_structures(left[1], right[1])
+
+
+@functools.cache
+def generate_labeled_normalized_structures(
+    indices: frozenset[int],
+) -> set[TournamentStructure]:
+    """ラベル付き正規化トーナメント構造を動的計画法で生成する.
+
+    Args:
+        indices: 使用する数字の集合 (例: {0, 1, 2})
+
+    Returns:
+        生成された全ての正規化済みトーナメント構造の集合
+
+    Note:
+        この関数は動的計画法とメモ化を使用して、順列を全探索するよりも
+        遥かに高速に全てのユニークな構造を生成します。
+        frozensetは変更不可なセットで、lru_cacheのキーとして使用できます。
+
+    """
+    # ベースケース: 要素が1つ
+    k = len(indices)
+    if k == 1:
+        return {next(iter(indices))}
+
+    # 再帰ステップ: この indices セットから作られる全構造を格納
+    results: set[TournamentStructure] = set()
+
+    indices_list = list(indices)
+
+    # indices を 2つの空でない部分集合 (left_set, right_set) に分割する
+    # 2^k 通りの部分集合をすべて試す
+    for i in range(1, 1 << k):
+        left_subset: set[int] = set()
+        right_subset: set[int] = set()
+
+        for j in range(k):
+            if (i >> j) & 1:
+                # i の j ビット目が 1 なら left_subset に
+                left_subset.add(indices_list[j])
+            else:
+                # 0 なら right_subset に
+                right_subset.add(indices_list[j])
+
+        # どちらかが空集合になる分割は無効
+        if not left_subset or not right_subset:
+            continue
+
+        # 再帰呼び出しで部分集合から構造を生成
+        left_structures = generate_labeled_normalized_structures(frozenset(left_subset))
+        right_structures = generate_labeled_normalized_structures(
+            frozenset(right_subset)
+        )
+
+        # 2つの構造セットから全てのペアを作り、正規化して追加
+        for left_struct in left_structures:
+            for right_struct in right_structures:
+                normalized = _normalize_fast((left_struct, right_struct))
+                results.add(normalized)
+
+    return results
+
+
+def generate_all_tournament_structures(n: int) -> list[TournamentStructure]:
+    """n個の要素に対する全てのユニークなトーナメント構造を生成する.
+
+    Args:
+        n: オートマトンの数
+
+    Returns:
+        生成された全てのトーナメント構造のリスト
+
+    Note:
+        この関数は動的計画法ベースの実装を使用し、
+        従来の順列ベースのアプローチよりも高速です。
+
+    """
+    if n <= 0:
+        return []
+    if n == 1:
+        return [0]
+
+    initial_indices = frozenset(range(n))
+    structures_set = generate_labeled_normalized_structures(initial_indices)
+
+    return list(structures_set)
+
+
+def format_tournament_structure(structure: TournamentStructure) -> str:
+    """トーナメント構造を読みやすい文字列としてフォーマットする.
+
+    Args:
+        structure: フォーマットするトーナメント構造
+
+    Returns:
+        フォーマットされた文字列 (例: "(0,(1,2))")
+
+    """
+    if isinstance(structure, int):
+        return str(structure)
+    left = format_tournament_structure(structure[0])
+    right = format_tournament_structure(structure[1])
+    return f"({left},{right})"
 
 
 def generate_benchmark_id(smt2_content: str, file_path: str | None = None) -> str:
@@ -100,94 +261,6 @@ def save_benchmark_metadata(
         json.dump(metadata, f, indent=2)
 
     logger.info("Metadata written to %s", metadata_file)
-
-
-def normalize_tournament_strict(structure: TournamentStructure) -> TournamentStructure:
-    """トーナメント構造を再帰的に正規化する (厳密な順序付け).
-
-    intは常にtupleより小さいとみなす。
-    """
-    if isinstance(structure, int):
-        return structure
-
-    left, right = structure
-
-    norm_left = normalize_tournament_strict(left)
-    norm_right = normalize_tournament_strict(right)
-
-    # 比較ロジック
-    is_left_int = isinstance(norm_left, int)
-    is_right_int = isinstance(norm_right, int)
-
-    swap = False
-    if is_left_int and is_right_int:
-        # 両方 int: 数値で比較
-        if norm_left > norm_right:
-            swap = True
-    elif not is_left_int and not is_right_int:
-        # 両方 tuple: 文字列で辞書順比較
-        if str(norm_left) > str(norm_right):
-            swap = True
-    elif is_left_int and not is_right_int:
-        # 左が int, 右が tuple: int < tuple なので swap しない
-        swap = False
-    elif not is_left_int and is_right_int:
-        # 左が tuple, 右が int: int < tuple なので swap する
-        swap = True
-
-    if swap:
-        return (norm_right, norm_left)
-    return (norm_left, norm_right)
-
-
-def generate_all_tournament_structures_with_permutations(
-    n: int,
-) -> list[TournamentStructure]:
-    def generate_structures(indices: list[int]) -> list[TournamentStructure]:
-        k = len(indices)
-        if k == 1:
-            return [indices[0]]
-
-        structures = []
-        for left_size in range(1, k):
-            left_indices = indices[:left_size]
-            right_indices = indices[left_size:]
-
-            left_structures = generate_structures(left_indices)
-            right_structures = generate_structures(right_indices)
-
-            structures.extend(
-                (left, right)  # type: ignore[misc]
-                for left in left_structures
-                for right in right_structures
-            )
-        return structures
-
-    # --- ここまで内部関数 ---
-
-    if n <= 0:
-        return []
-    if n == 1:
-        return [0]
-
-    # 正規化されたユニークな構造を保持するためのセット
-    unique_normalized_structures: set[TournamentStructure] = set()
-
-    initial_indices = list(range(n))
-    all_permutations = itertools.permutations(initial_indices)
-
-    for perm in all_permutations:
-        indices_list = list(perm)
-
-        # この順列に基づいた全ての構造を生成
-        structures_for_perm = generate_structures(indices_list)
-
-        # 生成された各構造を「正規化」してからセットに追加する
-        for structure in structures_for_perm:
-            normalized_structure = normalize_tournament_strict(structure)
-            unique_normalized_structures.add(normalized_structure)
-
-    return list(unique_normalized_structures)
 
 
 def extract_automata_from_conjunction(conjunction: FNode) -> list[SpotNFA]:
@@ -314,196 +387,6 @@ def run_intersect_all_with_structure(
     return result, peak_memory_mb, elapsed_time, state_counts
 
 
-def format_tournament_structure(structure: TournamentStructure) -> str:
-    """Format tournament structure as a readable string."""
-    if isinstance(structure, int):
-        return str(structure)
-    left = format_tournament_structure(structure[0])
-    right = format_tournament_structure(structure[1])
-    return f"({left},{right})"
-
-
-class TestIntersectAllTournamentBenchmark:
-    """Benchmark tests for intersect_all with different tournament structures."""
-
-    @pytest.fixture(scope="class")
-    def automata_list(self) -> list[SpotNFA]:
-        """Prepare automata list from SMT2 text once for all tests."""
-        return prepare_automata_list(SAMPLE_SMT2)
-
-    @pytest.fixture(scope="class")
-    def all_tournament_structures(
-        self, automata_list: list[SpotNFA]
-    ) -> list[TournamentStructure]:
-        """Generate all tournament structures for the automata."""
-        n = len(automata_list)
-        structures = generate_all_tournament_structures_with_permutations(n)
-        logger.info(
-            "Generated %d tournament structures for %d automata (Catalan number)",
-            len(structures),
-            n,
-        )
-        return structures
-
-    @pytest.mark.parametrize(
-        "structure_idx",
-        range(1000),  # Will be dynamically adjusted based on actual structures
-        ids=lambda x: f"structure_{x}",
-    )
-    def test_intersect_all_tournament(
-        self,
-        benchmark,
-        automata_list: list[SpotNFA],
-        all_tournament_structures: list[TournamentStructure],
-        structure_idx: int,
-    ):
-        """Benchmark intersect_all with a specific tournament structure.
-
-        Each tournament structure is tested as a separate benchmark case.
-        """
-        if structure_idx >= len(all_tournament_structures):
-            pytest.skip(f"Structure index {structure_idx} out of range")
-
-        structure = all_tournament_structures[structure_idx]
-
-        result, peak_memory_mb, elapsed_time = benchmark(
-            run_intersect_all_with_structure, automata_list, structure
-        )
-
-        # Add extra information to benchmark results
-        benchmark.extra_info["structure_pattern"] = format_tournament_structure(
-            structure
-        )
-        benchmark.extra_info["num_automata"] = str(len(automata_list))
-        benchmark.extra_info["peak_memory_mb"] = f"{peak_memory_mb:.2f} MB"
-        benchmark.extra_info["result_empty"] = str(result.is_empty())
-
-        # Verify the result is consistent (all structures should give same result)
-        assert result is not None
-
-
-def test_single_intersect_all_benchmark_all_structures(benchmark):
-    """Single benchmark that tries all tournament structures and reports statistics.
-
-    This test provides aggregate statistics across all tournament structures in a
-    single benchmark entry.
-    """
-    automata_list = prepare_automata_list(SAMPLE_SMT2)
-    n = len(automata_list)
-
-    all_structures = generate_all_tournament_structures_with_permutations(n)
-    logger.info(
-        "Testing %d tournament structures (with permutations) for %d automata",
-        len(all_structures),
-        n,
-    )
-
-    # Generate benchmark ID
-    benchmark_id = generate_benchmark_id(SAMPLE_SMT2)
-
-    memories: list[float] = []
-    times: list[float] = []
-    results_data: list[dict[str, str | float]] = []
-
-    def run_all_structures() -> SpotNFA:
-        result: SpotNFA | None = None
-        total = len(all_structures)
-
-        for idx, structure in enumerate(all_structures, 1):
-            result, peak_memory, elapsed_time, state_counts = (
-                run_intersect_all_with_structure(automata_list, structure)
-            )
-            memories.append(peak_memory)
-            times.append(elapsed_time)
-            results_data.append(
-                {
-                    "structure": format_tournament_structure(structure),
-                    "time_sec": elapsed_time,
-                    "memory_mb": peak_memory,
-                    "state_counts": str(state_counts),
-                }
-            )
-
-            # Progress logging every 10% or at significant milestones
-            if idx % max(1, total // 10) == 0 or idx == total:
-                logger.info(
-                    "Progress: %d/%d (%.1f%%)",
-                    idx,
-                    total,
-                    (idx / total) * 100,
-                )
-
-        if result is None:
-            msg = "No structures were tested, result is None"
-            raise ValueError(msg)
-
-        return result
-
-    result = benchmark(run_all_structures)
-
-    # Calculate statistics
-    if len(memories) > 1:
-        benchmark.extra_info["num_structures_tested"] = str(len(all_structures))
-        benchmark.extra_info["mean_memory_mb"] = f"{statistics.mean(memories):.2f} MB"
-        benchmark.extra_info["median_memory_mb"] = (
-            f"{statistics.median(memories):.2f} MB"
-        )
-        benchmark.extra_info["max_memory_mb"] = f"{max(memories):.2f} MB"
-        benchmark.extra_info["min_memory_mb"] = f"{min(memories):.2f} MB"
-        benchmark.extra_info["mean_time_sec"] = f"{statistics.mean(times):.4f} sec"
-        benchmark.extra_info["median_time_sec"] = f"{statistics.median(times):.4f} sec"
-        benchmark.extra_info["max_time_sec"] = f"{max(times):.4f} sec"
-        benchmark.extra_info["min_time_sec"] = f"{min(times):.4f} sec"
-
-        # Find best and worst orders
-        best_time_idx = times.index(min(times))
-        worst_time_idx = times.index(max(times))
-        best_memory_idx = memories.index(min(memories))
-        worst_memory_idx = memories.index(max(memories))
-
-        benchmark.extra_info["fastest_structure"] = results_data[best_time_idx][
-            "structure"
-        ]
-        benchmark.extra_info["fastest_time"] = (
-            f"{results_data[best_time_idx]['time_sec']:.4f} sec"
-        )
-        benchmark.extra_info["slowest_structure"] = results_data[worst_time_idx][
-            "structure"
-        ]
-        benchmark.extra_info["slowest_time"] = (
-            f"{results_data[worst_time_idx]['time_sec']:.4f} sec"
-        )
-        benchmark.extra_info["lowest_memory_structure"] = results_data[best_memory_idx][
-            "structure"
-        ]
-        benchmark.extra_info["lowest_memory"] = (
-            f"{results_data[best_memory_idx]['memory_mb']:.2f} MB"
-        )
-        benchmark.extra_info["highest_memory_structure"] = results_data[
-            worst_memory_idx
-        ]["structure"]
-        benchmark.extra_info["highest_memory"] = (
-            f"{results_data[worst_memory_idx]['memory_mb']:.2f} MB"
-        )
-
-    benchmark.extra_info["num_automata"] = str(n)
-    benchmark.extra_info["result_empty"] = str(result.is_empty())
-    benchmark.extra_info["benchmark_id"] = benchmark_id
-
-    # Save metadata
-    save_benchmark_metadata(
-        benchmark_id=benchmark_id,
-        smt2_content=SAMPLE_SMT2,
-        num_automata=n,
-        num_structures=len(all_structures),
-        file_path=None,
-    )
-
-    # Output detailed results to a CSV file
-    csv_path = _save_results_to_csv(results_data, benchmark_id)
-    benchmark.extra_info["csv_file"] = str(csv_path)
-
-
 def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) -> None:
     """Run tournament structure benchmark for a specific SMT2 file.
 
@@ -525,8 +408,8 @@ def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) ->
     automata_list = prepare_automata_list(smt2_file=smt2_path)
     n = len(automata_list)
 
-    # Generate all tournament structures with permutations
-    all_structures = generate_all_tournament_structures_with_permutations(n)
+    # Generate all tournament structures
+    all_structures = generate_all_tournament_structures(n)
     logger.info("=" * 80)
     logger.info(
         "Starting benchmark: %d tournament structures for %d automata",
