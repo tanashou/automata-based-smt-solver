@@ -118,7 +118,6 @@ class SpotNFA:
                         self.twa_graph.new_edge(start_state_id, end_state_id, formula)
 
         self.twa_graph.merge_edges()
-        self.twa_graph.merge_states()
 
     def _symbol_to_formula(
         self, all_vars: list[str], symbol: MSBFAlphabetSymbol
