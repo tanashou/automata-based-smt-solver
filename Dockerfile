@@ -1,5 +1,5 @@
-ARG UV_VERSION=latest
-ARG MINICONDA_VERSION=latest
+ARG UV_VERSION=0.9.7
+ARG MINICONDA_VERSION=3
 
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 FROM continuumio/miniconda3:${MINICONDA_VERSION}
