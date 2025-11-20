@@ -181,7 +181,6 @@
 assets
 pyrightconfig.json
 ruff.toml
-tests
 
 # Project specific
 benchmarks/QF_LIA/
