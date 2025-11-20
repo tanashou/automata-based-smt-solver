@@ -19,8 +19,7 @@ ENV UV_LINK_MODE=copy
 
 ENV UV_PYTHON=/opt/conda/envs/${CONDA_ENV_NAME}/bin/python
 
-# Need this for 'uv pip sync' to work
-COPY pyproject.toml README.md LICENSE ./
+COPY . .
 
 RUN uv pip sync pyproject.toml && \
     uv pip install .
