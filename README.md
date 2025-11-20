@@ -8,10 +8,20 @@ This project is in progress.
 open this project in Dev Container using VSCode.
 
 ## Usage
+### Using in devcontainer
 project root: `/workspaces/SMT-Solver`
 ```bash
 conda activate absmt
 ...
+```
+
+### Build with Docker
+```
+docker build -t absmt:latest .
+```
+Getting in the bash
+```
+docker run -it -v $(pwd)/benchmarks/QF_LIA:/app/benchmarks/QF_LIA absmt:latest /bin/bash
 ```
 
 ### Benchmark test
