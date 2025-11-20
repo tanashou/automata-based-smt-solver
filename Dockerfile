@@ -1,8 +1,8 @@
 ARG UV_VERSION=0.9.7
-ARG MINICONDA_VERSION=3
+ARG MINICONDA_TAG=25.3.1-1
 
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
-FROM continuumio/miniconda3:${MINICONDA_VERSION}
+FROM continuumio/miniconda3:${MINICONDA_TAG}
 
 WORKDIR /app
 
