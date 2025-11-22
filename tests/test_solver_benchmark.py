@@ -137,6 +137,7 @@ def _benchmark_id(val: tuple[str, Path]) -> str:
     return f"{benchmark_name}/{path.name}"
 
 
+@pytest.mark.benchmark
 @pytest.mark.parametrize(
     "benchmark_info",
     collect_all_benchmark_paths(),
