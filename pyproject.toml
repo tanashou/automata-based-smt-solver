@@ -13,19 +13,18 @@ license = { file = "LICENSE" }
 dependencies = ["pysmt==0.9.6"]
 
 [dependency-groups]
-dev-dependencies = [
-    "pre-commit>=4.1.0",
+test = [
     "psutil>=7.0.0",
-    "pyright>=1.1.392.post0",
     "pytest>=8.3.4",
     "pytest-benchmark>=5.1.0",
     "pytest-memray>=1.8.0",
     "pytest-cov>=6.0.0",
     "pytest-timeout>=2.4.0",
-    "ruff==0.12.9",
-    "ipykernel==6.30.1",
 ]
 
+lint = ["pre-commit>=4.1.0", "pyright>=1.1.392.post0", "ruff==0.12.9"]
+
+jupyter = ["ipykernel==6.30.1"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/absmt"]
 

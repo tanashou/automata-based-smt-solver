@@ -39,7 +39,7 @@ runs:
       run: |
         uv pip sync pyproject.toml
         uv pip install setuptools
-        uv pip install --group dev-dependencies -r pyproject.toml
+        uv pip install --group test --group lint -r pyproject.toml
         uv pip install .
       shell: bash -el {0}
       env:
