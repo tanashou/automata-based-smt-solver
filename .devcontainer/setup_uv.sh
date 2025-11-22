@@ -1,7 +1,9 @@
 uv pip sync pyproject.toml
 # fixes ModuleNotFoundError: No module named '_distutils_hack' in python >3.12
 uv pip install setuptools
-uv pip install --group test lint jupyter -r pyproject.toml
+uv pip install --group test -r pyproject.toml
+uv pip install --group lint -r pyproject.toml
+uv pip install --group jupyter -r pyproject.toml
 # pyproject.toml don't support editable installs in env not managed by uv.
 uv pip install -e .
 pre-commit install
