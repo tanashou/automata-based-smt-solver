@@ -134,7 +134,15 @@ def run_in_subprocess(path_str: str):
 def _benchmark_id(val: tuple[str, Path]) -> str:
     """Generate a readable test ID for parametrized benchmarks."""
     benchmark_name, path = val
-    return f"{benchmark_name}/{path.name}"
+    # Get the relative path from QF_LIA directory to the file
+    try:
+        qf_lia_dir = REPO_ROOT / "benchmarks" / "QF_LIA"
+        relative_path = path.relative_to(qf_lia_dir)
+    except ValueError:
+        # Fallback if the path is not under QF_LIA
+        return f"{benchmark_name}/{path.name}"
+    else:
+        return str(relative_path)
 
 
 @pytest.mark.benchmark
