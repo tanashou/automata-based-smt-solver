@@ -21,7 +21,7 @@ docker build -t absmt:latest .
 ```
 Getting in the bash
 ```
-docker run -it -v $(pwd)/benchmarks/QF_LIA:/app/benchmarks/QF_LIA absmt:latest /bin/bash
+docker run -it -v $(pwd):/app absmt:latest /bin/bash
 conda activate absmt
 ```
 
