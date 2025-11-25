@@ -52,7 +52,7 @@ python tests/run_tournament_benchmark.py path/to/file.smt2 --name custom_name
 ### 2. 結果を解析
 
 ```bash
-python analyze_benchmark_results.py prime_cone_sat_3
+python scripts/analyze_benchmark_results.py prime_cone_sat_3
 ```
 
 出力例：
@@ -175,7 +175,7 @@ CSVファイルには各トーナメント構造ごとに以下が記録され�
 
 ```bash
 # 実行済みベンチマーク一覧を表示
-python analyze_benchmark_results.py
+python scripts/analyze_benchmark_results.py
 
 # 出力例:
 # Available benchmarks:
@@ -193,7 +193,7 @@ python analyze_benchmark_results.py
 python tests/run_tournament_benchmark.py benchmarks/QF_LIA/prime-cone/prime_cone_sat_3.smt2
 
 # 結果を分析
-python analyze_benchmark_results.py prime_cone_sat_3
+python scripts/analyze_benchmark_results.py prime_cone_sat_3
 ```
 
 ### 2. 複数のファイルをバッチ実行
@@ -209,7 +209,7 @@ done
 for csv in .benchmarks/tournament_structures/*.csv; do
     id=$(basename "$csv" .csv)
     echo "=== $id ==="
-    python analyze_benchmark_results.py "$id" | head -20
+    python scripts/analyze_benchmark_results.py "$id" | head -20
 done
 ```
 
