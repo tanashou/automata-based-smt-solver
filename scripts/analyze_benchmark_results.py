@@ -37,7 +37,7 @@ def format_memory(memory_mb: float) -> str:
 
 def list_available_benchmarks() -> list[str]:
     """List all available benchmark IDs."""
-    results_dir = Path(".benchmarks/tournament_structures")
+    results_dir = Path(__file__).parent.parent / ".benchmarks" / "tournament_structures"
     if not results_dir.exists():
         return []
 
@@ -57,7 +57,10 @@ def get_benchmark_metadata(benchmark_id: str) -> dict | None:
 
     """
     metadata_file = (
-        Path(".benchmarks/tournament_structures") / f"{benchmark_id}_meta.json"
+        Path(__file__).parent.parent
+        / ".benchmarks"
+        / "tournament_structures"
+        / f"{benchmark_id}_meta.json"
     )
     if not metadata_file.exists():
         return None
@@ -78,7 +81,12 @@ def analyze_results(  # noqa: C901, PLR0912, PLR0915
     """
     # Determine CSV file path
     if benchmark_id:
-        csv_file = Path(".benchmarks/tournament_structures") / f"{benchmark_id}.csv"
+        csv_file = (
+            Path(__file__).parent.parent
+            / ".benchmarks"
+            / "tournament_structures"
+            / f"{benchmark_id}.csv"
+        )
         if not csv_file.exists():
             print(f"Error: Benchmark '{benchmark_id}' not found.")
             print("\nAvailable benchmarks:")
@@ -113,7 +121,12 @@ def analyze_results(  # noqa: C901, PLR0912, PLR0915
         for bid in available:
             print(f"  - {bid}")
         print(f"\nAnalyzing latest: {available[-1]}")
-        csv_file = Path(".benchmarks/tournament_structures") / f"{available[-1]}.csv"
+        csv_file = (
+            Path(__file__).parent.parent
+            / ".benchmarks"
+            / "tournament_structures"
+            / f"{available[-1]}.csv"
+        )
         benchmark_id = available[-1]
 
     # Read CSV data
