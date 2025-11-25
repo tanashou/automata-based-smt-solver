@@ -1,4 +1,5 @@
 import random
+from pathlib import Path
 
 
 def generate_mixed_smt2(filename, total_asserts=5, total_vars_pool=20):
@@ -279,24 +280,20 @@ def generate_mixed_smt2_sat(filename, total_asserts=5, total_vars_pool=20):
 
 
 # --- 実行 ---
-generate_mixed_smt2_sat("mixed_case_sat_01.smt2", total_asserts=5)
-for i in range(2, 6):
-    generate_mixed_smt2_sat(f"mixed_case_sat_{i:02d}.smt2", total_asserts=5)
-# --- 実行 ---
-generate_mixed_smt2_sat("mixed_case_sat_01.smt2", total_asserts=5)
-for i in range(2, 6):
-    generate_mixed_smt2_sat(f"mixed_case_sat_{i:02d}.smt2", total_asserts=5)
+OUTPUT_DIR = Path(__file__).parent.parent / "benchmarks" / "crafted"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+generate_mixed_smt2_sat(OUTPUT_DIR / "mixed_case_sat_01.smt2", total_asserts=5)
+for i in range(2, 6):
+    generate_mixed_smt2_sat(
+        OUTPUT_DIR / f"mixed_case_sat_{i:02d}.smt2", total_asserts=5
+    )
 
 # --- 実行: ファイル生成 ---
 
 # パターンA: 1つのファイルを作成
-generate_mixed_smt2("mixed_case_01.smt2", total_asserts=5)
+generate_mixed_smt2(OUTPUT_DIR / "mixed_case_01.smt2", total_asserts=5)
 
 # パターンB: ベンチマーク用に複数作成する場合 (例: 2〜5番を作成)
 for i in range(2, 6):
-    generate_mixed_smt2(f"mixed_case_{i:02d}.smt2", total_asserts=5)
-
-generate_mixed_smt2_sat("mixed_case_sat_01.smt2", total_asserts=5)
-for i in range(2, 6):
-    generate_mixed_smt2_sat(f"mixed_case_sat_{i:02d}.smt2", total_asserts=5)
+    generate_mixed_smt2(OUTPUT_DIR / f"mixed_case_{i:02d}.smt2", total_asserts=5)
