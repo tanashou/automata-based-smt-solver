@@ -5,10 +5,10 @@ from pathlib import Path
 
 # 1. テストファイル群の親ディレクトリ
 #    この中のサブディレクトリをそれぞれ処理します
-BASE_SEARCH_DIR = Path("benchmarks/QF_LIA")
+BASE_SEARCH_DIR = Path(__file__).parent.parent / ".benchmarks" / "QF_LIA"
 
 # 2. 生成したテキストファイルの出力先ディレクトリ
-OUTPUT_DIR = Path("benchmarks/paths")
+OUTPUT_DIR = Path(__file__).parent.parent / ".benchmarks" / "paths"
 
 # 3. ファイルサイズの最大値（これより小さいものを対象とする）  # noqa: RUF003
 MAX_SIZE_BYTES = 5 * 1024
