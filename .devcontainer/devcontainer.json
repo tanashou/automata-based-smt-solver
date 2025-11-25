@@ -22,7 +22,8 @@
                 "shardulm94.trailing-spaces",
                 "tamasfe.even-better-toml",
                 "yzhang.markdown-all-in-one",
-                "ms-toolsai.jupyter"
+                "ms-toolsai.jupyter",
+                "mechatroner.rainbow-csv"
             ]
         }
     },
