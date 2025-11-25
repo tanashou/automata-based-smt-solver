@@ -53,7 +53,7 @@ def main() -> None:
         print("=" * 80)
         print("\nTo analyze the results, run:")
         benchmark_id = args.name or smt2_path.stem
-        print(f"  python analyze_benchmark_results.py {benchmark_id}")
+        print(f"  python scripts/analyze_benchmark_results.py {benchmark_id}")
     except Exception as e:  # noqa: BLE001
         print(f"\nError running benchmark: {e}")
         sys.exit(1)
