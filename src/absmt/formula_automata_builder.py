@@ -2,6 +2,7 @@
 
 import logging
 from collections import defaultdict
+from dataclasses import dataclass
 
 import pysmt.operators as op
 import spot
@@ -82,13 +83,17 @@ class FormulaAutomataBuilder(DagWalker):
         return
 
     # --- Tournament Structure Creation ---
-    def _create_tournament_structure(
+    def _create_tournament_structure(  # noqa: C901, PLR0912
         self, automata: list[SpotNFA]
     ) -> TournamentStructure:
-        """Create tournament structure with two-stage clustering.
+        """Create tournament structure with multi-stage clustering.
 
-        Stage 1: Cluster by structural similarity (formula_data)
-        Stage 2: Cluster singleton groups by common variables
+        New Strategy:
+        1. Cluster by structural similarity
+        2. Treat size≥2 clusters as single "blocks" (variables = union)
+        3. Combine blocks and singletons
+        4. Re-cluster by common variables
+        5. Within each group, order by estimated state count
 
         Args:
             automata: List of SpotNFA instances
@@ -113,35 +118,89 @@ class FormulaAutomataBuilder(DagWalker):
             len(structure_clusters),
         )
 
-        # Stage 2: サイズ1のクラスタを共通変数でクラスタリング
-        final_clusters: list[list[SpotNFA]] = []
-        singletons: list[SpotNFA] = []
+        # Stage 2: サイズ≥2のクラスタを「塊」として扱う
+        # ClusterBlockクラスで抽象化
+
+        blocks: list[ClusterBlock] = []
 
         for cluster in structure_clusters:
-            if len(cluster) == 1:
-                singletons.extend(cluster)
-            else:
-                final_clusters.append(cluster)
+            # 変数集合を計算
+            all_vars = set()
+            for nfa in cluster:
+                all_vars.update(nfa.get_registered_ap())
 
-        if singletons:
-            # シングルトンを共通変数でクラスタリング
-            variable_clusters = self._cluster_by_common_variables_greedy(
-                singletons, min_common_vars=1
-            )
-            final_clusters.extend(variable_clusters)
+            # 推定状態数を計算
+            estimated = 1
+            for nfa in cluster:
+                estimated *= nfa.num_states()
 
-            logger.debug(
-                "Stage 2 (variables): %d singletons -> %d clusters",
-                len(singletons),
-                len(variable_clusters),
+            # サイズ≥2の場合は内部構造を構築(どの順番でもいい)
+            internal_structure = None
+            if len(cluster) > 1:
+                nfa_to_index = {id(nfa): i for i, nfa in enumerate(automata)}
+                indices = [nfa_to_index[id(nfa)] for nfa in cluster]
+                internal_structure = self._build_balanced_structure_from_indices(
+                    indices
+                )
+
+            blocks.append(
+                ClusterBlock(
+                    cluster=cluster,
+                    variables=all_vars,
+                    estimated_states=estimated,
+                    structure=internal_structure,
+                )
             )
+
+        logger.debug("Stage 2 (blocks): Created %d blocks from clusters", len(blocks))
+
+        # Stage 3: ブロック同士を共通変数でクラスタリング
+        variable_clusters = self._cluster_blocks_by_common_variables(blocks)
 
         logger.debug(
-            "Final: %d NFAs -> %d clusters", len(automata), len(final_clusters)
+            "Stage 3 (variable clustering): %d blocks -> %d groups",
+            len(blocks),
+            len(variable_clusters),
         )
 
-        # クラスタからTournamentStructureを構築
-        return self._build_tournament_from_clusters(final_clusters, automata)
+        # Stage 4: 各グループ内で推定状態数ソート&左重心構造
+        nfa_to_index = {id(nfa): i for i, nfa in enumerate(automata)}
+        group_structures = []
+
+        for group in variable_clusters:
+            if len(group) == 1:
+                # 単一ブロック
+                block = group[0]
+                if block.structure is not None:
+                    group_structures.append(block.structure)
+                else:
+                    # シングルトン
+                    idx = nfa_to_index[id(block.cluster[0])]
+                    group_structures.append(idx)
+            else:
+                # 複数ブロックは推定状態数でソート+左重心
+                sorted_group = sorted(group, key=lambda b: b.estimated_states)
+                structures = []
+                for block in sorted_group:
+                    if block.structure is not None:
+                        structures.append(block.structure)
+                    else:
+                        idx = nfa_to_index[id(block.cluster[0])]
+                        structures.append(idx)
+                # 左重心構造を構築
+                group_structures.append(
+                    self._build_left_heavy_structure_from_structures(structures)
+                )
+
+        logger.debug(
+            "Stage 4 (ordering): Built %d group structures", len(group_structures)
+        )
+
+        # 最終的にバランスド構造で結合
+        if len(group_structures) == 1:
+            return group_structures[0]
+
+        return self._build_balanced_structure_from_structures(group_structures)
 
     @staticmethod
     def _cluster_by_structure(spot_nfas: list[SpotNFA]) -> list[list[SpotNFA]]:  # noqa: C901
@@ -218,6 +277,69 @@ class FormulaAutomataBuilder(DagWalker):
                 final_clusters.append(cluster)
 
         return final_clusters
+
+    @staticmethod
+    def _cluster_blocks_by_common_variables(
+        blocks, min_common_vars: int = 1
+    ) -> list[list]:
+        """Cluster blocks by common variables using greedy strategy.
+
+        Args:
+            blocks: List of ClusterBlock instances
+            min_common_vars: Minimum common variables to group
+
+        Returns:
+            List of block clusters
+
+        """
+        if not blocks:
+            return []
+
+        if len(blocks) == 1:
+            return [blocks]
+
+        # 各ブロックの変数集合
+        var_sets = [block.variables for block in blocks]
+
+        # 変数数でソート
+        sorted_indices = sorted(
+            range(len(blocks)), key=lambda i: len(var_sets[i]), reverse=True
+        )
+
+        clusters: list[list[int]] = []  # インデックスのクラスタ
+        cluster_vars: list[set[str]] = []  # 各クラスタの変数集合
+        assigned = [False] * len(blocks)
+
+        for idx in sorted_indices:
+            if assigned[idx]:
+                continue
+
+            # 既存のクラスタで最も共通変数が多いものを探す
+            best_cluster = -1
+            max_common = 0
+
+            for cluster_id, c_vars in enumerate(cluster_vars):
+                common = len(var_sets[idx] & c_vars)
+                if common >= min_common_vars and common > max_common:
+                    max_common = common
+                    best_cluster = cluster_id
+
+            if best_cluster >= 0:
+                clusters[best_cluster].append(idx)
+                cluster_vars[best_cluster] |= var_sets[idx]
+            else:
+                clusters.append([idx])
+                cluster_vars.append(var_sets[idx].copy())
+
+            assigned[idx] = True
+
+        # インデックスからブロックに変換
+        result_clusters = [[blocks[idx] for idx in cluster] for cluster in clusters]
+
+        # クラスタサイズの降順でソート
+        result_clusters.sort(key=len, reverse=True)
+
+        return result_clusters
 
     @staticmethod
     def _cluster_by_common_variables_greedy(
@@ -409,6 +531,38 @@ class FormulaAutomataBuilder(DagWalker):
         return (left, right)
 
     @staticmethod
+    def _build_left_heavy_structure_from_structures(
+        structures: list[TournamentStructure],
+    ) -> TournamentStructure:
+        """Build left-heavy tournament structure from existing structures.
+
+        Example:
+            structures = [s1, s2, s3, s4]
+            result = (((s1, s2), s3), s4)
+
+        Args:
+            structures: List of TournamentStructures
+
+        Returns:
+            Left-heavy TournamentStructure
+
+        """
+        if len(structures) == 1:
+            return structures[0]
+        if len(structures) <= 2:  # noqa: PLR2004
+            return (structures[0], structures[1])
+
+        # 最初の2つをペアにして、残りと結合
+        left = (structures[0], structures[1])
+        if len(structures) <= 3:  # noqa: PLR2004
+            return (left, structures[2])
+        # 再帰的に構築
+        right = FormulaAutomataBuilder._build_left_heavy_structure_from_structures(
+            structures[2:]
+        )
+        return (left, right)
+
+    @staticmethod
     def _build_balanced_structure_from_indices(
         indices: list[int],
     ) -> TournamentStructure:
@@ -459,3 +613,13 @@ class FormulaAutomataBuilder(DagWalker):
         )
 
         return (left, right)
+
+
+@dataclass
+class ClusterBlock:
+    """Represents a cluster as a single unit."""
+
+    cluster: list[SpotNFA]
+    variables: set[str]  # 変数の和集合
+    estimated_states: int  # 推定状態数
+    structure: TournamentStructure | None = None  # 内部構造
