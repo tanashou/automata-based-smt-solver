@@ -42,7 +42,11 @@ class FormulaAutomataBuilder(DagWalker):
             formula_str,
         )
 
-        res = SpotNFA.intersect_all(*args)
+        tournament_struct = self._create_tournament_structure(args)
+        logger.debug(
+            "Tournament structure for 'and' created: %s", str(tournament_struct)
+        )
+        res = SpotNFA.intersect_all(*args, tournament_structure=tournament_struct)
 
         if res is None:
             logger.debug("Complete building for 'and': result is empty (None).")
@@ -76,6 +80,68 @@ class FormulaAutomataBuilder(DagWalker):
     )
     def walk_others(self, formula: FNode, args, **kwargs) -> None:
         return
+
+    # --- Tournament Structure Creation ---
+    def _create_tournament_structure(
+        self, automata: list[SpotNFA]
+    ) -> TournamentStructure:
+        """Create tournament structure with two-stage clustering.
+
+        Stage 1: Cluster by structural similarity (formula_data)
+        Stage 2: Cluster singleton groups by common variables
+
+        Args:
+            automata: List of SpotNFA instances
+
+        Returns:
+            TournamentStructure optimized for computation order
+
+        """
+        if not automata:
+            msg = "Cannot create tournament structure for empty list"
+            raise ValueError(msg)
+
+        if len(automata) == 1:
+            return 0
+
+        # Stage 1: 構造でクラスタリング
+        structure_clusters = self._cluster_by_structure(automata)
+
+        logger.debug(
+            "Stage 1 (structure): %d NFAs -> %d clusters",
+            len(automata),
+            len(structure_clusters),
+        )
+
+        # Stage 2: サイズ1のクラスタを共通変数でクラスタリング
+        final_clusters: list[list[SpotNFA]] = []
+        singletons: list[SpotNFA] = []
+
+        for cluster in structure_clusters:
+            if len(cluster) == 1:
+                singletons.extend(cluster)
+            else:
+                final_clusters.append(cluster)
+
+        if singletons:
+            # シングルトンを共通変数でクラスタリング
+            variable_clusters = self._cluster_by_common_variables_greedy(
+                singletons, min_common_vars=1
+            )
+            final_clusters.extend(variable_clusters)
+
+            logger.debug(
+                "Stage 2 (variables): %d singletons -> %d clusters",
+                len(singletons),
+                len(variable_clusters),
+            )
+
+        logger.debug(
+            "Final: %d NFAs -> %d clusters", len(automata), len(final_clusters)
+        )
+
+        # クラスタからTournamentStructureを構築
+        return self._build_tournament_from_clusters(final_clusters, automata)
 
     @staticmethod
     def _cluster_by_structure(spot_nfas: list[SpotNFA]) -> list[list[SpotNFA]]:  # noqa: C901
@@ -225,69 +291,171 @@ class FormulaAutomataBuilder(DagWalker):
 
         return result_clusters
 
-    def _create_tournament_structure(
-        self, automata: list[SpotNFA]
-    ) -> TournamentStructure:
-        """Create tournament structure with two-stage clustering.
-
-        Stage 1: Cluster by structural similarity (formula_data)
-        Stage 2: Cluster singleton groups by common variables
-
-        Args:
-            automata: List of SpotNFA instances
-
-        Returns:
-            TournamentStructure optimized for computation order
-
-        """
-        if not automata:
-            msg = "Cannot create tournament structure for empty list"
-            raise ValueError(msg)
-
-        if len(automata) == 1:
-            return 0
-
-        # Stage 1: 構造でクラスタリング
-        structure_clusters = self._cluster_by_structure(automata)
-
-        logger.debug(
-            "Stage 1 (structure): %d NFAs -> %d clusters",
-            len(automata),
-            len(structure_clusters),
-        )
-
-        # Stage 2: サイズ1のクラスタを共通変数でクラスタリング
-        final_clusters: list[list[SpotNFA]] = []
-        singletons: list[SpotNFA] = []
-
-        for cluster in structure_clusters:
-            if len(cluster) == 1:
-                singletons.extend(cluster)
-            else:
-                final_clusters.append(cluster)
-
-        if singletons:
-            # シングルトンを共通変数でクラスタリング
-            variable_clusters = self._cluster_by_common_variables_greedy(
-                singletons, min_common_vars=1
-            )
-            final_clusters.extend(variable_clusters)
-
-            logger.debug(
-                "Stage 2 (variables): %d singletons -> %d clusters",
-                len(singletons),
-                len(variable_clusters),
-            )
-
-        logger.debug(
-            "Final: %d NFAs -> %d clusters", len(automata), len(final_clusters)
-        )
-
-        # クラスタからTournamentStructureを構築
-        return self._build_tournament_from_clusters(final_clusters, automata)
-
     def _build_tournament_from_clusters(
         self,
         clusters: list[list[SpotNFA]],
         original_automata: list[SpotNFA],
-    ) -> TournamentStructure: ...
+    ) -> TournamentStructure:
+        """Build tournament structure from clusters.
+
+        Strategy:
+        1. For each cluster with 3+ elements, build a sub-tournament
+           ordered by state count (smallest first)
+        2. Combine all cluster structures into a final tournament
+
+        Args:
+            clusters: List of NFA clusters
+            original_automata: Original list to map indices
+
+        Returns:
+            TournamentStructure representing the computation order
+
+        """
+        # NFAからインデックスへのマッピング
+        nfa_to_index = {id(nfa): i for i, nfa in enumerate(original_automata)}
+
+        def build_for_cluster(cluster: list[SpotNFA]) -> TournamentStructure:
+            """Build tournament structure for a single cluster.
+
+            For clusters with 3+ elements, order by state count (ascending).
+            """
+            if len(cluster) == 1:
+                return nfa_to_index[id(cluster[0])]
+
+            if len(cluster) == 2:  # noqa: PLR2004
+                idx1 = nfa_to_index[id(cluster[0])]
+                idx2 = nfa_to_index[id(cluster[1])]
+                return (idx1, idx2)
+
+            # 3要素以上: 状態数でソートしてトーナメント構造を構築
+            return self._build_tournament_by_state_count(cluster, nfa_to_index)
+
+        # 各クラスタの構造を作成
+        cluster_structures = [build_for_cluster(cluster) for cluster in clusters]
+
+        if len(cluster_structures) == 1:
+            return cluster_structures[0]
+
+        # クラスタ間を balanced structure で結合
+        return self._build_balanced_structure_from_structures(cluster_structures)
+
+    def _build_tournament_by_state_count(
+        self,
+        cluster: list[SpotNFA],
+        nfa_to_index: dict[int, int],
+    ) -> TournamentStructure:
+        """Build tournament structure ordered by automaton state count.
+
+        Strategy: Pair automata with smallest state counts first.
+        This minimizes intermediate automaton sizes during intersection.
+
+        Example:
+            cluster = [A(100), B(50), C(30), D(20)]
+            sorted = [D(20), C(30), B(50), A(100)]
+            tournament = (((D, C), B), A)
+                         = ((20+30=~50, 50), 100)
+                         = (~100, 100)
+
+        Args:
+            cluster: List of SpotNFA instances (3+ elements)
+            nfa_to_index: Mapping from NFA id to index
+
+        Returns:
+            TournamentStructure with smallest automata paired first
+
+        """
+        # Step 1: クラスタ内のNFAを状態数でソート (昇順)
+        sorted_cluster = sorted(cluster, key=lambda nfa: nfa.num_states())
+
+        # Step 2: ソートされたNFAのインデックスリストを取得
+        sorted_indices = [nfa_to_index[id(nfa)] for nfa in sorted_cluster]
+
+        # Step 3 & 4: 左結合でトーナメント構造を構築して返す
+        # 最小の2つをペアにし、その結果を次の要素とペアにしていく
+        # 例: [0, 1, 2, 3] -> (((0, 1), 2), 3)
+        return self._build_left_heavy_structure(sorted_indices)
+
+    @staticmethod
+    def _build_left_heavy_structure(indices: list[int]) -> TournamentStructure:
+        """Build left-heavy tournament structure from sorted indices.
+
+        This creates a structure where smaller elements are paired first,
+        minimizing the size of intermediate results.
+
+        Example:
+            indices = [0, 1, 2, 3]
+            result = (((0, 1), 2), 3)
+
+        Args:
+            indices: List of automaton indices, already sorted by some criteria
+
+        Returns:
+            Left-heavy TournamentStructure
+
+        """
+        # ベースケース: 1要素または2要素
+        if len(indices) == 1:
+            return indices[0]
+        if len(indices) <= 2:  # noqa: PLR2004
+            return (indices[0], indices[1])
+
+        # 再帰ケース: 3要素以上
+        # 最初の2要素をペアにして、残りと結合
+        left = (indices[0], indices[1])
+        if len(indices) <= 3:  # noqa: PLR2004
+            return (left, indices[2])
+        # 再帰的に構築
+        right = FormulaAutomataBuilder._build_left_heavy_structure(indices[2:])
+        return (left, right)
+
+    @staticmethod
+    def _build_balanced_structure_from_indices(
+        indices: list[int],
+    ) -> TournamentStructure:
+        """Build balanced tournament structure from a list of indices.
+
+        Args:
+            indices: List of automaton indices
+
+        Returns:
+            Balanced TournamentStructure
+
+        """
+        if len(indices) == 1:
+            return indices[0]
+
+        mid = len(indices) // 2
+        left = FormulaAutomataBuilder._build_balanced_structure_from_indices(
+            indices[:mid]
+        )
+        right = FormulaAutomataBuilder._build_balanced_structure_from_indices(
+            indices[mid:]
+        )
+
+        return (left, right)
+
+    @staticmethod
+    def _build_balanced_structure_from_structures(
+        structures: list[TournamentStructure],
+    ) -> TournamentStructure:
+        """Build balanced tournament structure from existing structures.
+
+        Args:
+            structures: List of TournamentStructures
+
+        Returns:
+            Balanced combined TournamentStructure
+
+        """
+        if len(structures) == 1:
+            return structures[0]
+
+        mid = len(structures) // 2
+        left = FormulaAutomataBuilder._build_balanced_structure_from_structures(
+            structures[:mid]
+        )
+        right = FormulaAutomataBuilder._build_balanced_structure_from_structures(
+            structures[mid:]
+        )
+
+        return (left, right)
