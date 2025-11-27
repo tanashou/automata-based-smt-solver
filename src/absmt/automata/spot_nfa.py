@@ -9,6 +9,7 @@ import spot
 from absmt.automata.msbf_alphabet import MSBFAlphabet
 from absmt.automata.msbf_alphabet_symbol import MSBFAlphabetSymbol
 from absmt.automata.nfa import NFA, NFAStateT, NFATransitionsT
+from absmt.formula.type import FormulaData
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,8 @@ class SpotNFA:
     twa_graph: Any = field(init=False)  # spot.twa_graph
     _state_map: dict[NFAStateT, int] = field(default_factory=dict, init=False)
 
+    formula_data: FormulaData | None = field(default=None, init=False)
+
     def __post_init__(self, nfa: NFA, bdd_dict: Any) -> None:  # noqa: ANN401
         """Initialize the Spot automaton after creation."""
         self._create_automaton(bdd_dict)
@@ -46,6 +49,9 @@ class SpotNFA:
         """Get the set of final state IDs."""
         return self._final_state_ids
 
+    def set_formula_data(self, formula_data: FormulaData) -> None:
+        self.formula_data = formula_data
+
     def get_registered_ap(self) -> set[str]:
         """Get the list of registered atomic propositions."""
         return {str(ap) for ap in self.twa_graph.ap()}
@@ -55,12 +61,14 @@ class SpotNFA:
         cls,
         twa_graph: Any,  # noqa: ANN401
         final_state_ids: set[int],
+        formula_data: FormulaData | None = None,
     ) -> "SpotNFA":
         """Create SpotNFA from an existing TWA graph."""
         obj = cls.__new__(cls)
         obj.twa_graph = twa_graph
         obj._state_map = {}  # noqa: SLF001
         obj._final_state_ids = final_state_ids  # noqa: SLF001
+        obj.formula_data = formula_data
         return obj
 
     def _create_automaton(self, bdd_dict: Any) -> None:  # noqa: ANN401
