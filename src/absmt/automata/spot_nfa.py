@@ -46,6 +46,10 @@ class SpotNFA:
         """Get the set of final state IDs."""
         return self._final_state_ids
 
+    def get_registered_ap(self) -> set[str]:
+        """Get the list of registered atomic propositions."""
+        return {str(ap) for ap in self.twa_graph.ap()}
+
     @classmethod
     def from_twa_graph(
         cls,
