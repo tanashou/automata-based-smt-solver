@@ -59,6 +59,7 @@ class FormulaAutomataBuilder(DagWalker):
         builder = AutomataBuilder(literal_data, all_vars, all_var_index_map)
         nfa = builder.build()
         res = SpotNFA(nfa, self._bdict)
+        res.set_formula_data(literal_data)
         formula_str = formula.serialize(threshold=20)
         logger.debug(
             "Prepared automaton for 'literal'; formula=%s",
