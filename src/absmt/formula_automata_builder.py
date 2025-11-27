@@ -1,6 +1,7 @@
 # ruff: noqa: ANN001, ANN003, ARG002
 
 import logging
+from collections import defaultdict
 
 import pysmt.operators as op
 import spot
@@ -8,7 +9,7 @@ from pysmt.fnode import FNode
 from pysmt.walkers import DagWalker
 from pysmt.walkers.generic import handles
 
-from absmt.automata.spot_nfa import SpotNFA
+from absmt.automata.spot_nfa import SpotNFA, TournamentStructure
 from absmt.automata_builder import AutomataBuilder
 from absmt.formula import LiteralDataExtractor
 
@@ -41,7 +42,11 @@ class FormulaAutomataBuilder(DagWalker):
             formula_str,
         )
 
-        res = SpotNFA.intersect_all(*args)
+        tournament_struct = self._create_tournament_structure(args)
+        logger.debug(
+            "Tournament structure for 'and' created: %s", str(tournament_struct)
+        )
+        res = SpotNFA.intersect_all(*args, tournament_structure=tournament_struct)
 
         if res is None:
             logger.debug("Complete building for 'and': result is empty (None).")
@@ -59,6 +64,7 @@ class FormulaAutomataBuilder(DagWalker):
         builder = AutomataBuilder(literal_data, all_vars, all_var_index_map)
         nfa = builder.build()
         res = SpotNFA(nfa, self._bdict)
+        res.set_formula_data(literal_data)
         formula_str = formula.serialize(threshold=20)
         logger.debug(
             "Prepared automaton for 'literal'; formula=%s",
@@ -74,3 +80,382 @@ class FormulaAutomataBuilder(DagWalker):
     )
     def walk_others(self, formula: FNode, args, **kwargs) -> None:
         return
+
+    # --- Tournament Structure Creation ---
+    def _create_tournament_structure(
+        self, automata: list[SpotNFA]
+    ) -> TournamentStructure:
+        """Create tournament structure with two-stage clustering.
+
+        Stage 1: Cluster by structural similarity (formula_data)
+        Stage 2: Cluster singleton groups by common variables
+
+        Args:
+            automata: List of SpotNFA instances
+
+        Returns:
+            TournamentStructure optimized for computation order
+
+        """
+        if not automata:
+            msg = "Cannot create tournament structure for empty list"
+            raise ValueError(msg)
+
+        if len(automata) == 1:
+            return 0
+
+        # Stage 1: 構造でクラスタリング
+        structure_clusters = self._cluster_by_structure(automata)
+
+        logger.debug(
+            "Stage 1 (structure): %d NFAs -> %d clusters",
+            len(automata),
+            len(structure_clusters),
+        )
+
+        # Stage 2: サイズ1のクラスタを共通変数でクラスタリング
+        final_clusters: list[list[SpotNFA]] = []
+        singletons: list[SpotNFA] = []
+
+        for cluster in structure_clusters:
+            if len(cluster) == 1:
+                singletons.extend(cluster)
+            else:
+                final_clusters.append(cluster)
+
+        if singletons:
+            # シングルトンを共通変数でクラスタリング
+            variable_clusters = self._cluster_by_common_variables_greedy(
+                singletons, min_common_vars=1
+            )
+            final_clusters.extend(variable_clusters)
+
+            logger.debug(
+                "Stage 2 (variables): %d singletons -> %d clusters",
+                len(singletons),
+                len(variable_clusters),
+            )
+
+        logger.debug(
+            "Final: %d NFAs -> %d clusters", len(automata), len(final_clusters)
+        )
+
+        # クラスタからTournamentStructureを構築
+        return self._build_tournament_from_clusters(final_clusters, automata)
+
+    @staticmethod
+    def _cluster_by_structure(spot_nfas: list[SpotNFA]) -> list[list[SpotNFA]]:  # noqa: C901
+        """Cluster using hash-based pre-filtering + exact structural equality.
+
+        Time complexity: O(n) average, O(n²) worst case (but rare)
+        Space complexity: O(n)
+
+        This is the most practical approach:
+        1. First group by structural hash (O(n))
+        2. Within each hash group, verify with is_structurally_equal
+                (O(k²) where k << n)
+
+        Args:
+            spot_nfas: List of SpotNFA instances with formula_data
+
+        Returns:
+            List of clusters, where each cluster contains structurally similar NFAs
+
+        """
+        # Phase 1: ハッシュベースの粗いグループ化 O(n)
+        hash_groups: dict[tuple, list[SpotNFA]] = defaultdict(list)
+
+        for nfa in spot_nfas:
+            if nfa.formula_data is None:
+                hash_groups[(None,)].append(nfa)
+                continue
+
+            fd = nfa.formula_data
+            # 構造ハッシュ。変数は考慮しないため、__hash__は使わない
+            structure_hash = (
+                fd.formula_type,
+                fd.const,
+                len(fd.coeffs),
+                tuple(sorted(fd.coeffs.values())),
+            )
+            hash_groups[structure_hash].append(nfa)
+
+        # Phase 2: 各ハッシュグループ内で厳密にチェック O(k²) per group
+        final_clusters: list[list[SpotNFA]] = []
+
+        for hash_group in hash_groups.values():
+            if len(hash_group) == 1:
+                # 1つしかない場合はそのまま追加
+                final_clusters.append(hash_group)
+                continue
+
+            # このハッシュグループ内でさらに分割
+            visited = [False] * len(hash_group)
+
+            for i in range(len(hash_group)):
+                if visited[i]:
+                    continue
+
+                # 新しいクラスタを作成
+                cluster = [hash_group[i]]
+                visited[i] = True
+
+                # 残りの要素と比較
+                formula_data_i = hash_group[i].formula_data
+                if formula_data_i is not None:
+                    for j in range(i + 1, len(hash_group)):
+                        if visited[j]:
+                            continue
+
+                        formula_data_j = hash_group[j].formula_data
+                        if (
+                            formula_data_j is not None
+                            and formula_data_i.is_structurally_equal(formula_data_j)
+                        ):
+                            cluster.append(hash_group[j])
+                            visited[j] = True
+
+                final_clusters.append(cluster)
+
+        return final_clusters
+
+    @staticmethod
+    def _cluster_by_common_variables_greedy(
+        spot_nfas: list[SpotNFA], min_common_vars: int = 1
+    ) -> list[list[SpotNFA]]:
+        """Cluster NFAs greedily by maximizing common variables in each cluster.
+
+        Strategy: For each unassigned NFA, add it to the cluster with which
+        it shares the most variables.
+
+        Time complexity: O(n² * m) where m=avg variables
+        Space complexity: O(n * m)
+
+        Args:
+            spot_nfas: List of SpotNFA instances
+            min_common_vars: Minimum common variables to add to a cluster
+
+        Returns:
+            List of clusters optimized for variable overlap
+
+        """
+        if not spot_nfas:
+            return []
+
+        if len(spot_nfas) == 1:
+            return [spot_nfas]
+
+        # 各NFAの変数集合を取得
+        var_sets = [nfa.get_registered_ap() for nfa in spot_nfas]
+
+        # 共通変数数でNFAをソート。変数が多い順
+        # より多くの変数を持つNFAから処理すると、良いクラスタの種になる
+        sorted_indices = sorted(
+            range(len(spot_nfas)), key=lambda i: len(var_sets[i]), reverse=True
+        )
+
+        clusters: list[list[int]] = []  # インデックスのクラスタ
+        cluster_vars: list[set[str]] = []  # 各クラスタの変数集合
+        assigned = [False] * len(spot_nfas)
+
+        for idx in sorted_indices:
+            if assigned[idx]:
+                continue
+
+            # 既存のクラスタで最も共通変数が多いものを探す
+            best_cluster = -1
+            max_common = 0
+
+            for cluster_id, c_vars in enumerate(cluster_vars):
+                common = len(var_sets[idx] & c_vars)
+                if common >= min_common_vars and common > max_common:
+                    max_common = common
+                    best_cluster = cluster_id
+
+            if best_cluster >= 0:
+                # 既存のクラスタに追加
+                clusters[best_cluster].append(idx)
+                cluster_vars[best_cluster] |= var_sets[idx]
+            else:
+                # 新しいクラスタを作成
+                clusters.append([idx])
+                cluster_vars.append(var_sets[idx].copy())
+
+            assigned[idx] = True
+
+        # インデックスからSpotNFAに変換
+        result_clusters = [[spot_nfas[idx] for idx in cluster] for cluster in clusters]
+
+        # クラスタサイズの降順でソート
+        result_clusters.sort(key=len, reverse=True)
+
+        return result_clusters
+
+    def _build_tournament_from_clusters(
+        self,
+        clusters: list[list[SpotNFA]],
+        original_automata: list[SpotNFA],
+    ) -> TournamentStructure:
+        """Build tournament structure from clusters.
+
+        Strategy:
+        1. For each cluster with 3+ elements, build a sub-tournament
+           ordered by state count (smallest first)
+        2. Combine all cluster structures into a final tournament
+
+        Args:
+            clusters: List of NFA clusters
+            original_automata: Original list to map indices
+
+        Returns:
+            TournamentStructure representing the computation order
+
+        """
+        # NFAからインデックスへのマッピング
+        nfa_to_index = {id(nfa): i for i, nfa in enumerate(original_automata)}
+
+        def build_for_cluster(cluster: list[SpotNFA]) -> TournamentStructure:
+            """Build tournament structure for a single cluster.
+
+            For clusters with 3+ elements, order by state count (ascending).
+            """
+            if len(cluster) == 1:
+                return nfa_to_index[id(cluster[0])]
+
+            if len(cluster) == 2:  # noqa: PLR2004
+                idx1 = nfa_to_index[id(cluster[0])]
+                idx2 = nfa_to_index[id(cluster[1])]
+                return (idx1, idx2)
+
+            # 3要素以上: 状態数でソートしてトーナメント構造を構築
+            return self._build_tournament_by_state_count(cluster, nfa_to_index)
+
+        # 各クラスタの構造を作成
+        cluster_structures = [build_for_cluster(cluster) for cluster in clusters]
+
+        if len(cluster_structures) == 1:
+            return cluster_structures[0]
+
+        # クラスタ間を balanced structure で結合
+        return self._build_balanced_structure_from_structures(cluster_structures)
+
+    def _build_tournament_by_state_count(
+        self,
+        cluster: list[SpotNFA],
+        nfa_to_index: dict[int, int],
+    ) -> TournamentStructure:
+        """Build tournament structure ordered by automaton state count.
+
+        Strategy: Pair automata with smallest state counts first.
+        This minimizes intermediate automaton sizes during intersection.
+
+        Example:
+            cluster = [A(100), B(50), C(30), D(20)]
+            sorted = [D(20), C(30), B(50), A(100)]
+            tournament = (((D, C), B), A)
+                         = ((20+30=~50, 50), 100)
+                         = (~100, 100)
+
+        Args:
+            cluster: List of SpotNFA instances (3+ elements)
+            nfa_to_index: Mapping from NFA id to index
+
+        Returns:
+            TournamentStructure with smallest automata paired first
+
+        """
+        # Step 1: クラスタ内のNFAを状態数でソート (昇順)
+        sorted_cluster = sorted(cluster, key=lambda nfa: nfa.num_states())
+
+        # Step 2: ソートされたNFAのインデックスリストを取得
+        sorted_indices = [nfa_to_index[id(nfa)] for nfa in sorted_cluster]
+
+        # Step 3 & 4: 左結合でトーナメント構造を構築して返す
+        # 最小の2つをペアにし、その結果を次の要素とペアにしていく
+        # 例: [0, 1, 2, 3] -> (((0, 1), 2), 3)
+        return self._build_left_heavy_structure(sorted_indices)
+
+    @staticmethod
+    def _build_left_heavy_structure(indices: list[int]) -> TournamentStructure:
+        """Build left-heavy tournament structure from sorted indices.
+
+        This creates a structure where smaller elements are paired first,
+        minimizing the size of intermediate results.
+
+        Example:
+            indices = [0, 1, 2, 3]
+            result = (((0, 1), 2), 3)
+
+        Args:
+            indices: List of automaton indices, already sorted by some criteria
+
+        Returns:
+            Left-heavy TournamentStructure
+
+        """
+        # ベースケース: 1要素または2要素
+        if len(indices) == 1:
+            return indices[0]
+        if len(indices) <= 2:  # noqa: PLR2004
+            return (indices[0], indices[1])
+
+        # 再帰ケース: 3要素以上
+        # 最初の2要素をペアにして、残りと結合
+        left = (indices[0], indices[1])
+        if len(indices) <= 3:  # noqa: PLR2004
+            return (left, indices[2])
+        # 再帰的に構築
+        right = FormulaAutomataBuilder._build_left_heavy_structure(indices[2:])
+        return (left, right)
+
+    @staticmethod
+    def _build_balanced_structure_from_indices(
+        indices: list[int],
+    ) -> TournamentStructure:
+        """Build balanced tournament structure from a list of indices.
+
+        Args:
+            indices: List of automaton indices
+
+        Returns:
+            Balanced TournamentStructure
+
+        """
+        if len(indices) == 1:
+            return indices[0]
+
+        mid = len(indices) // 2
+        left = FormulaAutomataBuilder._build_balanced_structure_from_indices(
+            indices[:mid]
+        )
+        right = FormulaAutomataBuilder._build_balanced_structure_from_indices(
+            indices[mid:]
+        )
+
+        return (left, right)
+
+    @staticmethod
+    def _build_balanced_structure_from_structures(
+        structures: list[TournamentStructure],
+    ) -> TournamentStructure:
+        """Build balanced tournament structure from existing structures.
+
+        Args:
+            structures: List of TournamentStructures
+
+        Returns:
+            Balanced combined TournamentStructure
+
+        """
+        if len(structures) == 1:
+            return structures[0]
+
+        mid = len(structures) // 2
+        left = FormulaAutomataBuilder._build_balanced_structure_from_structures(
+            structures[:mid]
+        )
+        right = FormulaAutomataBuilder._build_balanced_structure_from_structures(
+            structures[mid:]
+        )
+
+        return (left, right)
