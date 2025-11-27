@@ -279,21 +279,141 @@ def generate_mixed_smt2_sat(filename, total_asserts=5, total_vars_pool=20):
     print(f"Generated SAT Case (Small RHS): {filename}")
 
 
+def generate_structured_sat_pair(case_id, total_asserts=5):
+    """
+    「式の構造（係数）」を完全に固定し、
+    変数の被り（Dense vs Sparse）だけを変えたSATなペアファイルを生成する。
+    """
+
+    # --- 1. 共通設定: 構造と解の固定 ---
+
+    # 1つの式に含まれる項数（3つで固定）
+    NUM_TERMS = 3
+
+    # 係数テンプレートの生成 (例: [3, -5, 2])
+    # これを全てのAssertで使い回すことで「構造的に同じ式」を作る
+    coeff_template = []
+    for _ in range(NUM_TERMS):
+        c = random.randint(-10, 10)
+        if c == 0:
+            c = 1
+        coeff_template.append(c)
+
+    # 解(target_solution)の生成
+    # 係数を固定するため、定数が爆発しないよう解の値は小さめに設定(-5〜5)
+    total_vars_needed = total_asserts * NUM_TERMS + 5  # 十分な数を確保
+    all_vars = [f"x_{i}" for i in range(total_vars_needed)]
+    target_solution = {v: random.randint(-5, 5) for v in all_vars}
+
+    # --- ヘルパー関数: Assert生成 ---
+    def create_line(vars_indices):
+        """指定された変数インデックスを使って、テンプレート通りの式を作る"""
+        terms = []
+        lhs_val = 0
+
+        for i, var_idx in enumerate(vars_indices):
+            var_name = f"x_{var_idx}"
+            coeff = coeff_template[i]  # 固定された係数を使用
+
+            terms.append(f"(* {coeff} {var_name})")
+            lhs_val += coeff * target_solution[var_name]
+
+        lhs_expr = f"(+ {' '.join(terms)})"
+
+        # SATを満たすRHSの決定
+        op = random.choice(["<=", ">=", "="])
+
+        rhs = lhs_val
+        # 定数があまり大きくならない範囲でマージンを持たせる
+        margin = random.randint(0, 10)
+
+        if op == "<=":
+            rhs += margin
+        elif op == ">=":
+            rhs -= margin
+
+        return f"(assert ({op} {lhs_expr} {rhs}))"
+
+    # --- ファイル生成の実装 ---
+    def write_smt2(filename, mode):
+        lines = []
+        lines.append("(set-info :smt-lib-version 2.6)")
+        lines.append("(set-logic QF_LIA)")
+        lines.append(f'(set-info :category "structured-{mode}")')
+        lines.append("(set-info :status sat)")
+
+        # 使用する変数の宣言
+        # Sparseの場合は多くの変数が必要、Denseは少しでいいが、
+        # 比較のため宣言だけは最大数ぶん書いておく
+        for v in all_vars:
+            lines.append(f"(declare-fun {v} () Int)")
+
+        # Assertの生成
+        assert_lines = []
+
+        # 変数の割り当てロジック
+        current_var_idx = 0
+
+        # Dense用のプール (x_0 ... x_{NUM_TERMS}) 少しだけ遊びを持たせる
+        dense_pool_indices = list(range(NUM_TERMS + 1))
+
+        for _ in range(total_asserts):
+            if mode == "dense":
+                # 狭いプールからランダムに選ぶ（必ず被る）
+                selected_indices = random.sample(dense_pool_indices, NUM_TERMS)
+            else:  # sparse
+                # 毎回新しいインデックスを使う（被らない）
+                selected_indices = list(
+                    range(current_var_idx, current_var_idx + NUM_TERMS)
+                )
+                current_var_idx += NUM_TERMS
+
+            assert_lines.append(create_line(selected_indices))
+
+        # 順序をシャッフル（ベンチマークとして公平にするため）
+        random.shuffle(assert_lines)
+        lines.extend(assert_lines)
+
+        lines.append("(check-sat)")
+        lines.append("(exit)")
+
+        with open(filename, "w") as f:
+            f.write("\n".join(lines))
+
+    # --- ファイル書き出し ---
+    name_dense = f"structured_sat_{case_id:02d}_dense.smt2"
+    name_sparse = f"structured_sat_{case_id:02d}_sparse.smt2"
+
+    write_smt2(name_dense, "dense")
+    write_smt2(name_sparse, "sparse")
+
+    print(f"Generated Pair {case_id}:")
+    print(f"  Dense:  {name_dense} (High Overlap)")
+    print(f"  Sparse: {name_sparse} (No Overlap)")
+    print(f"  Template Coeffs: {coeff_template}")
+
+
 # --- 実行 ---
-OUTPUT_DIR = Path(__file__).parent.parent / "benchmarks" / "crafted"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+# ペアを5セット作成
+for i in range(1, 6):
+    generate_structured_sat_pair(i, total_asserts=5)
 
-generate_mixed_smt2_sat(OUTPUT_DIR / "mixed_case_sat_01.smt2", total_asserts=5)
-for i in range(2, 6):
-    generate_mixed_smt2_sat(
-        OUTPUT_DIR / f"mixed_case_sat_{i:02d}.smt2", total_asserts=5
-    )
 
-# --- 実行: ファイル生成 ---
+# # --- 実行 ---
+# OUTPUT_DIR = Path(__file__).parent.parent / "benchmarks" / "crafted"
+# OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# パターンA: 1つのファイルを作成
-generate_mixed_smt2(OUTPUT_DIR / "mixed_case_01.smt2", total_asserts=5)
+# generate_mixed_smt2_sat(OUTPUT_DIR / "mixed_case_sat_01.smt2", total_asserts=5)
+# for i in range(2, 6):
+#     generate_mixed_smt2_sat(
+#         OUTPUT_DIR / f"mixed_case_sat_{i:02d}.smt2", total_asserts=5
+#     )
 
-# パターンB: ベンチマーク用に複数作成する場合 (例: 2〜5番を作成)
-for i in range(2, 6):
-    generate_mixed_smt2(OUTPUT_DIR / f"mixed_case_{i:02d}.smt2", total_asserts=5)
+# # --- 実行: ファイル生成 ---
+
+# # パターンA: 1つのファイルを作成
+# generate_mixed_smt2(OUTPUT_DIR / "mixed_case_01.smt2", total_asserts=5)
+
+# # パターンB: ベンチマーク用に複数作成する場合 (例: 2〜5番を作成)
+# for i in range(2, 6):
+#     generate_mixed_smt2(OUTPUT_DIR / f"mixed_case_{i:02d}.smt2", total_asserts=5)
