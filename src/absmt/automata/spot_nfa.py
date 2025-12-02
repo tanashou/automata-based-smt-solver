@@ -207,7 +207,8 @@ class SpotNFA:
         post.set_pref(spot.postprocessor.Small)
         # Weakオートマトンは最小の決定性Büchiオートマトンになる
         post.set_type(spot.postprocessor.Deterministic)
-
+        # 出力をBüchiオートマトンに強制する
+        post.set_type(spot.postprocessor.Buchi)
         minimized_aut = post.run(self.twa_graph)
         self.twa_graph = minimized_aut
 
