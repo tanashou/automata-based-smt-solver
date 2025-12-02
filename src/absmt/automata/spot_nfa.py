@@ -106,21 +106,13 @@ class SpotNFA:
 
         for start_state, trans in transitions.items():
             start_state_id = self._state_map[start_state]
-            is_state_from_final = start_state in final_states
 
             # 受理状態からの遷移全てを受理条件に追加
             for symbol, end_states in trans.items():
                 for end_state in end_states:
                     end_state_id = self._state_map[end_state]
                     formula = self._symbol_to_formula(all_vars, symbol) & not_end_bdd
-
-                    # Buchiオートマトンに変換するため受理状態からの遷移を受理条件に追加
-                    if is_state_from_final:
-                        self.twa_graph.new_edge(
-                            start_state_id, end_state_id, formula, [acceptance_set]
-                        )
-                    else:
-                        self.twa_graph.new_edge(start_state_id, end_state_id, formula)
+                    self.twa_graph.new_edge(start_state_id, end_state_id, formula)
 
         sink_state_id = self.twa_graph.new_state()
         # 受理状態からシンク状態への遷移を追加
@@ -206,6 +198,19 @@ class SpotNFA:
         """Get the number of states in the automaton."""
         return self.twa_graph.num_states()
 
+    def minimize(self) -> None:
+        """Minimize the automaton using Spot's minimization."""
+        post = spot.postprocessor()
+        # 最適化レベルを最大
+        post.set_level(spot.postprocessor.High)
+        # 状態数を小さくすることを優先
+        post.set_pref(spot.postprocessor.Small)
+        # Weakオートマトンは最小の決定性Büchiオートマトンになる
+        post.set_type(spot.postprocessor.Deterministic)
+
+        minimized_aut = post.run(self.twa_graph)
+        self.twa_graph = minimized_aut
+
     @staticmethod
     def _generate_default_structure(n: int) -> TournamentStructure:
         """Generate a default left-to-right balanced tournament structure.
@@ -290,6 +295,8 @@ class SpotNFA:
                 state_counts[structure_str] = -1
             return None
 
+        result.minimize()
+
         # Record state count if dict is provided
         if state_counts is not None:
             structure_str = str(structure)
@@ -325,6 +332,9 @@ class SpotNFA:
             return nfas[0]
 
         automata_list = list(nfas)
+
+        for aut in automata_list:
+            aut.minimize()
 
         # Generate default structure if not provided
         if tournament_structure is None:
