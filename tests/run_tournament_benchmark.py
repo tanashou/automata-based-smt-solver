@@ -47,13 +47,17 @@ def main() -> None:
     print("-" * 80)
 
     try:
-        run_benchmark_for_file(str(smt2_path), args.name)
+        csv_path, metadata_path = run_benchmark_for_file(str(smt2_path), args.name)
         print("\n" + "=" * 80)
         print("Benchmark completed successfully!")
         print("=" * 80)
+        print("\nResults saved to:")
+        print(f"  CSV: {csv_path}")
+        print(f"  Metadata: {metadata_path}")
         print("\nTo analyze the results, run:")
-        benchmark_id = args.name or smt2_path.stem
-        print(f"  python scripts/analyze_benchmark_results.py {benchmark_id}")
+        # Extract benchmark ID from the actual CSV filename (without .csv extension)
+        actual_benchmark_id = csv_path.stem
+        print(f"  python scripts/analyze_benchmark_results.py {actual_benchmark_id}")
     except Exception as e:  # noqa: BLE001
         print(f"\nError running benchmark: {e}")
         sys.exit(1)
