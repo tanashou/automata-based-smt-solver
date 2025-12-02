@@ -77,6 +77,8 @@ class SpotNFA:
         self.twa_graph.set_buchi()
         # Pretend this is state-based acceptance
         self.twa_graph.prop_state_acc(True)  # noqa: FBT003
+        # 終端変数を登録
+        self._end_var = self.twa_graph.register_ap("_END")
 
     def _register_ap(self, alphabet: MSBFAlphabet) -> None:
         """Register atomic propositions for each variable in the BDD."""
@@ -111,6 +113,9 @@ class SpotNFA:
         all_vars = alphabet.all_vars
         acceptance_set = 0
 
+        not_end_bdd = -buddy.bdd_ithvar(self._end_var)
+        end_bdd = buddy.bdd_ithvar(self._end_var)
+
         for start_state, trans in transitions.items():
             start_state_id = self._state_map[start_state]
             is_state_from_final = start_state in final_states
@@ -119,7 +124,7 @@ class SpotNFA:
             for symbol, end_states in trans.items():
                 for end_state in end_states:
                     end_state_id = self._state_map[end_state]
-                    formula = self._symbol_to_formula(all_vars, symbol)
+                    formula = self._symbol_to_formula(all_vars, symbol) & not_end_bdd
 
                     # Buchiオートマトンに変換するため受理状態からの遷移を受理条件に追加
                     if is_state_from_final:
@@ -128,6 +133,17 @@ class SpotNFA:
                         )
                     else:
                         self.twa_graph.new_edge(start_state_id, end_state_id, formula)
+
+        sink_state_id = self.twa_graph.new_state()
+        # 受理状態からシンク状態への遷移を追加
+        for state in final_states:
+            state_id = self._state_map[state]
+            self.twa_graph.new_edge(state_id, sink_state_id, end_bdd)
+
+        # シンク状態に自己ループを追加。受理条件付き。
+        self.twa_graph.new_edge(
+            sink_state_id, sink_state_id, buddy.bddtrue, [acceptance_set]
+        )
 
         self.twa_graph.merge_edges()
 
@@ -196,8 +212,7 @@ class SpotNFA:
         return self.to_hoa()
 
     def is_empty(self) -> bool:
-        # spot.product は到達可能な状態だけ構築するため、この方法で十分。
-        return bool(not self.final_state_ids)
+        return self.twa_graph.is_empty()
 
     def num_states(self) -> int:
         """Get the number of states in the automaton."""
