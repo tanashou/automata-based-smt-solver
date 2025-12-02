@@ -1,6 +1,5 @@
 import logging
 from dataclasses import InitVar, dataclass, field
-from itertools import product
 from typing import Any
 
 import buddy
@@ -40,15 +39,6 @@ class SpotNFA:
         self._set_initial_state(nfa.initial_state)
         self._add_transitions(nfa.transitions, nfa.final_states, nfa.alphabet)
 
-        self._final_state_ids: set[int] = {
-            self._state_map[state] for state in nfa.final_states
-        }
-
-    @property
-    def final_state_ids(self) -> set[int]:
-        """Get the set of final state IDs."""
-        return self._final_state_ids
-
     def set_formula_data(self, formula_data: FormulaData) -> None:
         self.formula_data = formula_data
 
@@ -60,14 +50,12 @@ class SpotNFA:
     def from_twa_graph(
         cls,
         twa_graph: Any,  # noqa: ANN401
-        final_state_ids: set[int],
         formula_data: FormulaData | None = None,
     ) -> "SpotNFA":
         """Create SpotNFA from an existing TWA graph."""
         obj = cls.__new__(cls)
         obj.twa_graph = twa_graph
         obj._state_map = {}  # noqa: SLF001
-        obj._final_state_ids = final_state_ids  # noqa: SLF001
         obj.formula_data = formula_data
         return obj
 
@@ -292,20 +280,7 @@ class SpotNFA:
 
         # Perform binary intersection
         product_aut = spot.product(left_result.twa_graph, right_result.twa_graph)
-        product_states: list[tuple[int, int]] = product_aut.get_product_states()
-        mapping: dict[tuple[int, int], int] = {
-            state: idx for idx, state in enumerate(product_states)
-        }
-
-        product_aut_final_state_ids: set[int] = {
-            mapping[state]
-            for state in product(
-                left_result.final_state_ids, right_result.final_state_ids
-            )
-            if state in mapping
-        }
-
-        result = SpotNFA.from_twa_graph(product_aut, product_aut_final_state_ids)
+        result = SpotNFA.from_twa_graph(product_aut)
 
         # Early return if the result is empty
         if result.is_empty():
