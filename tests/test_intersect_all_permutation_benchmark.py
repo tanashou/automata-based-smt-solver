@@ -234,7 +234,7 @@ def save_benchmark_metadata(
     num_automata: int,
     num_structures: int,
     file_path: str | None = None,
-) -> None:
+) -> Path:
     """Save metadata about the benchmark.
 
     Args:
@@ -243,6 +243,9 @@ def save_benchmark_metadata(
         num_automata: Number of automata in the benchmark
         num_structures: Number of tournament structures tested
         file_path: Optional original file path
+
+    Returns:
+        Path to the saved metadata file
 
     """
     results_dir = Path(__file__).parent.parent / ".benchmarks" / "tournament_structures"
@@ -263,6 +266,7 @@ def save_benchmark_metadata(
         json.dump(metadata, f, indent=2)
 
     logger.info("Metadata written to %s", metadata_file)
+    return metadata_file
 
 
 def extract_automata_from_conjunction(conjunction: FNode) -> list[SpotNFA]:
@@ -389,12 +393,17 @@ def run_intersect_all_with_structure(
     return result, peak_memory_mb, elapsed_time, state_counts
 
 
-def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) -> None:
+def run_benchmark_for_file(
+    smt2_path: str, benchmark_name: str | None = None
+) -> tuple[Path, Path]:
     """Run tournament structure benchmark for a specific SMT2 file.
 
     Args:
         smt2_path: Path to the SMT2 file
         benchmark_name: Optional custom name for the benchmark
+
+    Returns:
+        Tuple of (csv_path, metadata_path) for the saved files
 
     """
     # Read SMT2 file
@@ -454,7 +463,7 @@ def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) ->
             )
 
     # Save metadata
-    save_benchmark_metadata(
+    metadata_path = save_benchmark_metadata(
         benchmark_id=benchmark_id,
         smt2_content=smt2_content,
         num_automata=n,
@@ -467,7 +476,10 @@ def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) ->
     logger.info("=" * 80)
     logger.info("✓ Benchmark completed: %s", benchmark_id)
     logger.info("Results saved to: %s", csv_path)
+    logger.info("Metadata saved to: %s", metadata_path)
     logger.info("=" * 80)
+
+    return csv_path, metadata_path
 
 
 def _get_unique_file_path(base_path: Path) -> Path:
