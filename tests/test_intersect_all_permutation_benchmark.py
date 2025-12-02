@@ -256,7 +256,9 @@ def save_benchmark_metadata(
         "file_path": file_path,
     }
 
-    metadata_file = results_dir / f"{benchmark_id}_meta.json"
+    base_metadata_file = results_dir / f"{benchmark_id}_meta.json"
+    metadata_file = _get_unique_file_path(base_metadata_file)
+
     with metadata_file.open("w") as f:
         json.dump(metadata, f, indent=2)
 
@@ -468,6 +470,35 @@ def run_benchmark_for_file(smt2_path: str, benchmark_name: str | None = None) ->
     logger.info("=" * 80)
 
 
+def _get_unique_file_path(base_path: Path) -> Path:
+    """Get a unique file path by adding a counter if the file already exists.
+
+    Args:
+        base_path: The base file path (without counter)
+
+    Returns:
+        A unique file path that doesn't exist yet
+
+    Example:
+        If "results.csv" exists, returns "results_1.csv"
+        If "results_1.csv" also exists, returns "results_2.csv", etc.
+
+    """
+    if not base_path.exists():
+        return base_path
+
+    stem = base_path.stem
+    suffix = base_path.suffix
+    parent = base_path.parent
+
+    counter = 1
+    while True:
+        new_path = parent / f"{stem}_{counter}{suffix}"
+        if not new_path.exists():
+            return new_path
+        counter += 1
+
+
 def _save_results_to_csv(
     results_data: list[dict[str, str | float]], benchmark_id: str
 ) -> Path:
@@ -485,7 +516,9 @@ def _save_results_to_csv(
     results_dir = Path(__file__).parent.parent / ".benchmarks" / "tournament_structures"
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    output_file = results_dir / f"{benchmark_id}.csv"
+    base_output_file = results_dir / f"{benchmark_id}.csv"
+    output_file = _get_unique_file_path(base_output_file)
+
     with output_file.open("w", newline="") as f:
         writer = csv.DictWriter(
             f, fieldnames=["structure", "time_sec", "memory_mb", "state_counts"]
