@@ -184,3 +184,4 @@ ruff.toml
 
 # Project specific
 benchmarks/QF_LIA/
+benchmarks/LIA/
