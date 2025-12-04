@@ -1,3 +1,4 @@
+# ruff: noqa: T201
 import logging
 from dataclasses import InitVar, dataclass, field
 from typing import Any
@@ -45,6 +46,43 @@ class SpotNFA:
     def get_registered_ap(self) -> set[str]:
         """Get the list of registered atomic propositions."""
         return {str(ap) for ap in self.twa_graph.ap()}
+
+    def custom_print(self) -> None:
+        bdict = self.twa_graph.get_dict()
+        print("Acceptance:", self.twa_graph.get_acceptance())
+        print("Number of sets:", self.twa_graph.num_sets())
+        print("Number of states: ", self.twa_graph.num_states())
+        print("Initial states: ", self.twa_graph.get_init_state_number())
+        print("Atomic propositions:", end="")
+        for ap in self.twa_graph.ap():
+            print(" ", ap, " (=", bdict.varnum(ap), ")", sep="", end="")
+        print()
+        # Templated methods are not available in Python, so we cannot
+        # retrieve/attach arbitrary objects from/to the automaton.  However the
+        # Python bindings have get_name() and set_name() to access the
+        # "automaton-name" property.
+        name = self.twa_graph.get_name()
+        if name:
+            print("Name: ", name)
+        print(
+            "Deterministic:",
+            self.twa_graph.prop_universal() and self.twa_graph.is_existential(),
+        )
+        print("Unambiguous:", self.twa_graph.prop_unambiguous())
+        print("State-Based Acc:", self.twa_graph.prop_state_acc())
+        print("Terminal:", self.twa_graph.prop_terminal())
+        print("Weak:", self.twa_graph.prop_weak())
+        print("Inherently Weak:", self.twa_graph.prop_inherently_weak())
+        print("Stutter Invariant:", self.twa_graph.prop_stutter_invariant())
+        for s in range(self.twa_graph.num_states()):
+            print(f"State {s}:")
+            for t in self.twa_graph.out(s):
+                print(f"  edge({t.src} -> {t.dst})")
+                # bdd_print_formula() is designed to print on a std::ostream, and
+                # is inconvenient to use in Python.  Instead we use
+                # bdd_format_formula() as this simply returns a string.
+                print("    label =", spot.bdd_format_formula(bdict, t.cond))
+                print("    acc sets =", t.acc)
 
     @classmethod
     def from_twa_graph(
@@ -203,7 +241,7 @@ class SpotNFA:
 
         self.twa_graph = spot.complete(self.twa_graph)
         post = spot.postprocessor()
-        # High だと一部構造が破壊され、結果が異なる可能性がある
+        # High だとものによって適用されるアルゴリズムが変わる。全部統一させたい。
         post.set_level(spot.postprocessor.Medium)
         # 状態数を小さくすることを優先
         post.set_pref(spot.postprocessor.Small)
@@ -335,9 +373,6 @@ class SpotNFA:
 
         automata_list = list(nfas)
 
-        for aut in automata_list:
-            aut.minimize(spot.postprocessor.Buchi)
-
         # Generate default structure if not provided
         if tournament_structure is None:
             tournament_structure = SpotNFA._generate_default_structure(
@@ -347,3 +382,125 @@ class SpotNFA:
         return SpotNFA.intersect_by_structure(
             automata_list, tournament_structure, state_counts
         )
+
+    @staticmethod
+    def union_all(*nfas: "SpotNFA") -> "SpotNFA":
+        """Create a single automaton by taking the union of all given SpotNFA.
+
+        Args:
+            *nfas: SpotNFA instances to combine
+
+        Returns:
+            SpotNFA: The union automaton of all input automata
+
+        """
+        if not nfas:
+            msg = "No NFAs provided for union."
+            raise ValueError(msg)
+
+        if len(nfas) == 1:
+            return nfas[0]
+
+        automata_list = list(nfas)
+
+        result_aut = automata_list[0].twa_graph
+
+        for aut in automata_list[1:]:
+            result_aut = spot.product_or(result_aut, aut.twa_graph)
+
+        result = SpotNFA.from_twa_graph(result_aut)
+        result.minimize(spot.postprocessor.GeneralizedBuchi)
+
+        return result
+
+    @staticmethod
+    def complement(nfa: "SpotNFA") -> "SpotNFA":
+        """Create a complement automaton from the nfa."""
+        # 1. 通常の補集合計算
+        comp_graph = spot.complement(nfa.twa_graph)
+
+        # 2. "Strict Universe" (非空の宇宙) オートマトンの作成
+        # 構造: Init -(!_END)-> q_wait -(!_END)*-> q_wait -(_END)-> q_sink
+
+        universe = spot.make_twa_graph(nfa.twa_graph.get_dict())
+        universe.set_buchi()
+
+        q_init = universe.new_state()  # 初期状態
+        q_wait = universe.new_state()  # 2ビット目以降の待機
+        q_sink = universe.new_state()  # 受理シンク
+
+        universe.set_init_state(q_init)
+
+        # 変数IDの取得
+        end_ap = universe.register_ap("_END")
+        end_bdd = buddy.bdd_ithvar(end_ap)
+        not_end_bdd = buddy.bdd_not(end_bdd)
+
+        # -- 遷移の構築 --
+
+        # 1. 初期状態からは、必ず !_END (ビット) を読まなければならない
+        #    いきなり _END が来ると遷移先がないため脱落する
+        universe.new_edge(q_init, q_wait, not_end_bdd)
+
+        # 2. q_wait: その後は !_END が続く限りループ、_END が来たら受理
+        universe.new_edge(q_wait, q_wait, not_end_bdd)
+        universe.new_edge(q_wait, q_sink, end_bdd)
+
+        # 3. q_sink: 受理ループ
+        universe.new_edge(q_sink, q_sink, buddy.bddtrue, [0])
+
+        # 3. 積集合をとる
+        result_graph = spot.product(comp_graph, universe)
+
+        result = SpotNFA.from_twa_graph(result_graph)
+        result.minimize(spot.postprocessor.Buchi)
+
+        return result
+
+    @staticmethod
+    def projection(nfa: "SpotNFA", quantified_vars: list[str]) -> "SpotNFA":
+        """Remove the given ap from all transition guards in the automaton.
+
+        Args:
+            nfa (SpotNFA): The automaton from which atomic propositions will be removed.
+            quantified_vars (list[str]):
+                List of atomic proposition names to remove (e.g., ["x", "y"]).
+
+        """
+        # 1. 新しいオートマトンのガワを作成(辞書は共有)
+        old_g = nfa.twa_graph
+        new_g = spot.make_twa_graph(old_g.get_dict())
+
+        # 2. 受理条件と状態数をコピー
+        # set_buchi() ではなく元の受理条件を引き継ぐ
+        new_g.copy_acceptance_of(old_g)
+        new_g.new_states(old_g.num_states())
+        new_g.set_init_state(old_g.get_init_state_number())
+
+        # 3. 消去する変数の特定と、残す変数の登録
+        vars_to_remove = set(quantified_vars)
+
+        # (A) 残す変数を新しいオートマトンに登録する
+        for ap in old_g.ap():
+            ap_name = ap.ap_name()
+            if ap_name not in vars_to_remove:
+                new_g.register_ap(ap_name)
+
+        # (B) 消去するためのBDD Cube(連言)を作成
+        cube = buddy.bddtrue
+        for name in quantified_vars:
+            # register_ap は既存のAPならそのIDを返すので、IDルックアップとして使える
+            var_id = old_g.register_ap(name)
+            cube = buddy.bdd_and(cube, buddy.bdd_ithvar(var_id))
+
+        # 4. 全遷移を走査し、条件から変数を存在量化(射影)してコピー
+        for s in range(old_g.num_states()):
+            for edge in old_g.out(s):
+                # cond 内の cube に含まれる変数を消去
+                new_cond = buddy.bdd_exist(edge.cond, cube)
+                new_g.new_edge(s, edge.dst, new_cond, edge.acc)
+
+        result = SpotNFA.from_twa_graph(new_g)
+        result.minimize(spot.postprocessor.Buchi)
+
+        return result
