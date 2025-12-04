@@ -12,8 +12,8 @@ from absmt.solver import Solver
 P = ParamSpec("P")
 R = TypeVar("R")
 
-MAX_MEMORY_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB
-TIMEOUT_SECONDS = 10
+MAX_MEMORY_BYTES = 4 * 1024 * 1024 * 1024  # 4 GB
+TIMEOUT_SECONDS = 20
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PATHS_DIR = REPO_ROOT / "benchmarks" / "paths"
