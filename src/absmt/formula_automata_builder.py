@@ -673,6 +673,7 @@ class QuantVarCollector(DagWalker):
         *op.BOOL_CONNECTIVES,
         *op.CONSTANTS,
         *op.RELATIONS,
+        *op.IRA_OPERATORS,
     )
     def walk_others(self, formula: FNode, args, **kwargs) -> None:
         """Handle other formula types without collecting quantifier variables."""
