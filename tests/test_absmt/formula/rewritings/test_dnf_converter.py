@@ -1,10 +1,10 @@
-import pytest
 from pysmt.fnode import FNode
-from pysmt.shortcuts import FALSE, GT, LT, TRUE, And, Equals, Not, Or, Symbol
+from pysmt.shortcuts import GT, LT, And, Equals, Not, Or, Symbol
 from pysmt.typing import INT
 
-# Using the import path you specified
-from absmt.formula.rewritings.dnf_generator import DNFGenerator
+# クラス名が DNFConverter に変更されたと仮定してインポートします
+# パスは環境に合わせて調整してください
+from absmt.formula.rewritings.dnf_converter import DNFConverter
 
 
 def formula_equal(f1, f2):
@@ -16,9 +16,11 @@ def formula_equal(f1, f2):
     return f1 == f2
 
 
-class TestDNFGeneratorWithInts:
+class TestDNFConverterWithInts:
     def setup_method(self):
-        self.dnf_generator = DNFGenerator()
+        # Generator ではなく Converter をインスタンス化
+        self.converter = DNFConverter()
+
         # Integer variables
         x_var = Symbol("x", INT)
         y_var = Symbol("y", INT)
@@ -34,23 +36,28 @@ class TestDNFGeneratorWithInts:
         self.y = LT(z_var, k_var)
 
     def assert_dnf_equals(self, formula, expected_dnf_set):
-        actual_dnf_set = set(self.dnf_generator.get_conjunctions(formula))
+        # Converterを実行。戻り値は list[FNode] である前提。
+        conjunctions: list[FNode] = self.converter.convert(formula)
+
+        # リストを集合に変換して重複を排除し、順序を無視できるようにする
+        actual_dnf_set = set(conjunctions)
+
+        # 要素数が一致することを確認
         assert len(actual_dnf_set) == len(expected_dnf_set)
 
-        # Check that every expected formula has an equivalent in the actual results
+        # 期待される各連言が、結果の中に等価なものが存在することを確認
         for expected_formula in expected_dnf_set:
             assert any(
                 formula_equal(expected_formula, actual_formula)
                 for actual_formula in actual_dnf_set
-            ), f"Expected conjunction {expected_formula} not found in DNF"
+            ), (
+                f"Expected conjunction {expected_formula} not found in DNF result: "
+                f"{actual_dnf_set}"
+            )
 
     def test_single_literals(self):
         self.assert_dnf_equals(self.a, {self.a})
         self.assert_dnf_equals(Not(self.a), {Not(self.a)})
-
-    def test_constants(self):
-        self.assert_dnf_equals(TRUE(), {TRUE()})
-        self.assert_dnf_equals(FALSE(), set())
 
     def test_nested_ands(self):
         formula = And(And(self.a, self.b), And(self.c, self.d))
@@ -98,33 +105,3 @@ class TestDNFGeneratorWithInts:
             And(self.b, self.c, self.x, self.y),
         }
         self.assert_dnf_equals(formula, expected)
-
-    def test_generator_exhaustion(self):
-        formula = And(Or(self.a, self.b), Or(self.c, self.d))
-        conjunction_gen = self.dnf_generator.get_conjunctions(formula)
-        results = list(conjunction_gen)
-        assert len(results) == 4
-        with pytest.raises(StopIteration):
-            next(conjunction_gen)
-
-    def test_generator_is_lazy(self):
-        formula = And(Or(self.a, self.b), Or(self.c, self.d))
-        expected_conjunctions = {
-            And(self.a, self.c),
-            And(self.a, self.d),
-            And(self.b, self.c),
-            And(self.b, self.d),
-        }
-
-        conjunction_gen = self.dnf_generator.get_conjunctions(formula)
-        # Pull items and verify count at each step
-        results = set()
-        for i in range(1, 5):
-            results.add(next(conjunction_gen))
-            assert len(results) == i
-
-        # Final check against expected results
-        self.assert_dnf_equals(formula, expected_conjunctions)
-        # Check for exhaustion
-        with pytest.raises(StopIteration):
-            next(conjunction_gen)

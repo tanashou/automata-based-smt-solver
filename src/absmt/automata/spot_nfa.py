@@ -64,7 +64,6 @@ class SpotNFA:
         self.twa_graph = spot.make_twa_graph(bdd_dict)
         self.twa_graph.set_buchi()
         # Pretend this is state-based acceptance
-        self.twa_graph.prop_state_acc(True)  # noqa: FBT003
         # 終端変数を登録
         self._end_var = self.twa_graph.register_ap("_END")
 
@@ -198,17 +197,19 @@ class SpotNFA:
         """Get the number of states in the automaton."""
         return self.twa_graph.num_states()
 
-    def minimize(self) -> None:
+    def minimize(self, automata_type: int) -> None:
         """Minimize the automaton using Spot's minimization."""
+        # automata_type: spot.postprocessor.<Type>
+
+        self.twa_graph = spot.complete(self.twa_graph)
         post = spot.postprocessor()
-        # 最適化レベルを最大
-        post.set_level(spot.postprocessor.High)
+        # High だと一部構造が破壊され、結果が異なる可能性がある
+        post.set_level(spot.postprocessor.Medium)
         # 状態数を小さくすることを優先
         post.set_pref(spot.postprocessor.Small)
         # Weakオートマトンは最小の決定性Büchiオートマトンになる
-        post.set_type(spot.postprocessor.Deterministic)
-        # 出力をBüchiオートマトンに強制する
-        post.set_type(spot.postprocessor.Buchi)
+        post.set_pref(spot.postprocessor.Deterministic)
+        post.set_type(automata_type)
         minimized_aut = post.run(self.twa_graph)
         self.twa_graph = minimized_aut
 
@@ -296,7 +297,7 @@ class SpotNFA:
                 state_counts[structure_str] = -1
             return None
 
-        result.minimize()
+        result.minimize(spot.postprocessor.GeneralizedBuchi)
 
         # Record state count if dict is provided
         if state_counts is not None:
@@ -335,7 +336,7 @@ class SpotNFA:
         automata_list = list(nfas)
 
         for aut in automata_list:
-            aut.minimize()
+            aut.minimize(spot.postprocessor.Buchi)
 
         # Generate default structure if not provided
         if tournament_structure is None:

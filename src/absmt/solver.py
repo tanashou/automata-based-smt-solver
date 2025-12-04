@@ -6,7 +6,7 @@ from pysmt.shortcuts import And
 
 from absmt.formula import FormulaDataExtractor
 from absmt.formula.rewritings import (
-    DNFGenerator,
+    DNFConverter,
     DoubleNegationEliminator,
     NegationEliminator,
 )
@@ -23,7 +23,7 @@ class Solver:
 
         self._double_negation_eliminator = DoubleNegationEliminator()
         self._negation_eliminator = NegationEliminator()
-        self._dnf_generator = DNFGenerator()
+        self._dnf_converter = DNFConverter()
         self._data_extractor = FormulaDataExtractor()
         self._sat_status = SatStatus.UNKNOWN
 
@@ -60,7 +60,11 @@ class Solver:
 
         target_formula = And(self._formulas)
         rewritten_formula = self._rewrite(target_formula)
-        conjunctions = self._dnf_generator.get_conjunctions(rewritten_formula)
+        conjunctions = self._dnf_converter.convert(rewritten_formula)
+        if not conjunctions:
+            msg = "DNF conversion resulted in no conjunctions."
+            raise RuntimeError(msg)
+
         for conjunction in conjunctions:
             result_nfa = formula_automata_builder.build(conjunction)
 
@@ -81,4 +85,5 @@ class Solver:
                 "The provided formulas are judged as unsatisfiable, "
                 "but the SMT-LIB status is 'sat'."
             )
+
         return SatStatus.UNSAT
