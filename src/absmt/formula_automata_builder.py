@@ -25,6 +25,7 @@ class FormulaAutomataBuilder(DagWalker):
 
     def build(self, formula: FNode) -> SpotNFA | None:
         all_vars = [str(var) for var in formula.get_free_variables()]
+        all_vars += [str(var) for var in QuantVarCollector().collect(formula)]
         all_var_index_map = {var: index for index, var in enumerate(all_vars)}
         walk_context = {
             "all_vars": all_vars,
@@ -56,6 +57,32 @@ class FormulaAutomataBuilder(DagWalker):
 
         return res
 
+    def walk_or(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA | None:
+        formula_str = formula.serialize(threshold=20)
+        logger.debug(
+            "Building automaton for 'or' with %d operands; formula=%s",
+            len(args),
+            formula_str,
+        )
+        return SpotNFA.union_all(*args)
+
+    def walk_exists(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
+        if len(args) != 1:
+            msg = (
+                "The body of an exists expression must be represented as a single nfa. "
+            )
+            raise ValueError(msg)
+
+        quantifier_vars_str = [str(var) for var in formula.quantifier_vars()]
+        spot_nfa = args[0]
+        return SpotNFA.projection(spot_nfa, quantifier_vars_str)
+
+    def walk_not(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
+        if len(args) != 1:
+            msg = "The body of a NOT expression must be represented as a single nfa."
+            raise ValueError(msg)
+        return SpotNFA.complement(args[0])
+
     @handles(op.LT, op.LE, op.EQUALS)
     def walk_literal(self, formula: FNode, args, **kwargs) -> SpotNFA:
         literal_data = self._literal_data_extractor.extract(formula)
@@ -66,6 +93,7 @@ class FormulaAutomataBuilder(DagWalker):
         nfa = builder.build()
         res = SpotNFA(nfa, self._bdict)
         res.set_formula_data(literal_data)
+        res.minimize(spot.postprocessor.Buchi)
         formula_str = formula.serialize(threshold=20)
         logger.debug(
             "Prepared automaton for 'literal'; formula=%s",
@@ -623,3 +651,29 @@ class ClusterBlock:
     variables: set[str]  # 変数の和集合
     estimated_states: int  # 推定状態数
     structure: TournamentStructure | None = None  # 内部構造
+
+
+class QuantVarCollector(DagWalker):
+    """A simple walker to collect quantifier variables from a formula."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.quantifier_vars: set[str] = set()
+
+    def collect(self, formula: FNode) -> set[str]:
+        """Collect quantifier variables from the given formula."""
+        self.walk(formula)
+        return self.quantifier_vars
+
+    def walk_exists(self, formula: FNode, args, **kwargs) -> None:
+        self.quantifier_vars.update(formula.quantifier_vars())
+
+    @handles(
+        op.SYMBOL,
+        *op.BOOL_CONNECTIVES,
+        *op.CONSTANTS,
+        *op.RELATIONS,
+    )
+    def walk_others(self, formula: FNode, args, **kwargs) -> None:
+        """Handle other formula types without collecting quantifier variables."""
+        return
