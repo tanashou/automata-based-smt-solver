@@ -3,10 +3,16 @@
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
+from typing import ClassVar
 
 import pysmt.operators as op
 import spot
+from pysmt.exceptions import (
+    PysmtValueError,
+)
 from pysmt.fnode import FNode
+from pysmt.logics import LIA, QF_LIA
+from pysmt.oracles import get_logic
 from pysmt.walkers import DagWalker
 from pysmt.walkers.generic import handles
 
@@ -18,12 +24,23 @@ logger = logging.getLogger(__name__)
 
 
 class FormulaAutomataBuilder(DagWalker):
+    LOGICS: ClassVar[list] = [LIA, QF_LIA]
+
     def __init__(self) -> None:
         super().__init__()
         self._literal_data_extractor = LiteralDataExtractor()
         self._bdict = spot.make_bdd_dict()
 
     def build(self, formula: FNode) -> SpotNFA | None:
+        logic = get_logic(formula)
+        if logic not in self.LOGICS:
+            msg = (
+                "formula automata builder only "
+                "supports LIA or QF_LIA without combination."
+                f"(detected logic is: {logic!s})"
+            )
+            raise PysmtValueError(msg)
+
         all_vars = [str(var) for var in formula.get_free_variables()]
         all_vars += [str(var) for var in QuantVarCollector().collect(formula)]
         all_var_index_map = {var: index for index, var in enumerate(all_vars)}

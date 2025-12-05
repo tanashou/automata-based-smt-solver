@@ -1,6 +1,13 @@
 # ruff: noqa: ANN201, ANN204, ANN001, ANN003, ARG002
 
+from typing import ClassVar
+
 import pysmt.operators as op
+from pysmt.exceptions import (
+    PysmtValueError,
+)
+from pysmt.logics import LIA
+from pysmt.oracles import get_logic
 from pysmt.rewritings import handles
 from pysmt.walkers import DagWalker
 
@@ -13,11 +20,21 @@ class QuantifierPreservingNNFizer(DagWalker):
     NNF conversion to the subformula P(x) recursively.
     """
 
+    LOGICS: ClassVar[list] = [LIA]
+
     def __init__(self, environment=None):
         DagWalker.__init__(self, env=environment)
         self.mgr = self.env.formula_manager
 
     def convert(self, formula):
+        logic = get_logic(formula)
+        if logic not in self.LOGICS:
+            msg = (
+                "formula automata builder only "
+                "supports LIA or QF_LIA without combination."
+                f"(detected logic is: {logic!s})"
+            )
+            raise PysmtValueError(msg)
         return self.walk(formula)
 
     def _get_children(self, formula):  # noqa: ANN202, C901, PLR0911
