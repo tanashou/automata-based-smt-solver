@@ -83,7 +83,9 @@ class FormulaAutomataBuilder(DagWalker):
         )
         return SpotNFA.union_all(*args)
 
-    def walk_exists(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
+    def walk_exists(
+        self, formula: FNode, args: list[SpotNFA], **kwargs
+    ) -> SpotNFA | None:
         if len(args) != 1:
             msg = (
                 "The body of an exists expression must be represented as a single nfa. "
