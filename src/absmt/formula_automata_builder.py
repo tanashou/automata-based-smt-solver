@@ -98,7 +98,7 @@ class FormulaAutomataBuilder(DagWalker):
         if len(args) != 1:
             msg = "The body of a NOT expression must be represented as a single nfa."
             raise ValueError(msg)
-        return SpotNFA.complement(args[0])
+        return SpotNFA.complement(args[0], self._bdict)
 
     @handles(op.LT, op.LE, op.EQUALS)
     def walk_literal(self, formula: FNode, args, **kwargs) -> SpotNFA:
