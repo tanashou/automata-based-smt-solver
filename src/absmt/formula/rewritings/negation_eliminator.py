@@ -17,6 +17,9 @@ class NegationEliminator(IdentityDagWalker):
     def __init__(self):
         super().__init__()
 
+    def eliminate(self, formula):
+        return self.walk(formula)
+
     def walk_not(self, formula, args, **kwargs):
         if len(args) != 1:
             msg = "NegationEliminator is intended for use after NNF conversion."

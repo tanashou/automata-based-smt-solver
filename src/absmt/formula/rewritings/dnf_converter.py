@@ -1,14 +1,22 @@
 # ruff: noqa: ANN204, ANN001, ANN003, ARG002
 import itertools
+from typing import ClassVar
 
 import pysmt.operators as op
+from pysmt.exceptions import (
+    PysmtValueError,
+)
 from pysmt.fnode import FNode
+from pysmt.logics import QF_LIA
+from pysmt.oracles import get_logic
 from pysmt.walkers.dag import DagWalker
 from pysmt.walkers.generic import handles
 
 
 class DNFConverter(DagWalker):
     """Converts a formula to DNF. The input formula is assumed to be in NNF."""
+
+    LOGICS: ClassVar[list] = [QF_LIA]
 
     def __init__(self, env=None):
         # DagWalker keeps a cache (memoization) so that shared subformulas
@@ -18,6 +26,14 @@ class DNFConverter(DagWalker):
         self.mgr = self.env.formula_manager
 
     def convert(self, formula) -> list[FNode]:
+        logic = get_logic(formula)
+        if logic not in self.LOGICS:
+            msg = (
+                "formula automata builder only supports QF_LIA."
+                f"(detected logic is: {logic!s})"
+            )
+            raise PysmtValueError(msg)
+
         dnf = self.walk(formula)
         return self._get_conjunctions(dnf)
 
