@@ -16,7 +16,7 @@ MAX_SIZE_BYTES = 5 * 1024
 # --- ここからスクリプト本体 ---
 
 
-def process_subdirectory(subdir: Path, output_dir: Path):  # noqa: ANN201
+def process_subdirectory(subdir: Path, output_dir: Path, skip_size_check: bool = False):  # noqa: ANN201
     """一つのサブディレクトリを処理し、対応する.txtファイルを生成する関数"""  # noqa: D400, D415
     print(f"\n処理中のディレクトリ: {subdir.name}...")  # noqa: T201
 
@@ -24,8 +24,8 @@ def process_subdirectory(subdir: Path, output_dir: Path):  # noqa: ANN201
 
     # このサブディレクトリ内を再帰的に検索
     for file_path in subdir.rglob("*.smt2"):
-        # ファイルサイズが上限未満かチェック
-        if file_path.stat().st_size < MAX_SIZE_BYTES:
+        # ファイルサイズが上限未満かチェック（skip_size_checkがTrueの場合はスキップ）
+        if skip_size_check or file_path.stat().st_size < MAX_SIZE_BYTES:
             # 出力ディレクトリからの相対パスを計算
             relative_path = os.path.relpath(file_path, start=output_dir)
             valid_file_paths.append(relative_path.replace("\\", "/"))
@@ -65,11 +65,14 @@ def process_benchmark_category(category_name: str):  # noqa: ANN201
     print(f"\n=== {category_name} の処理を開始 ===")  # noqa: T201
     print(f"テキストファイルは '{output_dir}' に保存されます。")  # noqa: T201
 
+    # LIAの場合はファイルサイズチェックをスキップ
+    skip_size_check = category_name == "LIA"
+
     # search_dir 直下の各アイテムをループ
     for item in search_dir.iterdir():
         # ディレクトリであれば、処理を実行
         if item.is_dir():
-            process_subdirectory(item, output_dir)
+            process_subdirectory(item, output_dir, skip_size_check=skip_size_check)
 
 
 def main():  # noqa: ANN201
