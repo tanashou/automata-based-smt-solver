@@ -125,6 +125,9 @@ class QuantifierPreservingNNFizer(DagWalker):
         return self.mgr.Exists(formula.quantifier_vars(), args[0])
 
     def walk_symbol(self, formula, **kwargs):
+        if formula.symbol_type().is_bool_type():
+            msg = """absmt does not support boolean symbols for now."""
+            raise NotImplementedError(msg)
         return formula
 
     @handles(op.CONSTANTS)
