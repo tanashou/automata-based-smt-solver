@@ -27,7 +27,7 @@ class DNFConverter(DagWalker):
 
     def convert(self, formula) -> list[FNode]:
         logic = get_logic(formula)
-        if logic not in self.LOGICS:
+        if not any(logic <= allowed_logic for allowed_logic in self.LOGICS):
             msg = (
                 "formula automata builder only supports QF_LIA."
                 f"(detected logic is: {logic!s})"

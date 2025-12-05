@@ -2,8 +2,6 @@ from pysmt.fnode import FNode
 from pysmt.shortcuts import GT, LT, And, Equals, Not, Or, Symbol
 from pysmt.typing import INT
 
-# クラス名が DNFConverter に変更されたと仮定してインポートします
-# パスは環境に合わせて調整してください
 from absmt.formula.rewritings.dnf_converter import DNFConverter
 
 
