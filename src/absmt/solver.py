@@ -1,6 +1,8 @@
 import logging
 
 from pysmt.fnode import FNode
+from pysmt.logics import LIA, QF_LIA
+from pysmt.oracles import get_logic
 from pysmt.rewritings import nnf
 from pysmt.shortcuts import And
 
@@ -23,16 +25,13 @@ class Solver:
     def __init__(self) -> None:
         self._formulas: list[FNode] = []
 
-        self._double_negation_eliminator = DoubleNegationEliminator()
-        self._negation_eliminator = NegationEliminator()
-        self._dnf_converter = DNFConverter()
         self._data_extractor = FormulaDataExtractor()
         self._sat_status = SatStatus.UNKNOWN
 
     def _rewrite(self, formula: FNode) -> FNode:
         nnf_formula = nnf(formula)
         logger.debug("After converting to NNF: %s", nnf_formula.serialize(threshold=20))
-        negation_eliminated = self._negation_eliminator.walk(nnf_formula)
+        negation_eliminated = NegationEliminator().eliminate(nnf_formula)
         logger.debug(
             "After eliminating negations: %s",
             negation_eliminated.serialize(threshold=20),
@@ -40,13 +39,14 @@ class Solver:
         return negation_eliminated
 
     def _rewrite_lia(self, formula: FNode) -> FNode:
-        eliminate_universal_qf = UniversalQFEliminator().walk(formula)
-        nnf_like_formula = QuantifierPreservingNNFizer().walk(eliminate_universal_qf)
+        eliminate_universal_qf = UniversalQFEliminator().eliminate(formula)
+        nnf_like_formula = QuantifierPreservingNNFizer().convert(eliminate_universal_qf)
+        result = DoubleNegationEliminator().eliminate(nnf_like_formula)
         logger.debug(
             "After converting to quantifier-preserving NNF: %s",
-            nnf_like_formula.serialize(threshold=20),
+            result.serialize(threshold=20),
         )
-        return nnf_like_formula
+        return result
 
     def add(self, formula: FNode) -> None:
         self._formulas.append(formula)
@@ -66,12 +66,19 @@ class Solver:
         if not self._formulas:
             msg = "No formulas to solve."
             raise ValueError(msg)
-
-        formula_automata_builder = FormulaAutomataBuilder()
-
         target_formula = And(self._formulas)
+        logic = get_logic(target_formula)
+        if logic == QF_LIA:
+            return self._solve_qf_lia(target_formula)
+        if logic == LIA:
+            return self._solve_lia(target_formula)
+        msg = "Solver only supports LIA and QF_LIA logics."
+        raise NotImplementedError(msg)
+
+    def _solve_qf_lia(self, target_formula: FNode) -> SatStatus:
+        formula_automata_builder = FormulaAutomataBuilder()
         rewritten_formula = self._rewrite(target_formula)
-        conjunctions = self._dnf_converter.convert(rewritten_formula)
+        conjunctions = DNFConverter().convert(rewritten_formula)
         if not conjunctions:
             msg = "DNF conversion resulted in no conjunctions."
             raise RuntimeError(msg)
@@ -99,19 +106,13 @@ class Solver:
 
         return SatStatus.UNSAT
 
-    def solve_lia(self) -> SatStatus:
+    def _solve_lia(self, target_formula: FNode) -> SatStatus:
         """Solve the added formulas assuming they are in QF_LIA logic.
 
         This method is a convenience wrapper around `solve` and assumes
         that the added formulas are in the QF_LIA logic.
         """
-        if not self._formulas:
-            msg = "No formulas to solve."
-            raise ValueError(msg)
-
         formula_automata_builder = FormulaAutomataBuilder()
-
-        target_formula = And(self._formulas)
         rewritten_formula = self._rewrite_lia(target_formula)
 
         result_nfa = formula_automata_builder.build(rewritten_formula)
