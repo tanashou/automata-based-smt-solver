@@ -472,7 +472,9 @@ class SpotNFA:
         return result
 
     @staticmethod
-    def projection(nfa: "SpotNFA", quantified_vars: list[str]) -> "SpotNFA":
+    def projection(
+        nfa: "SpotNFA | None", quantified_vars: list[str]
+    ) -> "SpotNFA | None":
         """Remove the given ap from all transition guards in the automaton.
 
         Args:
@@ -481,6 +483,9 @@ class SpotNFA:
                 List of atomic proposition names to remove (e.g., ["x", "y"]).
 
         """
+        if nfa is None:
+            return None
+
         # 1. 新しいオートマトンのガワを作成(辞書は共有)
         old_g = nfa.twa_graph
         new_g = spot.make_twa_graph(old_g.get_dict())
