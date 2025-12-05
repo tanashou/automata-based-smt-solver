@@ -41,9 +41,9 @@ class Solver:
         return negation_eliminated
 
     def _rewrite_lia(self, formula: FNode) -> FNode:
-        nnf_like_formula = QuantifierPreservingNNFizer().convert(formula)
-        eliminate_universal_qf = UniversalQFEliminator().eliminate(nnf_like_formula)
-        result = DoubleNegationEliminator().eliminate(eliminate_universal_qf)
+        eliminate_universal_qf = UniversalQFEliminator().eliminate(formula)
+        nnf_like_formula = QuantifierPreservingNNFizer().convert(eliminate_universal_qf)
+        result = DoubleNegationEliminator().eliminate(nnf_like_formula)
         logger.debug(
             "After converting to quantifier-preserving NNF: %s",
             result.serialize(threshold=20),
