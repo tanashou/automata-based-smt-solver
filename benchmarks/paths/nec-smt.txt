@@ -1,1 +1,0 @@
-../QF_LIA/nec-smt/small/int_from_list/prp-2-17.smt2

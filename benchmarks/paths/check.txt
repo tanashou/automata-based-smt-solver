@@ -1,5 +1,0 @@
-../QF_LIA/check/bignum_lia1.smt2
-../QF_LIA/check/bignum_lia2.smt2
-../QF_LIA/check/int_incompleteness1.smt2
-../QF_LIA/check/int_incompleteness2.smt2
-../QF_LIA/check/int_incompleteness3.smt2
