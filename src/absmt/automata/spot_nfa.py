@@ -235,7 +235,7 @@ class SpotNFA:
         """Get the number of states in the automaton."""
         return self.twa_graph.num_states()
 
-    def minimize(self, automata_type: int) -> None:
+    def minimize(self, automata_type) -> None:  # noqa: ANN001
         """Minimize the automaton using Spot's minimization."""
         # automata_type: spot.postprocessor.<Type>
 
