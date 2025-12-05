@@ -4,11 +4,11 @@ from pathlib import Path
 # --- 設定項目 ---
 
 # 1. テストファイル群の親ディレクトリ
-#    この中のサブディレクトリをそれぞれ処理します
-BASE_SEARCH_DIR = Path(__file__).parent.parent / ".benchmarks" / "QF_LIA"
+#    LIAとQF_LIAの両方を処理します
+BENCHMARK_BASE_DIR = Path(__file__).parent.parent / "benchmarks"
 
-# 2. 生成したテキストファイルの出力先ディレクトリ
-OUTPUT_DIR = Path(__file__).parent.parent / ".benchmarks" / "paths"
+# 2. 生成したテキストファイルの出力先ディレクトリのベース
+PATHS_BASE_DIR = Path(__file__).parent.parent / "benchmarks" / "paths"
 
 # 3. ファイルサイズの最大値（これより小さいものを対象とする）  # noqa: RUF003
 MAX_SIZE_BYTES = 5 * 1024
@@ -16,7 +16,7 @@ MAX_SIZE_BYTES = 5 * 1024
 # --- ここからスクリプト本体 ---
 
 
-def process_subdirectory(subdir: Path):  # noqa: ANN201
+def process_subdirectory(subdir: Path, output_dir: Path):  # noqa: ANN201
     """一つのサブディレクトリを処理し、対応する.txtファイルを生成する関数"""  # noqa: D400, D415
     print(f"\n処理中のディレクトリ: {subdir.name}...")  # noqa: T201
 
@@ -27,7 +27,7 @@ def process_subdirectory(subdir: Path):  # noqa: ANN201
         # ファイルサイズが上限未満かチェック
         if file_path.stat().st_size < MAX_SIZE_BYTES:
             # 出力ディレクトリからの相対パスを計算
-            relative_path = os.path.relpath(file_path, start=OUTPUT_DIR)
+            relative_path = os.path.relpath(file_path, start=output_dir)
             valid_file_paths.append(relative_path.replace("\\", "/"))
 
     # 条件に合うファイルがなければ、何もせず終了
@@ -39,7 +39,7 @@ def process_subdirectory(subdir: Path):  # noqa: ANN201
     valid_file_paths.sort()
 
     # 出力ファイル名を決定 (例: prime-cone -> prime-cone.txt)
-    output_file = OUTPUT_DIR / f"{subdir.name}.txt"
+    output_file = output_dir / f"{subdir.name}.txt"
 
     # 見つかったパスをファイルに書き込む
     with output_file.open("w", encoding="utf-8") as f:
@@ -51,22 +51,33 @@ def process_subdirectory(subdir: Path):  # noqa: ANN201
     )
 
 
-def main():  # noqa: ANN201
-    if not BASE_SEARCH_DIR.is_dir():
-        print(f"エラー: 検索ディレクトリが見つかりません: {BASE_SEARCH_DIR}")  # noqa: T201
+def process_benchmark_category(category_name: str):  # noqa: ANN201
+    """LIAまたはQF_LIAのカテゴリを処理する関数"""  # noqa: D400, D415
+    search_dir = BENCHMARK_BASE_DIR / category_name
+    output_dir = PATHS_BASE_DIR / category_name
+
+    if not search_dir.is_dir():
+        print(f"警告: 検索ディレクトリが見つかりません: {search_dir}")  # noqa: T201
         return
 
     # 出力先ディレクトリがなければ作成
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    print(f"テキストファイルは '{OUTPUT_DIR}' に保存されます。")  # noqa: T201
+    output_dir.mkdir(parents=True, exist_ok=True)
+    print(f"\n=== {category_name} の処理を開始 ===")  # noqa: T201
+    print(f"テキストファイルは '{output_dir}' に保存されます。")  # noqa: T201
 
-    # BASE_SEARCH_DIR 直下の各アイテムをループ
-    for item in BASE_SEARCH_DIR.iterdir():
+    # search_dir 直下の各アイテムをループ
+    for item in search_dir.iterdir():
         # ディレクトリであれば、処理を実行
         if item.is_dir():
-            process_subdirectory(item)
+            process_subdirectory(item, output_dir)
+
+
+def main():  # noqa: ANN201
+    # LIAとQF_LIAの両方を処理
+    for category in ["LIA", "QF_LIA"]:
+        process_benchmark_category(category)
 
 
 if __name__ == "__main__":
     main()
-    print("\nすべてのディレクトリの処理が完了しました。")  # noqa: T201
+    print("\n=== すべてのディレクトリの処理が完了しました ===")  # noqa: T201
