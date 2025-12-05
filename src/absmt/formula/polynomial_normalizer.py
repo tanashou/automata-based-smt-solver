@@ -68,6 +68,6 @@ class PolynomialNormalizer(DagWalker):
     def walk_symbol(self, formula: FNode, args: list, **kwargs) -> tuple:
         # Only consider INT or REAL type symbols
         if formula.symbol_type().is_int_type() or formula.symbol_type().is_real_type():
-            return {formula.symbol_name(): 1}, 0
+            return {str(formula): 1}, 0
         # Symbols of type BOOL should not appear in arithmetic expressions
         return {}, 0
