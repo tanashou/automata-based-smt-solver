@@ -1,11 +1,13 @@
 import logging
 
+import spot
 from pysmt.fnode import FNode
 from pysmt.logics import LIA, QF_LIA
 from pysmt.oracles import get_logic
 from pysmt.rewritings import nnf
 from pysmt.shortcuts import And
 
+from absmt.automata.spot_nfa import SpotNFA
 from absmt.formula import FormulaDataExtractor
 from absmt.formula.rewritings import (
     DNFConverter,
@@ -90,7 +92,7 @@ class Solver:
             if result_nfa is None:
                 continue
 
-            if not result_nfa.is_empty():
+            if not result_nfa.is_empty() and self._is_infinite_language(result_nfa):
                 if self._sat_status == SatStatus.UNSAT:
                     logger.error(
                         "The provided formulas are judged as satisfiable, "
@@ -118,7 +120,7 @@ class Solver:
         result_nfa = formula_automata_builder.build(rewritten_formula)
         if result_nfa is None:
             return SatStatus.UNSAT
-        if result_nfa.is_empty():
+        if result_nfa.is_empty() or not self._is_infinite_language(result_nfa):
             if self._sat_status == SatStatus.SAT:
                 logger.error(
                     "The provided formulas are judged as unsatisfiable, "
@@ -131,3 +133,29 @@ class Solver:
                 "but the SMT-LIB status is 'unsat'."
             )
         return SatStatus.SAT
+
+    def _is_infinite_language(self, nfa: SpotNFA) -> bool:
+        """Check if the automaton accepts an infinite words (padding invariant).
+
+        We look for a non-trivial SCC that is NOT accepting.
+        - The 'Accepting Sink' loop is accepting, representing the end of a finite word.
+        - A 'Prefix' loop (padding) is NOT accepting (in our Universe construction).
+
+        Therefore, if we find a loop that is not accepting, it implies we can
+        pad the word infinitely, meaning the solution is valid in LIA.
+        """
+        aut = nfa.twa_graph
+        scc_info = spot.scc_info(aut)
+
+        for i in range(scc_info.scc_count()):
+            # ループを持たない、自明なSCCは無視
+            if scc_info.is_trivial(i):
+                continue
+
+            # そのループが受理条件を持っていないか確認
+            # プレフィックス部分のループは受理条件を持たず、
+            # 最後のSinkループだけが受理条件を持つ。
+            if not scc_info.is_accepting_scc(i):
+                return True
+
+        return False
