@@ -117,8 +117,7 @@ class Solver:
 
         result_nfa = formula_automata_builder.build(rewritten_formula)
         if result_nfa is None:
-            msg = "Failed to build automaton for the formula."
-            raise RuntimeError(msg)
+            return SatStatus.UNSAT
         if result_nfa.is_empty():
             if self._sat_status == SatStatus.SAT:
                 logger.error(
