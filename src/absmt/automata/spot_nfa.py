@@ -384,24 +384,30 @@ class SpotNFA:
         )
 
     @staticmethod
-    def union_all(*nfas: "SpotNFA") -> "SpotNFA":
+    def union_all(*nfas: "SpotNFA | None") -> "SpotNFA | None":
         """Create a single automaton by taking the union of all given SpotNFA.
 
         Args:
-            *nfas: SpotNFA instances to combine
+            *nfas: SpotNFA instances to combine (None values are ignored)
 
         Returns:
-            SpotNFA: The union automaton of all input automata
+            SpotNFA | None: The union automaton of all input automata,
+                or None if all inputs are None
 
         """
         if not nfas:
             msg = "No NFAs provided for union."
             raise ValueError(msg)
 
-        if len(nfas) == 1:
-            return nfas[0]
+        # Filter out None values
+        automata_list = [nfa for nfa in nfas if nfa is not None]
 
-        automata_list = list(nfas)
+        # If all inputs were None, return None
+        if not automata_list:
+            return None
+
+        if len(automata_list) == 1:
+            return automata_list[0]
 
         result_aut = automata_list[0].twa_graph
 
@@ -414,42 +420,50 @@ class SpotNFA:
         return result
 
     @staticmethod
-    def complement(nfa: "SpotNFA") -> "SpotNFA":
-        """Create a complement automaton from the nfa."""
-        # 1. 通常の補集合計算
-        comp_graph = spot.complement(nfa.twa_graph)
+    def complement(nfa: "SpotNFA | None", bdd_dict: Any) -> "SpotNFA":  # noqa: ANN401
+        """Create a complement automaton from the nfa.
 
-        # 2. "Strict Universe" (非空の宇宙) オートマトンの作成
+        If nfa is None, returns the Strict Universe (accepts all finite traces).
+        """
+        # --- 共通: Strict Universe (非空の宇宙) オートマトンの作成 ---
         # 構造: Init -(!_END)-> q_wait -(!_END)*-> q_wait -(_END)-> q_sink
+        # 辞書はnfaがあればそれを使用、なければ空から作成
+        # 元のグラフのBDD辞書を引き継ぐ。変数を引き継ぐため。
+        bdd_dict = nfa.twa_graph.get_dict() if nfa is not None else bdd_dict
 
-        universe = spot.make_twa_graph(nfa.twa_graph.get_dict())
+        universe = spot.make_twa_graph(bdd_dict)
         universe.set_buchi()
 
         q_init = universe.new_state()  # 初期状態
-        q_wait = universe.new_state()  # 2ビット目以降の待機
+        q_wait = universe.new_state()  # 待機状態
         q_sink = universe.new_state()  # 受理シンク
 
         universe.set_init_state(q_init)
 
-        # 変数IDの取得
+        # 変数IDの取得・登録
         end_ap = universe.register_ap("_END")
         end_bdd = buddy.bdd_ithvar(end_ap)
         not_end_bdd = buddy.bdd_not(end_bdd)
 
-        # -- 遷移の構築 --
-
-        # 1. 初期状態からは、必ず !_END (ビット) を読まなければならない
-        #    いきなり _END が来ると遷移先がないため脱落する
+        # 1. Init -> Wait (!ZE)
         universe.new_edge(q_init, q_wait, not_end_bdd)
-
-        # 2. q_wait: その後は !_END が続く限りループ、_END が来たら受理
+        # 2. Wait -> Wait (!ZE) / Wait -> Sink (ZE)
         universe.new_edge(q_wait, q_wait, not_end_bdd)
         universe.new_edge(q_wait, q_sink, end_bdd)
-
-        # 3. q_sink: 受理ループ
+        # 3. Sink -> Sink (True) [Accepting]
         universe.new_edge(q_sink, q_sink, buddy.bddtrue, [0])
 
-        # 3. 積集合をとる
+        # --- 分岐: 入力が None の場合 ---
+        if nfa is None:
+            # "全ての有効な有限文字列" を受理するオートマトンをそのまま返す
+            return SpotNFA.from_twa_graph(universe)
+
+        # --- 分岐: 通常の補集合計算 ---
+        # 1. 通常の補集合計算 (Spotの機能で反転)
+        comp_graph = spot.complement(nfa.twa_graph)
+
+        # 2. 積集合をとる (Comp ∩ Universe)
+        # これにより、"無限に続く不正な列" や "いきなり終了する列" などを除外する
         result_graph = spot.product(comp_graph, universe)
 
         result = SpotNFA.from_twa_graph(result_graph)
