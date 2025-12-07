@@ -204,7 +204,9 @@ def test_qf_lia_solver_benchmark(benchmark, benchmark_info: tuple[str, str, Path
     assert actual_status == expected_status
 
 
-@pytest.mark.benchmark
+@pytest.mark.benchmark(
+    min_rounds=1,
+)
 @pytest.mark.parametrize(
     "benchmark_info",
     collect_lia_benchmark_paths(),
