@@ -74,6 +74,7 @@ class SpotNFA:
         print("Weak:", self.twa_graph.prop_weak())
         print("Inherently Weak:", self.twa_graph.prop_inherently_weak())
         print("Stutter Invariant:", self.twa_graph.prop_stutter_invariant())
+        print("Is empty:", self.twa_graph.is_empty())
         for s in range(self.twa_graph.num_states()):
             print(f"State {s}:")
             for t in self.twa_graph.out(s):
@@ -421,52 +422,19 @@ class SpotNFA:
 
     @staticmethod
     def complement(nfa: "SpotNFA | None", bdd_dict: Any) -> "SpotNFA":  # noqa: ANN401
-        """Create a complement automaton from the nfa.
-
-        If nfa is None, returns the Strict Universe (accepts all finite traces).
-        """
-        # --- 共通: Strict Universe (非空の宇宙) オートマトンの作成 ---
-        # 構造: Init -(!_END)-> q_wait -(!_END)*-> q_wait -(_END)-> q_sink
-        # 辞書はnfaがあればそれを使用、なければ空から作成
-        # 元のグラフのBDD辞書を引き継ぐ。変数を引き継ぐため。
-        bdd_dict = nfa.twa_graph.get_dict() if nfa is not None else bdd_dict
-
-        universe = spot.make_twa_graph(bdd_dict)
-        universe.set_buchi()
-
-        q_init = universe.new_state()  # 初期状態
-        q_wait = universe.new_state()  # 待機状態
-        q_sink = universe.new_state()  # 受理シンク
-
-        universe.set_init_state(q_init)
-
-        # 変数IDの取得・登録
-        end_ap = universe.register_ap("_END")
-        end_bdd = buddy.bdd_ithvar(end_ap)
-        not_end_bdd = buddy.bdd_not(end_bdd)
-
-        # 1. Init -> Wait (!ZE)
-        universe.new_edge(q_init, q_wait, not_end_bdd)
-        # 2. Wait -> Wait (!ZE) / Wait -> Sink (ZE)
-        universe.new_edge(q_wait, q_wait, not_end_bdd)
-        universe.new_edge(q_wait, q_sink, end_bdd)
-        # 3. Sink -> Sink (True) [Accepting]
-        universe.new_edge(q_sink, q_sink, buddy.bddtrue, [0])
-
-        # --- 分岐: 入力が None の場合 ---
+        """Create a pure complement automaton from the nfa."""
+        # 入力が None (False) なら True (全宇宙) を返す
         if nfa is None:
-            # "全ての有効な有限文字列" を受理するオートマトンをそのまま返す
-            return SpotNFA.from_twa_graph(universe)
+            univ = spot.make_twa_graph(bdd_dict)
+            univ.set_buchi()
+            s = univ.new_state()
+            univ.set_init_state(s)
+            univ.new_edge(s, s, buddy.bddtrue, [0])  # 常に受理
+            return SpotNFA.from_twa_graph(univ)
 
-        # --- 分岐: 通常の補集合計算 ---
-        # 1. 通常の補集合計算 (Spotの機能で反転)
+        # 純粋な補集合計算
         comp_graph = spot.complement(nfa.twa_graph)
-
-        # 2. 積集合をとる (Comp ∩ Universe)
-        # これにより、"無限に続く不正な列" や "いきなり終了する列" などを除外する
-        result_graph = spot.product(comp_graph, universe)
-
-        result = SpotNFA.from_twa_graph(result_graph)
+        result = SpotNFA.from_twa_graph(comp_graph)
         result.minimize(spot.postprocessor.Buchi)
 
         return result
@@ -475,50 +443,40 @@ class SpotNFA:
     def projection(
         nfa: "SpotNFA | None", quantified_vars: list[str]
     ) -> "SpotNFA | None":
-        """Remove the given ap from all transition guards in the automaton.
-
-        Args:
-            nfa (SpotNFA): The automaton from which atomic propositions will be removed.
-            quantified_vars (list[str]):
-                List of atomic proposition names to remove (e.g., ["x", "y"]).
-
-        """
+        """Remove the given ap from all transition guards in the automaton."""
         if nfa is None:
             return None
 
-        # 1. 新しいオートマトンのガワを作成(辞書は共有)
+        # 1. オートマトンの複製と辞書の共有
         old_g = nfa.twa_graph
         new_g = spot.make_twa_graph(old_g.get_dict())
 
-        # 2. 受理条件と状態数をコピー
-        # set_buchi() ではなく元の受理条件を引き継ぐ
+        # 2. 基本情報のコピー
         new_g.copy_acceptance_of(old_g)
         new_g.new_states(old_g.num_states())
         new_g.set_init_state(old_g.get_init_state_number())
 
-        # 3. 消去する変数の特定と、残す変数の登録
+        # 3. 変数削除(射影)の準備
         vars_to_remove = set(quantified_vars)
 
-        # (A) 残す変数を新しいオートマトンに登録する
+        # 残す変数を登録
         for ap in old_g.ap():
-            ap_name = ap.ap_name()
-            if ap_name not in vars_to_remove:
-                new_g.register_ap(ap_name)
+            if ap.ap_name() not in vars_to_remove:
+                new_g.register_ap(ap.ap_name())
 
-        # (B) 消去するためのBDD Cube(連言)を作成
+        # 削除する変数のBDDキューブを作成
         cube = buddy.bddtrue
         for name in quantified_vars:
-            # register_ap は既存のAPならそのIDを返すので、IDルックアップとして使える
             var_id = old_g.register_ap(name)
             cube = buddy.bdd_and(cube, buddy.bdd_ithvar(var_id))
 
-        # 4. 全遷移を走査し、条件から変数を存在量化(射影)してコピー
+        # 4. 遷移条件から変数を削除 (Existential Quantification)
         for s in range(old_g.num_states()):
             for edge in old_g.out(s):
-                # cond 内の cube に含まれる変数を消去
                 new_cond = buddy.bdd_exist(edge.cond, cube)
                 new_g.new_edge(s, edge.dst, new_cond, edge.acc)
 
+        # 6. 最小化して結果を返す
         result = SpotNFA.from_twa_graph(new_g)
         result.minimize(spot.postprocessor.Buchi)
 

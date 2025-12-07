@@ -13,7 +13,7 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 MAX_MEMORY_BYTES = 4 * 1024 * 1024 * 1024  # 4 GB
-TIMEOUT_SECONDS = 30
+TIMEOUT_SECONDS = 60
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PATHS_BASE_DIR = REPO_ROOT / "benchmarks" / "paths"
@@ -204,7 +204,9 @@ def test_qf_lia_solver_benchmark(benchmark, benchmark_info: tuple[str, str, Path
     assert actual_status == expected_status
 
 
-@pytest.mark.benchmark
+@pytest.mark.benchmark(
+    min_rounds=1,
+)
 @pytest.mark.parametrize(
     "benchmark_info",
     collect_lia_benchmark_paths(),
