@@ -94,13 +94,29 @@ class FormulaAutomataBuilder(DagWalker):
 
         quantifier_vars_str = [str(var) for var in formula.quantifier_vars()]
         spot_nfa = args[0]
-        return SpotNFA.projection(spot_nfa, quantifier_vars_str)
+        res = SpotNFA.projection(spot_nfa, quantifier_vars_str)
+        logger.debug(
+            "Completed building for 'exists' over vars %s; formula=%s",
+            quantifier_vars_str,
+            formula.serialize(threshold=20),
+        )
+        if res is None:
+            logger.debug("Result is empty (None) after projection.")
+        else:
+            logger.debug("Resulting automaton after projection:")
+            logger.debug(res.custom_print())
+        return res
 
     def walk_not(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
         if len(args) != 1:
             msg = "The body of a NOT expression must be represented as a single nfa."
             raise ValueError(msg)
-        return SpotNFA.complement(args[0], self._bdict)
+        res = SpotNFA.complement(args[0], self._bdict)
+        logger.debug(
+            "Completed building for 'not'; formula=%s", formula.serialize(threshold=20)
+        )
+        logger.debug(res.custom_print())
+        return res
 
     @handles(op.LT, op.LE, op.EQUALS)
     def walk_literal(self, formula: FNode, args, **kwargs) -> SpotNFA:
@@ -118,6 +134,7 @@ class FormulaAutomataBuilder(DagWalker):
             "Prepared automaton for 'literal'; formula=%s",
             formula_str,
         )
+        logger.debug(res.custom_print())
 
         return res
 
