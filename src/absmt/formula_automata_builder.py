@@ -71,6 +71,7 @@ class FormulaAutomataBuilder(DagWalker):
             logger.debug("Complete building for 'and': result is empty (None).")
         else:
             logger.debug("Complete building for 'and'.")
+            logger.debug(res.custom_print())
 
         return res
 
@@ -81,7 +82,14 @@ class FormulaAutomataBuilder(DagWalker):
             len(args),
             formula_str,
         )
-        return SpotNFA.union_all(*args)
+        res = SpotNFA.union_all(*args)
+        if res is None:
+            logger.debug("Complete building for 'or': result is empty (None).")
+        else:
+            logger.debug("Complete building for 'or'.")
+            logger.debug(res.custom_print())
+
+        return res
 
     def walk_exists(
         self, formula: FNode, args: list[SpotNFA], **kwargs
