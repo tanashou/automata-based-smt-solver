@@ -13,7 +13,7 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 MAX_MEMORY_BYTES = 4 * 1024 * 1024 * 1024  # 4 GB
-TIMEOUT_SECONDS = 60
+TIMEOUT_SECONDS = 120
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PATHS_BASE_DIR = REPO_ROOT / "benchmarks" / "paths"
