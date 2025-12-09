@@ -1,4 +1,3 @@
-# ruff: noqa: T201
 import logging
 from dataclasses import InitVar, dataclass, field
 from typing import Any
@@ -47,43 +46,23 @@ class SpotNFA:
         """Get the list of registered atomic propositions."""
         return {str(ap) for ap in self.twa_graph.ap()}
 
-    def custom_print(self) -> None:
-        bdict = self.twa_graph.get_dict()
-        print("Acceptance:", self.twa_graph.get_acceptance())
-        print("Number of sets:", self.twa_graph.num_sets())
-        print("Number of states: ", self.twa_graph.num_states())
-        print("Initial states: ", self.twa_graph.get_init_state_number())
-        print("Atomic propositions:", end="")
-        for ap in self.twa_graph.ap():
-            print(" ", ap, " (=", bdict.varnum(ap), ")", sep="", end="")
-        print()
-        # Templated methods are not available in Python, so we cannot
-        # retrieve/attach arbitrary objects from/to the automaton.  However the
-        # Python bindings have get_name() and set_name() to access the
-        # "automaton-name" property.
-        name = self.twa_graph.get_name()
-        if name:
-            print("Name: ", name)
-        print(
-            "Deterministic:",
-            self.twa_graph.prop_universal() and self.twa_graph.is_existential(),
+    def custom_log(self) -> str:
+        is_deterministic = (
+            self.twa_graph.prop_universal() and self.twa_graph.is_existential()
         )
-        print("Unambiguous:", self.twa_graph.prop_unambiguous())
-        print("State-Based Acc:", self.twa_graph.prop_state_acc())
-        print("Terminal:", self.twa_graph.prop_terminal())
-        print("Weak:", self.twa_graph.prop_weak())
-        print("Inherently Weak:", self.twa_graph.prop_inherently_weak())
-        print("Stutter Invariant:", self.twa_graph.prop_stutter_invariant())
-        print("Is empty:", self.twa_graph.is_empty())
-        for s in range(self.twa_graph.num_states()):
-            print(f"State {s}:")
-            for t in self.twa_graph.out(s):
-                print(f"  edge({t.src} -> {t.dst})")
-                # bdd_print_formula() is designed to print on a std::ostream, and
-                # is inconvenient to use in Python.  Instead we use
-                # bdd_format_formula() as this simply returns a string.
-                print("    label =", spot.bdd_format_formula(bdict, t.cond))
-                print("    acc sets =", t.acc)
+        lines = [
+            f"Deterministic: {is_deterministic}",
+            f"Unambiguous: {self.twa_graph.prop_unambiguous()}",
+            f"State-Based Acc: {self.twa_graph.prop_state_acc()}",
+            f"Terminal: {self.twa_graph.prop_terminal()}",
+            f"Weak: {self.twa_graph.prop_weak()}",
+            f"Inherently Weak: {self.twa_graph.prop_inherently_weak()}",
+            f"Stutter Invariant: {self.twa_graph.prop_stutter_invariant()}",
+            f"Is empty: {self.twa_graph.is_empty()}",
+            self.to_hoa(),
+        ]
+
+        return "\n".join(lines)
 
     @classmethod
     def from_twa_graph(
@@ -159,9 +138,7 @@ class SpotNFA:
             self.twa_graph.new_edge(state_id, sink_state_id, end_bdd)
 
         # シンク状態に自己ループを追加。受理条件付き。
-        self.twa_graph.new_edge(
-            sink_state_id, sink_state_id, buddy.bddtrue, [acceptance_set]
-        )
+        self.twa_graph.new_edge(sink_state_id, sink_state_id, end_bdd, [acceptance_set])
 
         self.twa_graph.merge_edges()
 
