@@ -71,6 +71,7 @@ class FormulaAutomataBuilder(DagWalker):
             logger.debug("Complete building for 'and': result is empty (None).")
         else:
             logger.debug("Complete building for 'and'.")
+            logger.debug(res.custom_log())
 
         return res
 
@@ -81,7 +82,14 @@ class FormulaAutomataBuilder(DagWalker):
             len(args),
             formula_str,
         )
-        return SpotNFA.union_all(*args)
+        res = SpotNFA.union_all(*args)
+        if res is None:
+            logger.debug("Complete building for 'or': result is empty (None).")
+        else:
+            logger.debug("Complete building for 'or'.")
+            logger.debug(res.custom_log())
+
+        return res
 
     def walk_exists(
         self, formula: FNode, args: list[SpotNFA], **kwargs
@@ -104,7 +112,7 @@ class FormulaAutomataBuilder(DagWalker):
             logger.debug("Result is empty (None) after projection.")
         else:
             logger.debug("Resulting automaton after projection:")
-            logger.debug(res.custom_print())
+            logger.debug(res.custom_log())
         return res
 
     def walk_not(self, formula: FNode, args: list[SpotNFA], **kwargs) -> SpotNFA:
@@ -115,7 +123,7 @@ class FormulaAutomataBuilder(DagWalker):
         logger.debug(
             "Completed building for 'not'; formula=%s", formula.serialize(threshold=20)
         )
-        logger.debug(res.custom_print())
+        logger.debug(res.custom_log())
         return res
 
     @handles(op.LT, op.LE, op.EQUALS)
@@ -134,7 +142,7 @@ class FormulaAutomataBuilder(DagWalker):
             "Prepared automaton for 'literal'; formula=%s",
             formula_str,
         )
-        logger.debug(res.custom_print())
+        logger.debug(res.custom_log())
 
         return res
 
