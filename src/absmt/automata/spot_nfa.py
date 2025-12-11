@@ -123,8 +123,6 @@ class SpotNFA:
 
         for start_state, trans in transitions.items():
             start_state_id = self._state_map[start_state]
-
-            # 受理状態からの遷移全てを受理条件に追加
             for symbol, end_states in trans.items():
                 for end_state in end_states:
                     end_state_id = self._state_map[end_state]
@@ -412,7 +410,7 @@ class SpotNFA:
         # 純粋な補集合計算
         comp_graph = spot.complement(nfa.twa_graph)
         result = SpotNFA.from_twa_graph(comp_graph)
-        result.minimize(spot.postprocessor.Buchi)
+        result.minimize(spot.postprocessor.GeneralizedBuchi)
 
         return result
 
@@ -424,16 +422,16 @@ class SpotNFA:
         if nfa is None:
             return None
 
-        # 1. オートマトンの複製と辞書の共有
+        # オートマトンの複製と辞書の共有
         old_g = nfa.twa_graph
         new_g = spot.make_twa_graph(old_g.get_dict())
 
-        # 2. 基本情報のコピー
+        # 基本情報のコピー
         new_g.copy_acceptance_of(old_g)
         new_g.new_states(old_g.num_states())
         new_g.set_init_state(old_g.get_init_state_number())
 
-        # 3. 変数削除(射影)の準備
+        # 変数削除(射影)の準備
         vars_to_remove = set(quantified_vars)
 
         # 残す変数を登録
@@ -447,14 +445,67 @@ class SpotNFA:
             var_id = old_g.register_ap(name)
             cube = buddy.bdd_and(cube, buddy.bdd_ithvar(var_id))
 
-        # 4. 遷移条件から変数を削除 (Existential Quantification)
+        # 遷移条件から変数を削除
         for s in range(old_g.num_states()):
             for edge in old_g.out(s):
                 new_cond = buddy.bdd_exist(edge.cond, cube)
                 new_g.new_edge(s, edge.dst, new_cond, edge.acc)
 
-        # 6. 最小化して結果を返す
-        result = SpotNFA.from_twa_graph(new_g)
-        result.minimize(spot.postprocessor.Buchi)
+        saturated_aut = SpotNFA._msbf_pad_closure(new_g)
+
+        # 最小化して結果を返す
+        result = SpotNFA.from_twa_graph(saturated_aut)
+        result.minimize(spot.postprocessor.GeneralizedBuchi)
 
         return result
+
+    @staticmethod
+    def _msbf_pad_closure(aut: Any) -> Any:  # noqa: ANN401, C901
+        old_init_state = aut.get_init_state_number()
+        new_init_state = aut.new_state()
+        # 元の初期状態の遷移をすべて新しい初期状態にコピーする。
+        # 元の初期状態への遷移があればそのまま。なければ死状態になる。
+        # 新しい初期状態は元の初期状態と同じ遷移を持つが、新しい初期状態への遷移がない
+        for t in aut.out(old_init_state):
+            aut.new_edge(new_init_state, t.dst, t.cond, t.acc)
+        aut.set_init_state(new_init_state)
+        padding_candidates: list[int] = [t.cond for t in aut.out(old_init_state)]
+
+        # padding 候補を繰り返して到達できる状態を収集
+        for padding_candidate in padding_candidates:
+            work_list: list[int] = []
+            reachable_states_by_padding: set[int] = set()
+
+            # 1回の遷移で到達できる状態を収集
+            for t in aut.out(old_init_state):
+                if buddy.bdd_imp(padding_candidate, t.cond) == buddy.bddtrue:
+                    reachable_states_by_padding.add(t.dst)
+                    work_list.append(t.dst)
+
+            # 2回以上の遷移で到達できる最奥の状態を収集。
+            while work_list:
+                current_state = work_list.pop()
+                for t in aut.out(current_state):
+                    # padding 記号での遷移か確認
+                    if buddy.bdd_imp(padding_candidate, t.cond) != buddy.bddtrue:
+                        continue
+                    if t.dst in reachable_states_by_padding:
+                        continue
+                    reachable_states_by_padding.add(t.dst)
+                    work_list.append(t.dst)
+
+            for reachable_state in reachable_states_by_padding:
+                has_direct_transition_from_init_to_reachable_state = False
+
+                for t in aut.out(new_init_state):
+                    if (
+                        t.dst == reachable_state
+                        and buddy.bdd_imp(padding_candidate, t.cond) == buddy.bddtrue
+                    ):
+                        has_direct_transition_from_init_to_reachable_state = True
+                        break
+
+                if not has_direct_transition_from_init_to_reachable_state:
+                    aut.new_edge(new_init_state, reachable_state, padding_candidate)
+
+        return aut
