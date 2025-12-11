@@ -269,6 +269,8 @@ class SpotNFA:
         nfas: list["SpotNFA"],
         structure: TournamentStructure,
         state_counts: dict[str, int] | None = None,
+        *,
+        return_explicit_empty: bool = False,
     ) -> "SpotNFA | None":
         """Execute intersection following a specific tournament structure.
 
@@ -277,10 +279,13 @@ class SpotNFA:
             structure: Tournament structure specifying the order of intersections
             state_counts: Optional dict to record state counts for each
                 intermediate result
+            return_explicit_empty: If True, return an explicit empty SpotNFA
+                object instead of None when the intersection is empty.
+                Defaults to False (compatible with QF_LIA behavior).
 
         Returns:
             SpotNFA | None: The result of the intersection, or None if the
-                intersection is empty
+                intersection is empty and return_explicit_empty is False.
 
         """
         if isinstance(structure, int):
@@ -288,8 +293,18 @@ class SpotNFA:
             return nfas[structure]
 
         # Internal node: recursively intersect left and right
-        left_result = SpotNFA.intersect_by_structure(nfas, structure[0], state_counts)
-        right_result = SpotNFA.intersect_by_structure(nfas, structure[1], state_counts)
+        left_result = SpotNFA.intersect_by_structure(
+            nfas,
+            structure[0],
+            state_counts,
+            return_explicit_empty=return_explicit_empty,
+        )
+        right_result = SpotNFA.intersect_by_structure(
+            nfas,
+            structure[1],
+            state_counts,
+            return_explicit_empty=return_explicit_empty,
+        )
 
         # Early return if either side is empty
         if left_result is None or right_result is None:
@@ -297,6 +312,17 @@ class SpotNFA:
             if state_counts is not None:
                 structure_str = str(structure)
                 state_counts[structure_str] = -1
+
+            if return_explicit_empty:
+                # If explicitly requested, return an empty SpotNFA.
+                # Use the BDD dictionary from the first available automaton.
+                # Assuming 'nfas' is not empty and contains valid SpotNFAs.
+                bdd_dict = nfas[0].twa_graph.get_dict()
+                empty_aut = spot.make_twa_graph(bdd_dict)
+                empty_aut.set_buchi()
+                # No states/edges added means it's empty
+                return SpotNFA.from_twa_graph(empty_aut)
+
             return None
 
         # Perform binary intersection
@@ -309,7 +335,11 @@ class SpotNFA:
             if state_counts is not None:
                 structure_str = str(structure)
                 state_counts[structure_str] = -1
-            return None
+
+            if not return_explicit_empty:
+                return None
+            # If return_explicit_empty is True, proceed to return the 'result'
+            # which is an empty automaton.
 
         result.minimize(spot.postprocessor.GeneralizedBuchi)
 
@@ -325,6 +355,7 @@ class SpotNFA:
         *nfas: "SpotNFA",
         tournament_structure: TournamentStructure | None = None,
         state_counts: dict[str, int] | None = None,
+        return_explicit_empty: bool = False,
     ) -> "SpotNFA | None":
         """Create a single automaton by taking the intersection of all given SpotNFA.
 
@@ -334,10 +365,12 @@ class SpotNFA:
                 of intersections. If None, generates a default balanced structure.
             state_counts: Optional dict to record state counts for each
                 intermediate result
+            return_explicit_empty: If True, return an explicit empty SpotNFA
+                object instead of None when the intersection is empty.
 
         Returns:
             SpotNFA | None: The product automaton of all input automata, or None
-                if the intersection is empty
+                if the intersection is empty and return_explicit_empty is False.
 
         """
         if not nfas:
@@ -356,7 +389,10 @@ class SpotNFA:
             )
 
         return SpotNFA.intersect_by_structure(
-            automata_list, tournament_structure, state_counts
+            automata_list,
+            tournament_structure,
+            state_counts,
+            return_explicit_empty=return_explicit_empty,
         )
 
     @staticmethod
