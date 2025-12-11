@@ -33,7 +33,7 @@ class FormulaAutomataBuilder(DagWalker):
 
     def build(self, formula: FNode) -> SpotNFA | None:
         logic = get_logic(formula)
-        if logic not in self.LOGICS:
+        if not any(logic <= allowed_logic for allowed_logic in self.LOGICS):
             msg = (
                 "formula automata builder only "
                 "supports LIA or QF_LIA without combination."
