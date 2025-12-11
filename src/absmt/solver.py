@@ -71,9 +71,9 @@ class Solver:
             raise ValueError(msg)
         target_formula = And(self._formulas)
         logic = get_logic(target_formula)
-        if logic == QF_LIA:
+        if logic <= QF_LIA:
             return self._solve_qf_lia(target_formula)
-        if logic == LIA:
+        if logic <= LIA:
             return self._solve_lia(target_formula)
         msg = "Solver only supports LIA and QF_LIA logics."
         raise NotImplementedError(msg)
