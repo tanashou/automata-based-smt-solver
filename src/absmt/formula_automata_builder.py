@@ -33,7 +33,12 @@ class FormulaAutomataBuilder(DagWalker):
         self._bdict = spot.make_bdd_dict()
         self._well_formed_twa_graph = self._create_well_formed_twa_graph(self._bdict)
 
-    def _create_well_formed_twa_graph(self, bdict) -> SpotNFA:
+    @staticmethod
+    def _create_well_formed_twa_graph(bdict) -> SpotNFA:
+        # リテラルをオートマトンに変換すると、イプシロンは受理しないようになっている。
+        # 全ての長さ1以上のビットを受理するオートマトンの補集合はイプシロンのみを
+        # 受理するものになる。これは空でないと判定されるのでおかしい。
+        # よって、イプシロンは受理しないようにする
         wf_graph = spot.make_twa_graph(bdict)
         wf_graph.set_buchi()
 
@@ -41,23 +46,31 @@ class FormulaAutomataBuilder(DagWalker):
         end_ap = wf_graph.register_ap("_END")
 
         # 状態作成
-        s_prefix = wf_graph.new_state()  # _END が来る前の状態
-        s_sink = wf_graph.new_state()  # _END が来た後の状態。受理状態
-        wf_graph.set_init_state(s_prefix)
+        s_start = wf_graph.new_state()
+        s_loop = wf_graph.new_state()
+        s_sink = wf_graph.new_state()
+
+        wf_graph.set_init_state(s_start)
 
         # BDD 作成
         bdd_end = buddy.bdd_ithvar(end_ap)
         bdd_not_end = buddy.bdd_nithvar(end_ap)
 
         # 遷移作成
-        # s_prefix --(!_END)--> s_prefix
-        wf_graph.new_edge(s_prefix, s_prefix, bdd_not_end)
 
-        # s_prefix --(_END)--> s_sink
-        wf_graph.new_edge(s_prefix, s_sink, bdd_end)
+        # 1. 開始状態からは !_END のみが許される。長さ1以上を強制
+        # s_start --(!_END)--> s_loop
+        wf_graph.new_edge(s_start, s_loop, bdd_not_end)
 
-        # s_sink --(_END)--> s_sink (受理)
-        # 受理セット 0 を指定
+        # 2. ループ状態では !_END が続くか、_END で抜けるか
+        # s_loop --(!_END)--> s_loop
+        wf_graph.new_edge(s_loop, s_loop, bdd_not_end)
+
+        # s_loop --(_END)--> s_sink
+        wf_graph.new_edge(s_loop, s_sink, bdd_end)
+
+        # 3. シンク状態
+        # s_sink --(_END)--> s_sink (Accepting)
         wf_graph.new_edge(s_sink, s_sink, bdd_end, [0])
 
         return SpotNFA.from_twa_graph(wf_graph)
