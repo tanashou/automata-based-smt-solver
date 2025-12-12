@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Generator
 from dataclasses import InitVar, dataclass, field
 from typing import Any
 
@@ -505,7 +506,7 @@ class SpotNFA:
         for t in aut.out(old_init_state):
             aut.new_edge(new_init_state, t.dst, t.cond, t.acc)
         aut.set_init_state(new_init_state)
-        padding_candidates: list[int] = [t.cond for t in aut.out(old_init_state)]
+        padding_candidates = SpotNFA._generate_all_conditions_from_aps(aut)
 
         # padding 候補を繰り返して到達できる状態を収集
         for padding_candidate in padding_candidates:
@@ -545,3 +546,26 @@ class SpotNFA:
                     aut.new_edge(new_init_state, reachable_state, padding_candidate)
 
         return aut
+
+    @staticmethod
+    def _generate_all_conditions_from_aps(aut: Any) -> Generator[object]:  # noqa: ANN401
+        # 終端変数、True, False は除外する
+        ignore_names = {"_END", "0", "1"}
+        aps = [ap for ap in aut.ap() if str(ap) not in ignore_names]
+        if not aps:
+            return
+
+        n = len(aps)
+        bdd_var_ids = [aut.register_ap(ap) for ap in aps]
+        for i in range(1 << n):
+            cube = buddy.bddtrue
+
+            for j in range(n):
+                var_bdd = buddy.bdd_ithvar(bdd_var_ids[j])
+
+                if (i >> j) & 1:
+                    cube = buddy.bdd_and(cube, var_bdd)
+                else:
+                    cube = buddy.bdd_and(cube, -var_bdd)
+
+            yield cube
