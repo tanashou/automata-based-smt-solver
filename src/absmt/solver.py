@@ -121,7 +121,7 @@ class Solver:
         result_nfa = formula_automata_builder.build(rewritten_formula)
         if result_nfa is None:
             return SatStatus.UNSAT
-        if result_nfa.is_empty() or not self._is_infinite_language(result_nfa):
+        if result_nfa.is_empty():
             if self._sat_status == SatStatus.SAT:
                 logger.error(
                     "The provided formulas are judged as unsatisfiable, "
