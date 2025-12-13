@@ -71,10 +71,26 @@ class NFA:
         return (
             f"states={self.states},\n"
             f"alphabet={self.alphabet},\n"
-            f"transitions={self.transitions},\n"
+            f"transitions=\n{self.pretty_transitions()},\n"
             f"initial_state={self.initial_state},\n"
             f"final_states={self.final_states}"
         )
+
+    def pretty_transitions(self) -> str:
+        """Pretty print transitions in readable table format."""
+        lines = []
+
+        for state in self.transitions:
+            trans = self.transitions[state]
+
+            lines.append(f"{state}:")
+            # 記号もソートなし
+            for symbol in trans:
+                next_states = sorted(trans[symbol])  # 次状態のみソート維持
+                next_str = ", ".join(f"{s}" for s in next_states)
+                lines.append(f"    {symbol.bin_value:>3} → {next_str}")
+
+        return "\n".join(lines)
 
     def add_state(self, new_state: NFAStateT) -> None:
         self.states.add(new_state)

@@ -5,6 +5,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import ClassVar
 
+import buddy
 import pysmt.operators as op
 import spot
 from pysmt.exceptions import (
@@ -30,6 +31,49 @@ class FormulaAutomataBuilder(DagWalker):
         super().__init__()
         self._literal_data_extractor = LiteralDataExtractor()
         self._bdict = spot.make_bdd_dict()
+        self._well_formed_twa_graph = self._create_well_formed_twa_graph(self._bdict)
+
+    @staticmethod
+    def _create_well_formed_twa_graph(bdict) -> SpotNFA:
+        # リテラルをオートマトンに変換すると、イプシロンは受理しないようになっている。
+        # 全ての長さ1以上のビットを受理するオートマトンの補集合はイプシロンのみを
+        # 受理するものになる。これは空でないと判定されるのでおかしい。
+        # よって、イプシロンは受理しないようにする
+        wf_graph = spot.make_twa_graph(bdict)
+        wf_graph.set_buchi()
+
+        # _END 変数の AP インデックスを取得
+        end_ap = wf_graph.register_ap("_END")
+
+        # 状態作成
+        s_start = wf_graph.new_state()
+        s_loop = wf_graph.new_state()
+        s_sink = wf_graph.new_state()
+
+        wf_graph.set_init_state(s_start)
+
+        # BDD 作成
+        bdd_end = buddy.bdd_ithvar(end_ap)
+        bdd_not_end = buddy.bdd_nithvar(end_ap)
+
+        # 遷移作成
+
+        # 1. 開始状態からは !_END のみが許される。長さ1以上を強制
+        # s_start --(!_END)--> s_loop
+        wf_graph.new_edge(s_start, s_loop, bdd_not_end)
+
+        # 2. ループ状態では !_END が続くか、_END で抜けるか
+        # s_loop --(!_END)--> s_loop
+        wf_graph.new_edge(s_loop, s_loop, bdd_not_end)
+
+        # s_loop --(_END)--> s_sink
+        wf_graph.new_edge(s_loop, s_sink, bdd_end)
+
+        # 3. シンク状態
+        # s_sink --(_END)--> s_sink (Accepting)
+        wf_graph.new_edge(s_sink, s_sink, bdd_end, [0])
+
+        return SpotNFA.from_twa_graph(wf_graph)
 
     def build(self, formula: FNode) -> SpotNFA | None:
         logic = get_logic(formula)
@@ -41,12 +85,16 @@ class FormulaAutomataBuilder(DagWalker):
             )
             raise PysmtValueError(msg)
 
+        # LIAの場合、intersectionで空オートマトンを返さないようにする
+        return_explicit_empty = logic == LIA
+
         all_vars = [str(var) for var in formula.get_free_variables()]
         all_vars += [str(var) for var in QuantVarCollector().collect(formula)]
         all_var_index_map = {var: index for index, var in enumerate(all_vars)}
         walk_context = {
             "all_vars": all_vars,
             "all_var_index_map": all_var_index_map,
+            "return_explicit_empty": return_explicit_empty,
         }
         return self.walk(formula, **walk_context)
 
@@ -65,7 +113,12 @@ class FormulaAutomataBuilder(DagWalker):
         logger.debug(
             "Tournament structure for 'and' created: %s", str(tournament_struct)
         )
-        res = SpotNFA.intersect_all(*args, tournament_structure=tournament_struct)
+        return_explicit_empty = kwargs.get("return_explicit_empty", False)
+        res = SpotNFA.intersect_all(
+            *args,
+            tournament_structure=tournament_struct,
+            return_explicit_empty=return_explicit_empty,
+        )
 
         if res is None:
             logger.debug("Complete building for 'and': result is empty (None).")
@@ -119,7 +172,16 @@ class FormulaAutomataBuilder(DagWalker):
         if len(args) != 1:
             msg = "The body of a NOT expression must be represented as a single nfa."
             raise ValueError(msg)
+        return_explicit_empty = kwargs.get("return_explicit_empty", False)
         res = SpotNFA.complement(args[0], self._bdict)
+        res = SpotNFA.intersect_all(
+            res,
+            self._well_formed_twa_graph,
+            return_explicit_empty=return_explicit_empty,
+        )
+        if res is None:
+            msg = "Complement resulted in an empty automaton, which should not happen."
+            raise ValueError(msg)
         logger.debug(
             "Completed building for 'not'; formula=%s", formula.serialize(threshold=20)
         )
