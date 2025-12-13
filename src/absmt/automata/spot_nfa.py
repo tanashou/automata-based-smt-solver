@@ -551,8 +551,6 @@ class SpotNFA:
         # 終端変数、True, False は除外する
         ignore_names = {"_END", "0", "1"}
         aps = [ap for ap in aut.ap() if str(ap) not in ignore_names]
-        if not aps:
-            return
 
         n = len(aps)
         bdd_var_ids = [aut.register_ap(ap) for ap in aps]
