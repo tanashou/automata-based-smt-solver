@@ -60,6 +60,7 @@ class SpotNFA:
             f"Inherently Weak: {self.twa_graph.prop_inherently_weak()}",
             f"Stutter Invariant: {self.twa_graph.prop_stutter_invariant()}",
             f"Is empty: {self.twa_graph.is_empty()}",
+            f"Is complete: {spot.is_complete(self.twa_graph)}",
             self.to_hoa(),
         ]
 
@@ -215,8 +216,6 @@ class SpotNFA:
     def minimize(self, automata_type) -> None:  # noqa: ANN001
         """Minimize the automaton using Spot's minimization."""
         # automata_type: spot.postprocessor.<Type>
-
-        self.twa_graph = spot.complete(self.twa_graph)
         post = spot.postprocessor()
         # High だとものによって適用されるアルゴリズムが変わる。全部統一させたい。
         post.set_level(spot.postprocessor.Medium)
@@ -444,7 +443,7 @@ class SpotNFA:
             univ.new_edge(s, s, buddy.bddtrue, [0])  # 常に受理
             return SpotNFA.from_twa_graph(univ)
 
-        # 純粋な補集合計算
+        # spot は完全でないオートマトンの補集合も正しく計算できる
         comp_graph = spot.complement(nfa.twa_graph)
         result = SpotNFA.from_twa_graph(comp_graph)
         result.minimize(spot.postprocessor.GeneralizedBuchi)
@@ -557,8 +556,9 @@ class SpotNFA:
 
         n = len(aps)
         bdd_var_ids = [aut.register_ap(ap) for ap in aps]
+        end_var_id = aut.register_ap("_END")
         for i in range(1 << n):
-            cube = buddy.bddtrue
+            cube = -buddy.bdd_ithvar(end_var_id)  # 終端変数は常に False にする
 
             for j in range(n):
                 var_bdd = buddy.bdd_ithvar(bdd_var_ids[j])
