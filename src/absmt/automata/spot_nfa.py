@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Generator
 from dataclasses import InitVar, dataclass, field
 from typing import Any
 
@@ -59,6 +60,7 @@ class SpotNFA:
             f"Inherently Weak: {self.twa_graph.prop_inherently_weak()}",
             f"Stutter Invariant: {self.twa_graph.prop_stutter_invariant()}",
             f"Is empty: {self.twa_graph.is_empty()}",
+            f"Is complete: {spot.is_complete(self.twa_graph)}",
             self.to_hoa(),
         ]
 
@@ -214,8 +216,6 @@ class SpotNFA:
     def minimize(self, automata_type) -> None:  # noqa: ANN001
         """Minimize the automaton using Spot's minimization."""
         # automata_type: spot.postprocessor.<Type>
-
-        self.twa_graph = spot.complete(self.twa_graph)
         post = spot.postprocessor()
         # High だとものによって適用されるアルゴリズムが変わる。全部統一させたい。
         post.set_level(spot.postprocessor.Medium)
@@ -269,6 +269,8 @@ class SpotNFA:
         nfas: list["SpotNFA"],
         structure: TournamentStructure,
         state_counts: dict[str, int] | None = None,
+        *,
+        return_explicit_empty: bool = False,
     ) -> "SpotNFA | None":
         """Execute intersection following a specific tournament structure.
 
@@ -277,10 +279,13 @@ class SpotNFA:
             structure: Tournament structure specifying the order of intersections
             state_counts: Optional dict to record state counts for each
                 intermediate result
+            return_explicit_empty: If True, return an explicit empty SpotNFA
+                object instead of None when the intersection is empty.
+                Defaults to False (compatible with QF_LIA behavior).
 
         Returns:
             SpotNFA | None: The result of the intersection, or None if the
-                intersection is empty
+                intersection is empty and return_explicit_empty is False.
 
         """
         if isinstance(structure, int):
@@ -288,8 +293,18 @@ class SpotNFA:
             return nfas[structure]
 
         # Internal node: recursively intersect left and right
-        left_result = SpotNFA.intersect_by_structure(nfas, structure[0], state_counts)
-        right_result = SpotNFA.intersect_by_structure(nfas, structure[1], state_counts)
+        left_result = SpotNFA.intersect_by_structure(
+            nfas,
+            structure[0],
+            state_counts,
+            return_explicit_empty=return_explicit_empty,
+        )
+        right_result = SpotNFA.intersect_by_structure(
+            nfas,
+            structure[1],
+            state_counts,
+            return_explicit_empty=return_explicit_empty,
+        )
 
         # Early return if either side is empty
         if left_result is None or right_result is None:
@@ -297,6 +312,17 @@ class SpotNFA:
             if state_counts is not None:
                 structure_str = str(structure)
                 state_counts[structure_str] = -1
+
+            if return_explicit_empty:
+                # If explicitly requested, return an empty SpotNFA.
+                # Use the BDD dictionary from the first available automaton.
+                # Assuming 'nfas' is not empty and contains valid SpotNFAs.
+                bdd_dict = nfas[0].twa_graph.get_dict()
+                empty_aut = spot.make_twa_graph(bdd_dict)
+                empty_aut.set_buchi()
+                # No states/edges added means it's empty
+                return SpotNFA.from_twa_graph(empty_aut)
+
             return None
 
         # Perform binary intersection
@@ -309,7 +335,11 @@ class SpotNFA:
             if state_counts is not None:
                 structure_str = str(structure)
                 state_counts[structure_str] = -1
-            return None
+
+            if not return_explicit_empty:
+                return None
+            # If return_explicit_empty is True, proceed to return the 'result'
+            # which is an empty automaton.
 
         result.minimize(spot.postprocessor.GeneralizedBuchi)
 
@@ -325,6 +355,7 @@ class SpotNFA:
         *nfas: "SpotNFA",
         tournament_structure: TournamentStructure | None = None,
         state_counts: dict[str, int] | None = None,
+        return_explicit_empty: bool = False,
     ) -> "SpotNFA | None":
         """Create a single automaton by taking the intersection of all given SpotNFA.
 
@@ -334,10 +365,12 @@ class SpotNFA:
                 of intersections. If None, generates a default balanced structure.
             state_counts: Optional dict to record state counts for each
                 intermediate result
+            return_explicit_empty: If True, return an explicit empty SpotNFA
+                object instead of None when the intersection is empty.
 
         Returns:
             SpotNFA | None: The product automaton of all input automata, or None
-                if the intersection is empty
+                if the intersection is empty and return_explicit_empty is False.
 
         """
         if not nfas:
@@ -356,7 +389,10 @@ class SpotNFA:
             )
 
         return SpotNFA.intersect_by_structure(
-            automata_list, tournament_structure, state_counts
+            automata_list,
+            tournament_structure,
+            state_counts,
+            return_explicit_empty=return_explicit_empty,
         )
 
     @staticmethod
@@ -407,7 +443,7 @@ class SpotNFA:
             univ.new_edge(s, s, buddy.bddtrue, [0])  # 常に受理
             return SpotNFA.from_twa_graph(univ)
 
-        # 純粋な補集合計算
+        # spot は完全でないオートマトンの補集合も正しく計算できる
         comp_graph = spot.complement(nfa.twa_graph)
         result = SpotNFA.from_twa_graph(comp_graph)
         result.minimize(spot.postprocessor.GeneralizedBuchi)
@@ -469,7 +505,7 @@ class SpotNFA:
         for t in aut.out(old_init_state):
             aut.new_edge(new_init_state, t.dst, t.cond, t.acc)
         aut.set_init_state(new_init_state)
-        padding_candidates: list[int] = [t.cond for t in aut.out(old_init_state)]
+        padding_candidates = SpotNFA._generate_all_conditions_from_aps(aut)
 
         # padding 候補を繰り返して到達できる状態を収集
         for padding_candidate in padding_candidates:
@@ -509,3 +545,25 @@ class SpotNFA:
                     aut.new_edge(new_init_state, reachable_state, padding_candidate)
 
         return aut
+
+    @staticmethod
+    def _generate_all_conditions_from_aps(aut: Any) -> Generator[object]:  # noqa: ANN401
+        # 終端変数、True, False は除外する
+        ignore_names = {"_END", "0", "1"}
+        aps = [ap for ap in aut.ap() if str(ap) not in ignore_names]
+
+        n = len(aps)
+        bdd_var_ids = [aut.register_ap(ap) for ap in aps]
+        end_var_id = aut.register_ap("_END")
+        for i in range(1 << n):
+            cube = -buddy.bdd_ithvar(end_var_id)  # 終端変数は常に False にする
+
+            for j in range(n):
+                var_bdd = buddy.bdd_ithvar(bdd_var_ids[j])
+
+                if (i >> j) & 1:
+                    cube = buddy.bdd_and(cube, var_bdd)
+                else:
+                    cube = buddy.bdd_and(cube, -var_bdd)
+
+            yield cube
