@@ -1,16 +1,19 @@
 from pathlib import Path
 
+import pytest
+
 from tests.benchmark_runner import run_in_subprocess  # 共通ロジックをインポート
 
 
-def test_solver_benchmark(benchmark, benchmark_file: Path, request):
+@pytest.mark.benchmark(max_time=60)
+def test_solver_benchmark(benchmark, benchmark_file: Path):
     """Run solver for each .smt2 file in the directory specified by --benchmark-dir."""
-    # タイムアウト値を取得
-    timeout = request.config.getoption("--benchmark-timeout")
-
     # 実行
-    expected_status, actual_status, peak_memory = benchmark(
-        run_in_subprocess, str(benchmark_file), timeout
+    expected_status, actual_status, peak_memory = benchmark.pedantic(
+        run_in_subprocess,
+        args=(str(benchmark_file),),
+        rounds=5,
+        iterations=1,
     )
 
     # メタデータの付与
