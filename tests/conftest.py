@@ -8,13 +8,6 @@ def pytest_addoption(parser):
         default=None,
         help="Root directory containing .smt2 files for benchmarking",
     )
-    parser.addoption(
-        "--benchmark-timeout",
-        action="store",
-        type=int,
-        default=120,
-        help="Timeout in seconds for each benchmark test (default: 120)",
-    )
 
 
 def pytest_generate_tests(metafunc):

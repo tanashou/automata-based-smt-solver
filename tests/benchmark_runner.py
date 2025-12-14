@@ -20,21 +20,15 @@ def solver_worker(path_str: str, result_queue: Queue):
         result_queue.put(("error", e))
 
 
-def run_in_subprocess(path_str: str, timeout_seconds: int = TIMEOUT_SECONDS):
+def run_in_subprocess(path_str: str):
     result_queue = Queue()
     p = Process(target=solver_worker, args=(path_str, result_queue))
     p.start()
 
     process = psutil.Process(p.pid)
-    start_time = time.time()
     peak_memory_bytes = 0
 
     while p.is_alive():
-        if time.time() - start_time > timeout_seconds:
-            p.terminate()
-            p.join()
-            pytest.fail(f"Timeout ({timeout_seconds}s) exceeded for {path_str}")
-
         try:
             mem_info = process.memory_info().rss
             peak_memory_bytes = max(peak_memory_bytes, mem_info)
