@@ -29,14 +29,13 @@ conda activate absmt
 Benchmark files can be found in https://zenodo.org/records/16740866/files/QF_LIA.tar.zst?download=1, https://zenodo.org/records/16740866/files/LIA.tar.zst?download=1
 
 Download and extract the files to `benchmarks/`.
-Timeout and max rounds can be adjusted as needed (default: timeout=120, max_rounds=10).
-Use `benchmark-autosave` to save benchmark results in json formuat in `./.benchmarks/Linux-CPython-3.12-64bit/`.
+Default benchmark max time is set to 60 seconds. Adjust in the command line if needed.
+Use `benchmark-autosave` to save benchmark results in json format in `./.benchmarks/Linux-CPython-3.12-64bit/`.
 ```bash
 pytest tests/test_solver_benchmark_cli.py \
-  --benchmark-timeout=120 \
-  --benchmark-max-rounds=10 \
-  --benchmark-dir ./benchmarks/LIA/<EXAMPLE_DIR>/
-  --benchmark-autosave
+  --benchmark-dir ./benchmarks/LIA/<EXAMPLE_DIR>/ \
+  --benchmark-autosave \
+  --benchmark-max-time=60  # default is 60 seconds
 ```
 If you want to convert the result to CSV format, use the following command:
 ```bash
