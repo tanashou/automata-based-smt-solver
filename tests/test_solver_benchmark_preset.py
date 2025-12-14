@@ -66,14 +66,17 @@ def test_qf_lia_solver_benchmark(benchmark, benchmark_info):
     assert actual_status == expected_status
 
 
-@pytest.mark.benchmark(min_rounds=1)
+@pytest.mark.benchmark(max_time=60)
 @pytest.mark.parametrize(
     "benchmark_info", collect_benchmark_paths("LIA"), ids=_benchmark_id
 )
 def test_lia_solver_benchmark(benchmark, benchmark_info):
     category, benchmark_name, path = benchmark_info
-    expected_status, actual_status, peak_memory = benchmark(
-        run_in_subprocess, str(path)
+    expected_status, actual_status, peak_memory = benchmark.pedantic(
+        run_in_subprocess,
+        args=(str(path),),
+        rounds=1,
+        iterations=1,
     )
 
     benchmark.extra_info["peak_memory_mb"] = f"{peak_memory / (1024 * 1024):.2f} MB"

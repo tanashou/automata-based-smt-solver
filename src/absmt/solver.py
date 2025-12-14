@@ -13,6 +13,7 @@ from absmt.formula.rewritings import (
     DNFConverter,
     DoubleNegationEliminator,
     NegationEliminator,
+    OrFlattener,
     QuantifierPreservingNNFizer,
     UniversalQFEliminator,
 )
@@ -44,6 +45,7 @@ class Solver:
         eliminate_universal_qf = UniversalQFEliminator().eliminate(formula)
         nnf_like_formula = QuantifierPreservingNNFizer().convert(eliminate_universal_qf)
         result = DoubleNegationEliminator().eliminate(nnf_like_formula)
+        result = OrFlattener().walk(result)
         result = NegationEliminator().eliminate(result)
         logger.debug(
             "After converting to quantifier-preserving NNF: %s",
