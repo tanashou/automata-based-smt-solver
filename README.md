@@ -26,15 +26,21 @@ conda activate absmt
 ```
 
 ### Benchmark test
-Benchmark files can be found in https://zenodo.org/records/16740866/files/QF_LIA.tar.zst?download=1
+Benchmark files can be found in https://zenodo.org/records/16740866/files/QF_LIA.tar.zst?download=1, https://zenodo.org/records/16740866/files/LIA.tar.zst?download=1
 
 Download and extract the files to `benchmarks/`.
+Timeout and max rounds can be adjusted as needed (default: timeout=120, max_rounds=10).
+Use `benchmark-autosave` to save benchmark results in json formuat in `./.benchmarks/Linux-CPython-3.12-64bit/`.
 ```bash
-pytest --benchmark-only --benchmark-group-by=param:path
+pytest tests/test_solver_benchmark_cli.py \
+  --benchmark-timeout=120 \
+  --benchmark-max-rounds=10 \
+  --benchmark-dir ./benchmarks/LIA/<EXAMPLE_DIR>/
+  --benchmark-autosave
 ```
-Add `-rA` option to see the peak memory usage.
+If you want to convert the result to CSV format, use the following command:
 ```bash
-pytest --benchmark-only --benchmark-group-by=param:path -rA
+pytest-benchmark compare ./.benchmarks/Linux-CPython-3.12-64bit/<FILENAME>.json --csv ./.benchmarks/Linux-CPython-3.12-64bit/<FILENAME>.csv
 ```
 
 ## License
