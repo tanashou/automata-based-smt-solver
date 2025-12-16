@@ -213,7 +213,7 @@ class SpotNFA:
         """Get the number of states in the automaton."""
         return self.twa_graph.num_states()
 
-    def minimize(self, automata_type) -> None:  # noqa: ANN001
+    def minimize(self) -> None:
         """Minimize the automaton using Spot's minimization."""
         # automata_type: spot.postprocessor.<Type>
         post = spot.postprocessor()
@@ -221,9 +221,7 @@ class SpotNFA:
         post.set_level(spot.postprocessor.Medium)
         # 状態数を小さくすることを優先
         post.set_pref(spot.postprocessor.Small)
-        # Weakオートマトンは最小の決定性Büchiオートマトンになる
-        post.set_pref(spot.postprocessor.Deterministic)
-        post.set_type(automata_type)
+        post.set_type(spot.postprocessor.GeneralizedBuchi)
         minimized_aut = post.run(self.twa_graph)
         self.twa_graph = minimized_aut
 
@@ -341,7 +339,7 @@ class SpotNFA:
             # If return_explicit_empty is True, proceed to return the 'result'
             # which is an empty automaton.
 
-        result.minimize(spot.postprocessor.GeneralizedBuchi)
+        result.minimize()
 
         # Record state count if dict is provided
         if state_counts is not None:
@@ -427,7 +425,7 @@ class SpotNFA:
             result_aut = spot.product_or(result_aut, aut.twa_graph)
 
         result = SpotNFA.from_twa_graph(result_aut)
-        result.minimize(spot.postprocessor.GeneralizedBuchi)
+        result.minimize()
 
         return result
 
@@ -446,7 +444,7 @@ class SpotNFA:
         # spot は完全でないオートマトンの補集合も正しく計算できる
         comp_graph = spot.complement(nfa.twa_graph)
         result = SpotNFA.from_twa_graph(comp_graph)
-        result.minimize(spot.postprocessor.GeneralizedBuchi)
+        result.minimize()
 
         return result
 
@@ -491,7 +489,7 @@ class SpotNFA:
 
         # 最小化して結果を返す
         result = SpotNFA.from_twa_graph(saturated_aut)
-        result.minimize(spot.postprocessor.GeneralizedBuchi)
+        result.minimize()
 
         return result
 
