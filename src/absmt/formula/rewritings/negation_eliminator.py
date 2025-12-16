@@ -1,4 +1,8 @@
 # ruff: noqa: ANN201, ANN204, ANN001, ANN003, ARG002
+from typing import ClassVar
+
+from pysmt.logics import LIA, QF_LIA
+from pysmt.oracles import get_logic
 from pysmt.shortcuts import GE, GT, LT, Or
 from pysmt.walkers import IdentityDagWalker
 
@@ -14,10 +18,13 @@ class NegationEliminator(IdentityDagWalker):
     It is intended for use after converting a formula to conjunctive normal form.
     """
 
+    LOGICS: ClassVar[list] = [QF_LIA, LIA]
+
     def __init__(self):
         super().__init__()
 
     def eliminate(self, formula):
+        self.logic = get_logic(formula)
         return self.walk(formula)
 
     def walk_not(self, formula, args, **kwargs):
@@ -27,7 +34,8 @@ class NegationEliminator(IdentityDagWalker):
 
         subformula = args[0]
         # pysmtの仕様より、equals, lt, le しか現れない
-        if subformula.is_equals():
+        # QF_LIA だけ equals を LT or GT に変換する
+        if subformula.is_equals() and self.logic <= QF_LIA:
             lhs, rhs = subformula.args()
             return Or(LT(lhs, rhs), GT(lhs, rhs))
         if subformula.is_lt():
