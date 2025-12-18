@@ -29,6 +29,11 @@ RUN chown -R $USERNAME:$USERNAME /opt/conda/envs/${CONDA_ENV_NAME}
 
 USER $USERNAME
 
+ENV PATH="/opt/conda/envs/${CONDA_ENV_NAME}/bin:$PATH"
+
+RUN conda init bash && \
+    echo "conda activate ${CONDA_ENV_NAME}" >> ~/.bashrc
+
 COPY --chown=$USERNAME:$USERNAME . .
 
 RUN uv pip sync pyproject.toml && \
