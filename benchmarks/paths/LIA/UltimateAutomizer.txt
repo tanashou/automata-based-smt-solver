@@ -1,8 +1,6 @@
 ../../LIA/UltimateAutomizer/MADWiFi-encode_ie_ok_true-unreach-call.i_17.smt2
 ../../LIA/UltimateAutomizer/MADWiFi-encode_ie_ok_true-unreach-call.i_7.smt2
-../../LIA/UltimateAutomizer/Primes_true-unreach-call.c_127.smt2
 ../../LIA/UltimateAutomizer/Primes_true-unreach-call.c_1657.smt2
-../../LIA/UltimateAutomizer/Primes_true-unreach-call.c_187.smt2
 ../../LIA/UltimateAutomizer/Primes_true-unreach-call.c_2207.smt2
 ../../LIA/UltimateAutomizer/Primes_true-unreach-call.c_2317.smt2
 ../../LIA/UltimateAutomizer/Primes_true-unreach-call.c_237.smt2
@@ -12,9 +10,6 @@
 ../../LIA/UltimateAutomizer/Primes_true-unreach-call.c_657.smt2
 ../../LIA/UltimateAutomizer/Primes_true-unreach-call.c_670.smt2
 ../../LIA/UltimateAutomizer/Primes_true-unreach-call.c_671.smt2
-../../LIA/UltimateAutomizer/Primes_true-unreach-call.c_673.smt2
-../../LIA/UltimateAutomizer/Primes_true-unreach-call.c_678.smt2
-../../LIA/UltimateAutomizer/Primes_true-unreach-call.c_798.smt2
 ../../LIA/UltimateAutomizer/nested6_true-unreach-call.i_7.smt2
 ../../LIA/UltimateAutomizer/nested9_true-unreach-call.i_1070.smt2
 ../../LIA/UltimateAutomizer/nested9_true-unreach-call.i_1072.smt2
