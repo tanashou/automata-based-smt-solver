@@ -22,7 +22,6 @@ docker build -t absmt:latest .
 Getting in the bash
 ```
 docker run -it -v $(pwd):/app absmt:latest /bin/bash
-conda activate absmt
 ```
 
 ### Benchmark test
