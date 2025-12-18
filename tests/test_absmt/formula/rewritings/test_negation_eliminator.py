@@ -21,7 +21,7 @@ class TestNegationEliminator:
         formula = Not(Equals(self.x, self.y))
 
         # Apply the negation eliminator
-        result = self.eliminator.walk(formula)
+        result = self.eliminator.eliminate(formula)
 
         # Expected: (x < y OR y < x)
         expected = Or(LT(self.x, self.y), LT(self.y, self.x))
@@ -34,7 +34,7 @@ class TestNegationEliminator:
         formula = Not(LT(self.x, self.y))
 
         # Apply the negation eliminator
-        result = self.eliminator.walk(formula)
+        result = self.eliminator.eliminate(formula)
 
         # Expected: (y <= x)
         expected = LE(self.y, self.x)
@@ -47,7 +47,7 @@ class TestNegationEliminator:
         formula = Not(LE(self.x, self.y))
 
         # Apply the negation eliminator
-        result = self.eliminator.walk(formula)
+        result = self.eliminator.eliminate(formula)
 
         # Expected: x > y
         expected = GT(self.x, self.y)
@@ -60,7 +60,7 @@ class TestNegationEliminator:
         formula = Not(GT(self.x, self.y))
 
         # Apply the negation eliminator
-        result = self.eliminator.walk(formula)
+        result = self.eliminator.eliminate(formula)
 
         # Expected: x <= y
         expected = LE(self.x, self.y)
@@ -73,7 +73,7 @@ class TestNegationEliminator:
         formula = Not(GE(self.x, self.y))
 
         # Apply the negation eliminator
-        result = self.eliminator.walk(formula)
+        result = self.eliminator.eliminate(formula)
 
         # Expected: x < y
         expected = LT(self.x, self.y)
@@ -87,7 +87,7 @@ class TestNegationEliminator:
         formula = Not(Not(inner_formula))
 
         # Apply the negation eliminator
-        result = self.eliminator.walk(formula)
+        result = self.eliminator.eliminate(formula)
 
         # Expected: x <= y
         expected = LE(self.x, self.y)
