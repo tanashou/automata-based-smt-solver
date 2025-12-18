@@ -16,23 +16,22 @@ RUN conda env create -f /tmp/environment.yml && \
 # Install uv
 COPY --from=uv /uv /uvx /bin/
 ENV UV_LINK_MODE=copy
-
 ENV UV_PYTHON=/opt/conda/envs/${CONDA_ENV_NAME}/bin/python
 
-COPY . .
+ARG USERNAME=appuser
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
+
+RUN chown -R $USERNAME:$USERNAME /opt/conda/envs/${CONDA_ENV_NAME}
+
+USER $USERNAME
+
+COPY --chown=$USERNAME:$USERNAME . .
 
 RUN uv pip sync pyproject.toml && \
     uv pip install setuptools && \
     uv pip install --group test -r pyproject.toml && \
     uv pip install .
-
-ARG USERNAME=absmt-user
-ARG USER_UID=1000
-ARG USER_GID=1000
-
-RUN groupadd --gid ${USER_GID} ${USERNAME} && \
-    useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} && \
-    chown -R ${USER_UID}:${USER_GID} /app && \
-    chown -R ${USER_UID}:${USER_GID} /opt/conda/envs/${CONDA_ENV_NAME}
-
-USER ${USERNAME}
