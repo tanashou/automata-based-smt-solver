@@ -339,8 +339,6 @@ class SpotNFA:
             # If return_explicit_empty is True, proceed to return the 'result'
             # which is an empty automaton.
 
-        result.minimize()
-
         # Record state count if dict is provided
         if state_counts is not None:
             structure_str = str(structure)
@@ -424,10 +422,7 @@ class SpotNFA:
         for aut in automata_list[1:]:
             result_aut = spot.product_or(result_aut, aut.twa_graph)
 
-        result = SpotNFA.from_twa_graph(result_aut)
-        result.minimize()
-
-        return result
+        return SpotNFA.from_twa_graph(result_aut)
 
     @staticmethod
     def complement(nfa: "SpotNFA | None", bdd_dict: Any) -> "SpotNFA":  # noqa: ANN401
@@ -443,10 +438,7 @@ class SpotNFA:
 
         # spot は完全でないオートマトンの補集合も正しく計算できる
         comp_graph = spot.complement(nfa.twa_graph)
-        result = SpotNFA.from_twa_graph(comp_graph)
-        result.minimize()
-
-        return result
+        return SpotNFA.from_twa_graph(comp_graph)
 
     @staticmethod
     def projection(
@@ -487,11 +479,7 @@ class SpotNFA:
 
         saturated_aut = SpotNFA._msbf_pad_closure(new_g)
 
-        # 最小化して結果を返す
-        result = SpotNFA.from_twa_graph(saturated_aut)
-        result.minimize()
-
-        return result
+        return SpotNFA.from_twa_graph(saturated_aut)
 
     @staticmethod
     def _msbf_pad_closure(aut: Any) -> Any:  # noqa: ANN401, C901
