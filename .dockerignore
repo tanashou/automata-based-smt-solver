@@ -173,15 +173,13 @@
 #.idea/
 
 # VS Code
-.vscode
-.devcontainer
+.vscode/
+.devcontainer/
 
 # Custom
 .pre-commit-config.yaml
 assets
 pyrightconfig.json
 ruff.toml
-
-# Project specific
-benchmarks/QF_LIA/
-benchmarks/LIA/
+.benchmarks/
+.gitignore
