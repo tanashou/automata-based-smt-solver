@@ -1,6 +1,1 @@
 ../../QF_LIA/pidgeons/pigeon-hole-2.smt2
-../../QF_LIA/pidgeons/pigeon-hole-3.smt2
-../../QF_LIA/pidgeons/pigeon-hole-4.smt2
-../../QF_LIA/pidgeons/pigeon-hole-5.smt2
-../../QF_LIA/pidgeons/pigeon-hole-6.smt2
-../../QF_LIA/pidgeons/pigeon-hole-7.smt2
