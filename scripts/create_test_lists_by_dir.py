@@ -11,7 +11,7 @@ BENCHMARK_BASE_DIR = Path(__file__).parent.parent / "benchmarks"
 PATHS_BASE_DIR = Path(__file__).parent.parent / "benchmarks" / "paths"
 
 # 3. ファイルサイズの最大値（これより小さいものを対象とする）  # noqa: RUF003
-MAX_SIZE_BYTES = 5 * 1024
+MAX_SIZE_BYTES = 1 * 1024
 
 # --- ここからスクリプト本体 ---
 
