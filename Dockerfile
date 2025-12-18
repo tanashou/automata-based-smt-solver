@@ -25,3 +25,14 @@ RUN uv pip sync pyproject.toml && \
     uv pip install setuptools && \
     uv pip install --group test -r pyproject.toml && \
     uv pip install .
+
+ARG USERNAME=absmt-user
+ARG USER_UID=1000
+ARG USER_GID=1000
+
+RUN groupadd --gid ${USER_GID} ${USERNAME} && \
+    useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} && \
+    chown -R ${USER_UID}:${USER_GID} /app && \
+    chown -R ${USER_UID}:${USER_GID} /opt/conda/envs/${CONDA_ENV_NAME}
+
+USER ${USERNAME}
