@@ -21,7 +21,7 @@ docker build -t absmt:latest .
 ```
 Getting in the bash
 ```
-docker run -it -v $(pwd):/app absmt:latest /bin/bash
+docker run -it absmt:latest /bin/bash
 ```
 
 ### Benchmark test
