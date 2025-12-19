@@ -18,14 +18,14 @@ COPY --from=uv /uv /uvx /bin/
 ENV UV_LINK_MODE=copy
 ENV UV_PYTHON=/opt/conda/envs/${CONDA_ENV_NAME}/bin/python
 
-ARG USERNAME=appuser
+ARG USERNAME=absmt-user
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
 
-RUN chown -R $USERNAME:$USERNAME /opt/conda/envs/${CONDA_ENV_NAME}
+RUN chown -R $USERNAME:$USERNAME /opt/conda/envs/${CONDA_ENV_NAME} /app
 
 USER $USERNAME
 
