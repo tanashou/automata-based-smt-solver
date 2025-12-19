@@ -155,6 +155,7 @@ class FormulaAutomataBuilder(DagWalker):
 
         quantifier_vars_str = [str(var) for var in formula.quantifier_vars()]
         spot_nfa = args[0]
+        spot_nfa.minimize()  # 全部展開するから最小化しておく。
         res = SpotNFA.projection(spot_nfa, quantifier_vars_str)
         logger.debug(
             "Completed building for 'exists' over vars %s; formula=%s",
@@ -173,7 +174,9 @@ class FormulaAutomataBuilder(DagWalker):
             msg = "The body of a NOT expression must be represented as a single nfa."
             raise ValueError(msg)
         return_explicit_empty = kwargs.get("return_explicit_empty", False)
-        res = SpotNFA.complement(args[0], self._bdict)
+        spot_nfa = args[0]
+        spot_nfa.minimize()
+        res = SpotNFA.complement(spot_nfa, self._bdict)
         res = SpotNFA.intersect_all(
             res,
             self._well_formed_twa_graph,
