@@ -183,3 +183,4 @@ pyrightconfig.json
 ruff.toml
 .benchmarks/
 .gitignore
+benchmark_result/
