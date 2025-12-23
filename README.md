@@ -16,31 +16,36 @@ conda activate absmt
 ```
 
 ### Build with Docker
-```
-docker build -t absmt:latest .
+To match the host user permissions, build the docker image with the following command:
+```bash
+docker build \
+  --build-arg USER_UID=$(id -u) \
+  --build-arg USER_GID=$(id -g) \
+  -t absmt:latest .
 ```
 Getting in the bash
 ```
-docker run -it absmt:latest /bin/bash
+docker run -it --rm -v $(pwd):/app absmt:latest /bin/bash
 ```
 
 ### Benchmark test
 Benchmark files can be found in https://zenodo.org/records/16740866/files/QF_LIA.tar.zst?download=1, https://zenodo.org/records/16740866/files/LIA.tar.zst?download=1
 
-Download and extract the files to `benchmarks/`.
-Default benchmark max time is set to 60 seconds. Adjust in the command line if needed.
-Use `benchmark-autosave` to save benchmark results in json format in `./.benchmarks/Linux-CPython-3.12-64bit/`.
+A utility script to automate solver benchmarking. It runs tests on a specified directory, handles timeouts, and exports the results to CSV.
 ```bash
-pytest tests/test_solver_benchmark_cli.py \
-  --benchmark-dir ./benchmarks/LIA/<EXAMPLE_DIR>/ \
-  --benchmark-autosave \
-  --benchmark-max-time=60  # default is 60 seconds
+python run_bench.py --dir <TARGET_DIR> [--time <SECONDS>]
 ```
-If you want to convert the result to CSV format, use the following command:
-```bash
-pytest-benchmark compare ./.benchmarks/Linux-CPython-3.12-64bit/<FILENAME>.json --csv ./.benchmarks/Linux-CPython-3.12-64bit/<FILENAME>.csv
-```
+| Option   | Required | Default | Description                                                       |
+| :------- | :------: | :-----: | :---------------------------------------------------------------- |
+| `--dir`  | **Yes**  |    -    | Path to the directory containing benchmark files (e.g., `.smt2`). |
+| `--time` |    No    |  `60`   | Maximum execution time per test in seconds.                       |
 
+#### Output
+Results (JSON and CSV) are automatically saved in the `benchmark_result/` directory. Files are named based on the target directory and the current timestamp to avoid overwrites.
+
+Naming Format: <Directory_Name>_result_<YYYYMMDD_HHMMSS>.csv
+
+Example: If you run `python run_bench.py --dir ./benchmarks/LIA/tptp`, the output will be: `./benchmark_result/LIA_tptp_result_20251223_153000.csv`
 ## License
 This project is licensed under the GNU General Public License v3.0 (GPLv3).
 
