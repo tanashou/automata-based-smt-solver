@@ -3,10 +3,12 @@ import subprocess
 import sys
 from pathlib import Path
 import os
+from datetime import datetime
 
 
 def main():
-    out_dir = "benchmark_result"
+    # 固定の出力先ディレクトリ名
+    DEFAULT_OUT_DIR = "benchmark_result"
 
     # --- 1. 引数の定義 ---
     parser = argparse.ArgumentParser(
@@ -19,45 +21,56 @@ def main():
     # 任意: 最大時間 (デフォルト60秒)
     parser.add_argument("--time", default="60", help="Max time per test in seconds")
 
-    # 保存先ディレクトリ (デフォルト: ./benchmark_result)
-    parser.add_argument("--out-dir", default=out_dir, help="Directory to save results")
-
-    # ファイル名 (デフォルト: result.json)
-    parser.add_argument(
-        "--name", default="result.json", help="Output filename (e.g., test1.json)"
-    )
-
     args = parser.parse_args()
 
     # --- 2. パスの準備 ---
-    target_dir = str(Path(args.dir).resolve())
+    target_dir_path = Path(args.dir).resolve()
+    target_dir_str = str(target_dir_path)
     max_time = args.time
 
-    # 保存先ディレクトリとファイル名を結合
-    out_dir = Path(args.out_dir).resolve()
-    json_path = out_dir / args.name
+    # 保存先ディレクトリのパスを確定
+    out_dir_path = Path(DEFAULT_OUT_DIR).resolve()
+
+    # 保存先ディレクトリ作成
+    out_dir_path.mkdir(parents=True, exist_ok=True)
+
+    # --- ファイル名の決定ロジック (常に日時付き) ---
+    # ディレクトリ名からプレフィックスを作成 (例: ./benchmarks/LIA/tptp/ → LIA_tptp)
+    parts = target_dir_path.parts
+    if len(parts) >= 2:
+        name_parts = parts[-2:]
+    else:
+        name_parts = parts[-1:]
+
+    base_prefix = "_".join(name_parts)
+
+    # 現在の日時を取得 (例: 20241025_143005)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # 結合: LIA_tptp_result_20241025_143005.json
+    json_name = f"{base_prefix}_result_{timestamp}.json"
+
+    # パスの確定
+    json_path = out_dir_path / json_name
     csv_path = json_path.with_suffix(".csv")
 
-    # 保存先ディレクトリがなければ自動作成
-    out_dir.mkdir(parents=True, exist_ok=True)
-
     print(f"🚀 Benchmark Start")
-    print(f"   Target Dir: {target_dir}")
+    print(f"   Target Dir: {target_dir_str}")
     print(f"   Max Time:   {max_time}s")
     print(f"   Output:     {json_path} -> {csv_path}")
     print("-" * 50)
 
     env = os.environ.copy()
-    env["BENCHMARK_TIMEOUT"] = str(args.time)  # ここで値をセット
+    env["BENCHMARK_TIMEOUT"] = str(args.time)
 
     try:
         # --- 3. Pytest 実行 ---
         cmd_test = [
             "pytest",
             "tests/test_solver_benchmark_cli.py",
-            f"--benchmark-dir={target_dir}",
+            f"--benchmark-dir={target_dir_str}",
             f"--benchmark-max-time={max_time}",
-            f"--benchmark-json={json_path}",  # 結合したパスを指定
+            f"--benchmark-json={json_path}",
             "-v",
         ]
 
@@ -73,7 +86,11 @@ def main():
         ]
         subprocess.run(cmd_convert, check=True, env=env)
 
-        print(f"\n✅ Success! Saved to directory: {out_dir}")
+        # --- 最終結果の表示 ---
+        print("-" * 50)
+        print(f"✅ Success!")
+        print(f"CSV Path: {csv_path}")
+        print("-" * 50)
 
     except subprocess.CalledProcessError as e:
         print(f"\n❌ Error: Benchmark failed. (Exit code: {e.returncode})")
