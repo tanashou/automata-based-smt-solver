@@ -2,7 +2,7 @@
 # directly in this file rather than using uv's automatic dependency resolution.
 [project]
 name = "absmt"
-version = "0.4.0"
+version = "0.5.0"
 description = "This repository contains configurations to set up a Python development environment using VSCode's Dev Container feature. The environment includes uv and Ruff."
 
 authors = [{ name = "tanashou", email = "" }]
