@@ -95,3 +95,4 @@ line-ending = "auto"
 # Ignore all directories named `tests`.
 "tests/**" = ["ANN001", "ANN201", "INP001", "S101", "SLF001", "ERA001", "PLR2004"]
 "scripts/**" = ["ALL"]
+"run_bench.py" = ["ALL"]
