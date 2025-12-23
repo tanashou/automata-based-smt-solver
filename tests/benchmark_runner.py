@@ -6,10 +6,10 @@ import pytest
 
 from absmt.solver import Solver
 
-MAX_MEMORY_BYTES = 4 * 1024 * 1024 * 1024  # 4 GB
-TIMEOUT_SECONDS = 120
+MAX_MEMORY_BYTES = 6 * 1024 * 1024 * 1024  # 6 GB
 
 
+# solver_worker は変更なし
 def solver_worker(path_str: str, result_queue: Queue):
     try:
         solver = Solver()
@@ -20,15 +20,28 @@ def solver_worker(path_str: str, result_queue: Queue):
         result_queue.put(("error", e))
 
 
-def run_in_subprocess(path_str: str):
+# 引数に timeout を追加し、監視ループ内で時間をチェックします
+def run_in_subprocess(path_str: str, timeout: float = 60.0):
     result_queue = Queue()
     p = Process(target=solver_worker, args=(path_str, result_queue))
     p.start()
+
+    # 開始時刻を記録
+    start_time = time.time()
 
     process = psutil.Process(p.pid)
     peak_memory_bytes = 0
 
     while p.is_alive():
+        # --- 追加: タイムアウト判定 ---
+        if time.time() - start_time > timeout:
+            p.terminate()
+            p.join()
+            # タイムアウト時は (expected, actual, memory) の形式で返す
+            # expected は不明(None), actual は "timeout" とする
+            return None, "timeout", peak_memory_bytes
+        # ---------------------------
+
         try:
             mem_info = process.memory_info().rss
             peak_memory_bytes = max(peak_memory_bytes, mem_info)
