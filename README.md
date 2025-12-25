@@ -25,7 +25,7 @@ docker build \
 ```
 Getting in the bash
 ```
-docker run -it --rm -v $(pwd):/app absmt:latest /bin/bash
+docker run -it --rm -v $(pwd):/app absmt:latest
 ```
 
 ### Benchmark test
