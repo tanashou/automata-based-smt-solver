@@ -40,3 +40,5 @@ RUN uv pip sync pyproject.toml && \
     uv pip install setuptools && \
     uv pip install --group test -r pyproject.toml && \
     uv pip install .
+
+CMD ["bash"]
