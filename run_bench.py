@@ -79,18 +79,11 @@ def main():
         # --- 4. CSV 変換 ---
         print("\n🔄 Converting to CSV...")
         cmd_convert = [
-            "pytest-benchmark",
-            "compare",
+            "python",
+            "./scripts/pytest_benchmark_json_to_csv.py",
             str(json_path),
-            f"--csv={csv_path}",
         ]
         subprocess.run(cmd_convert, check=True, env=env)
-
-        # --- 最終結果の表示 ---
-        print("-" * 50)
-        print(f"✅ Success!")
-        print(f"CSV Path: {csv_path}")
-        print("-" * 50)
 
     except subprocess.CalledProcessError as e:
         print(f"\n❌ Error: Benchmark failed. (Exit code: {e.returncode})")
