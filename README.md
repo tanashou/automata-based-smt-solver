@@ -33,11 +33,11 @@ Benchmark files can be found in https://zenodo.org/records/16740866/files/QF_LIA
 
 A utility script to automate solver benchmarking. It runs tests on a specified directory, handles timeouts, and exports the results to CSV.
 ```bash
-python run_bench.py --dir <TARGET_DIR> [--time <SECONDS>] [--mem-limit <MEMORY_LIMIT>]
+python run_bench.py <TARGET> [--time <SECONDS>] [--mem-limit <MEMORY_LIMIT>]
 ```
 | Option   | Required | Default | Description                                                       |
 | :------- | :------: | :-----: | :---------------------------------------------------------------- |
-| `--dir`  | **Yes**  |    -    | Path to the directory containing benchmark files (e.g., `.smt2`). |
+| `TARGET`  | **Yes**  |    -    | Path to the benchmark directory OR a specific file (e.g., benchmarks/ or test.smt2). |
 | `--time` |    No    |  `60`   | Maximum execution time per test in seconds.                       |
 | `--mem-limit` |    No    |  Auto (80% of RAM)   | Memory limit for each test (e.g., '8GB', '4000MB').                       |
 
