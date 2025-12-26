@@ -3,37 +3,37 @@ import json
 import sys
 from pathlib import Path
 
-# 引数チェック
+# Check arguments
 if len(sys.argv) < 2:
     print("Usage: python pytest_benchmark_json_to_csv.py <json input path>")
     sys.exit(1)
 
-# 引数から入力パスを取得し、Pathオブジェクトにする
+# Get input path from arguments and convert to Path object
 input_path = Path(sys.argv[1])
 
-# 入力パスの拡張子を .csv に変更して出力パスを作成
-# 例: benchmark_result/data.json -> benchmark_result/data.csv
+# Create output path by changing the input path extension to .csv
+# Example: benchmark_result/data.json -> benchmark_result/data.csv
 output_path = input_path.with_suffix(".csv")
 
-# JSONファイルの読み込み
+# Load JSON file
 try:
     with open(input_path, "r") as f:
         data = json.load(f)
 except FileNotFoundError:
-    print(f"エラー: ファイルが見つかりません: {input_path}")
+    print(f"Error: File not found: {input_path}")
     sys.exit(1)
 
-# データをフラットなテーブルに変換
+# Convert data to flat table
 if "benchmarks" not in data:
-    print("エラー: JSON内に 'benchmarks' キーが見つかりません")
+    print("Error: 'benchmarks' key not found in JSON")
     sys.exit(1)
 
 df = pd.json_normalize(data["benchmarks"])
 
-# 'param' を 'filename' にリネーム
+# Rename 'param' to 'filename'
 df.rename(columns={"param": "filename"}, inplace=True)
 
-# 削除したいカラムのリスト
+# List of columns to drop
 columns_to_drop = {
     "group",
     "name",
@@ -44,19 +44,19 @@ columns_to_drop = {
     "options.warmup",
 }
 
-# カラムが存在する場合のみ削除
+# Drop columns only if they exist
 df.drop(columns=[c for c in columns_to_drop if c in df.columns], inplace=True)
 
-# カラムの並べ替え（filenameを先頭に）
+# Reorder columns (filename first)
 cols = df.columns.tolist()
 if "filename" in cols:
     cols.insert(0, cols.pop(cols.index("filename")))
     df = df[cols]
 
-# カラム名をきれいにする（extra_info. や stats. を削除）
+# Clean column names (remove extra_info. and stats. prefixes)
 new_columns = []
 for c in df.columns:
-    # filenameはそのまま、それ以外はプレフィックスを削除
+    # Keep filename as is, remove prefixes from others
     if c == "filename":
         new_columns.append(c)
     else:
@@ -65,6 +65,6 @@ for c in df.columns:
 
 df.columns = new_columns
 
-# CSV出力
+# Output CSV
 df.to_csv(output_path, index=False)
 print(f"Completed: {output_path}")
