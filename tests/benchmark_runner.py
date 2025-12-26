@@ -48,7 +48,7 @@ def run_in_subprocess(path_str: str, timeout: float = 60.0):
             if mem_info > MAX_MEMORY_BYTES:
                 p.terminate()
                 p.join()
-                pytest.skip(f"Memory limit exceeded for {path_str}")
+                return None, "memout", peak_memory_bytes
         except psutil.NoSuchProcess:
             break
         time.sleep(0.1)
