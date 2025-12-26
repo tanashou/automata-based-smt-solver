@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from absmt.sat_status import SatStatus
 from tests.benchmark_runner import run_in_subprocess
 
 # 環境変数からタイムアウト値を取得 (デフォルト60秒)
@@ -29,8 +30,12 @@ def test_solver_benchmark(benchmark, benchmark_file: Path):
     elif actual_status == "memout":
         benchmark.extra_info["status"] = "memout"
     elif actual_status != expected_status:
-        # 不一致の場合。テストを止めずに "wrong_answer" 等として記録
-        benchmark.extra_info["status"] = "wrong_answer"
+        if isinstance(expected_status, SatStatus):
+            # 不一致の場合。テストを止めずに "wrong_answer" 等として記録
+            benchmark.extra_info["status"] = "wrong_answer"
+        else:
+            # expected_status が None (不明) の場合は unknown として記録
+            benchmark.extra_info["status"] = "unkown"
     else:
         # 一致した場合
         benchmark.extra_info["status"] = "success"
