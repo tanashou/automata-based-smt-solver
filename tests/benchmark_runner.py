@@ -1,5 +1,6 @@
 import os
 import time
+import traceback
 from multiprocessing import Process, Queue
 
 import psutil
@@ -34,7 +35,8 @@ def solver_worker(path_str: str, result_queue: Queue):
         actual_status = solver.solve()
         result_queue.put(("ok", (expected_status, actual_status)))
     except Exception as e:  # noqa: BLE001
-        result_queue.put(("error", e))
+        error_msg = f"{type(e).__name__}: {e!s}\n{traceback.format_exc()}"
+        result_queue.put(("error", error_msg))
 
 
 # 引数に timeout を追加し、監視ループ内で時間をチェックします
