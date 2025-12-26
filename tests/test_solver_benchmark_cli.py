@@ -22,7 +22,7 @@ def test_solver_benchmark(benchmark, benchmark_file: Path):
 
     # メタデータの付与
     peak_memory_mb = peak_memory / (1024 * 1024)
-    benchmark.extra_info["peak_memory_mb"] = f"{peak_memory_mb:.2f} MB"
+    benchmark.extra_info["peak_memory_mb"] = round(peak_memory_mb, 4)
 
     if actual_status == "timeout":
         benchmark.extra_info["status"] = "timeout"
