@@ -167,7 +167,7 @@ class SpotNFA:
 
     def to_hoa(self) -> str:
         """Convert the automaton to HOA format string."""
-        return self.twa_graph.to_str("hoa")
+        return str(self.twa_graph.to_str("hoa"))
 
     def to_dot(self) -> str:
         """Convert the automaton to DOT format string."""
