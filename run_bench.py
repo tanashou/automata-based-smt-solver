@@ -6,6 +6,32 @@ import os
 from datetime import datetime
 import json
 from collections import Counter
+import psutil
+
+
+def parse_memory_str(mem_str):
+    """'6GB', '512MB' などの文字列をバイト数(int)に変換"""
+    if not mem_str:
+        return None
+
+    units = {"GB": 1024**3, "MB": 1024**2, "KB": 1024}
+    upper_str = mem_str.upper()
+
+    for unit, factor in units.items():
+        if upper_str.endswith(unit):
+            try:
+                val = float(upper_str.replace(unit, ""))
+                return int(val * factor)
+            except ValueError:
+                pass
+
+    try:
+        return int(mem_str)
+    except ValueError:
+        print(
+            f"Error: Invalid memory format '{mem_str}'. Use format like '8GB' or '4096MB'."
+        )
+        sys.exit(1)
 
 
 def summarize_results(json_path):
@@ -64,64 +90,69 @@ def summarize_results(json_path):
 
 
 def main():
-    # 固定の出力先ディレクトリ名
     DEFAULT_OUT_DIR = "benchmark_result"
 
-    # --- 1. 引数の定義 ---
     parser = argparse.ArgumentParser(
         description="Run solver benchmark and export to CSV."
     )
 
-    # 必須: ベンチマーク対象のディレクトリ
     parser.add_argument("--dir", required=True, help="Path to the benchmark directory")
-
-    # 任意: 最大時間 (デフォルト60秒)
     parser.add_argument("--time", default="60", help="Max time per test in seconds")
+
+    # --- 追加: メモリ制限オプション ---
+    parser.add_argument(
+        "--mem-limit",
+        help="Memory limit (e.g., '8GB', '4000MB'). Default: Auto (80% of RAM).",
+    )
 
     args = parser.parse_args()
 
-    # --- 2. パスの準備 ---
+    # --- メモリ制限値の計算 ---
+    if args.mem_limit:
+        mem_limit_bytes = parse_memory_str(args.mem_limit)
+        if mem_limit_bytes is None:
+            print("Error: Failed to parse memory limit.")
+            sys.exit(1)
+        mem_display = f"{args.mem_limit} ({mem_limit_bytes / (1024**3):.2f} GB)"
+    else:
+        # 表示用: 自動設定される値を計算
+        mem_limit_bytes = int(psutil.virtual_memory().total * 0.8)
+        mem_display = f"Auto ({mem_limit_bytes / (1024**3):.2f} GB)"
+
     target_dir_path = Path(args.dir).resolve()
     target_dir_str = str(target_dir_path)
     max_time = args.time
 
-    # 保存先ディレクトリのパスを確定
     out_dir_path = Path(DEFAULT_OUT_DIR).resolve()
-
-    # 保存先ディレクトリ作成
     out_dir_path.mkdir(parents=True, exist_ok=True)
 
-    # --- ファイル名の決定ロジック (常に日時付き) ---
-    # ディレクトリ名からプレフィックスを作成 (例: ./benchmarks/LIA/tptp/ → LIA_tptp)
     parts = target_dir_path.parts
     if len(parts) >= 2:
         name_parts = parts[-2:]
     else:
         name_parts = parts[-1:]
-
     base_prefix = "_".join(name_parts)
-
-    # 現在の日時を取得 (例: 20241025_143005)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    # 結合: LIA_tptp_result_20241025_143005.json
     json_name = f"{base_prefix}_result_{timestamp}.json"
-
-    # パスの確定
     json_path = out_dir_path / json_name
     csv_path = json_path.with_suffix(".csv")
 
     print(f"🚀 Benchmark Start")
     print(f"   Target Dir: {target_dir_str}")
     print(f"   Max Time:   {max_time}s")
+    print(f"   Mem Limit:  {mem_display}")  # 追加
     print(f"   Output:     {json_path} -> {csv_path}")
     print("-" * 50)
 
+    # 現在の環境変数をコピーし、タイムアウトとメモリ制限をセット
     env = os.environ.copy()
     env["BENCHMARK_TIMEOUT"] = str(args.time)
 
+    # 計算済みのバイト数を文字列として環境変数にセット
+    if args.mem_limit:
+        env["BENCHMARK_MEM_LIMIT"] = str(mem_limit_bytes)
+
     try:
-        # --- 3. Pytest 実行 ---
         cmd_test = [
             "pytest",
             "tests/test_solver_benchmark_cli.py",
@@ -131,11 +162,11 @@ def main():
             "-v",
         ]
 
+        # env=env を渡すことで、子プロセス(pytest)に環境変数が引き継がれる
         subprocess.run(cmd_test, check=True, env=env)
 
         summarize_results(json_path)
 
-        # --- 4. CSV 変換 ---
         print("\n🔄 Converting to CSV...")
         cmd_convert = [
             "python",
