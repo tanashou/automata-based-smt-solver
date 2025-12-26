@@ -5,7 +5,7 @@ from pathlib import Path
 
 # 引数チェック
 if len(sys.argv) < 2:
-    print("Usage: python script_name.py <json input path>")
+    print("Usage: python pytest_benchmark_json_to_csv.py <json input path>")
     sys.exit(1)
 
 # 引数から入力パスを取得し、Pathオブジェクトにする
