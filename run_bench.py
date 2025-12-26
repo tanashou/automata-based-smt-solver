@@ -31,28 +31,16 @@ def summarize_results(json_path):
     print(f"Total Tests: {total}")
 
     # Success (緑)
-    if stats["success"] > 0:
-        print(f"\033[92mSuccess:      {stats['success']}\033[0m")
-    else:
-        print(f"Success:      0")
+    print(f"\033[92mSuccess:      {stats['success']}\033[0m")
 
     # Wrong Answer (赤 + 太字)
-    if stats["wrong_answer"] > 0:
-        print(f"\033[91;1mWrong Answer: {stats['wrong_answer']}\033[0m")
-    else:
-        print(f"Wrong Answer: 0")
+    print(f"\033[91;1mWrong Answer: {stats['wrong_answer']}\033[0m")
 
     # Memout (黄色)
-    if stats["memout"] > 0:
-        print(f"\033[93mMemout:       {stats['memout']}\033[0m")
-    else:
-        print(f"Memout:       0")
+    print(f"\033[93mMemout:       {stats['memout']}\033[0m")
 
     # Timeout (黄色)
-    if stats["timeout"] > 0:
-        print(f"\033[93mTimeout:      {stats['timeout']}\033[0m")
-    else:
-        print(f"Timeout:      0")
+    print(f"\033[93mTimeout:      {stats['timeout']}\033[0m")
 
     # Unknown (その他)
     if stats["unknown"] > 0:
