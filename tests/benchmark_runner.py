@@ -51,7 +51,7 @@ def run_in_subprocess(path_str: str, timeout: float = 60.0):
                 return None, "memout", peak_memory_bytes
         except psutil.NoSuchProcess:
             break
-        time.sleep(0.1)
+        time.sleep(0.01)
 
     p.join()
 
