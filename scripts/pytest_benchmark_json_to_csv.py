@@ -5,7 +5,7 @@ from pathlib import Path
 
 # 引数チェック
 if len(sys.argv) < 2:
-    print("使用法: python script_name.py <jsonファイルのパス>")
+    print("Usage: python script_name.py <json input path>")
     sys.exit(1)
 
 # 引数から入力パスを取得し、Pathオブジェクトにする
@@ -14,8 +14,6 @@ input_path = Path(sys.argv[1])
 # 入力パスの拡張子を .csv に変更して出力パスを作成
 # 例: benchmark_result/data.json -> benchmark_result/data.csv
 output_path = input_path.with_suffix(".csv")
-
-print(f"変換開始: {input_path} -> {output_path}")
 
 # JSONファイルの読み込み
 try:
@@ -69,4 +67,4 @@ df.columns = new_columns
 
 # CSV出力
 df.to_csv(output_path, index=False)
-print(f"完了: {output_path}")
+print(f"Completed: {output_path}")
