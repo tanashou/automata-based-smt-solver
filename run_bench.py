@@ -96,10 +96,12 @@ def main():
         description="Run solver benchmark and export to CSV."
     )
 
-    parser.add_argument("--dir", required=True, help="Path to the benchmark directory")
-    parser.add_argument("--time", default="60", help="Max time per test in seconds")
+    parser.add_argument(
+        "target",
+        help="Path to the benchmark directory or specific file",
+    )
 
-    # --- 追加: メモリ制限オプション ---
+    parser.add_argument("--time", default="60", help="Max time per test in seconds")
     parser.add_argument(
         "--mem-limit",
         help="Memory limit (e.g., '8GB', '4000MB'). Default: Auto (80% of RAM).",
@@ -107,7 +109,7 @@ def main():
 
     args = parser.parse_args()
 
-    # --- メモリ制限値の計算 ---
+    # --- メモリ制限値の計算 (変更なし) ---
     if args.mem_limit:
         mem_limit_bytes = parse_memory_str(args.mem_limit)
         if mem_limit_bytes is None:
@@ -115,40 +117,58 @@ def main():
             sys.exit(1)
         mem_display = f"{args.mem_limit} ({mem_limit_bytes / (1024**3):.2f} GB)"
     else:
-        # 表示用: 自動設定される値を計算
         mem_limit_bytes = int(psutil.virtual_memory().total * 0.8)
         mem_display = f"Auto ({mem_limit_bytes / (1024**3):.2f} GB)"
 
-    target_dir_path = Path(args.dir).resolve()
-    target_dir_str = str(target_dir_path)
+    # 【変更点2】 ファイルかディレクトリかで処理を分岐
+    target_path = Path(args.target).resolve()
+    if not target_path.exists():
+        print(f"Error: Target path '{target_path}' does not exist.")
+        sys.exit(1)
+
+    pytest_extra_args = []
+
+    if target_path.is_file():
+        # ファイルの場合: 親ディレクトリをターゲットにし、ファイル名でフィルタする
+        print(f"ℹ️ Single file detected. Running only: {target_path.name}")
+        target_dir_str = str(target_path.parent)
+        # pytest -k "ファイル名" でそのテストケースのみに絞り込む
+        pytest_extra_args = ["-k", target_path.name]
+
+        # 出力ファイル名用のプレフィックス (ファイル名を使う)
+        base_prefix = target_path.stem
+    else:
+        # ディレクトリの場合: そのまま使用
+        target_dir_str = str(target_path)
+
+        # 出力ファイル名用のプレフィックス (既存ロジック)
+        parts = target_path.parts
+        if len(parts) >= 2:
+            name_parts = parts[-2:]
+        else:
+            name_parts = parts[-1:]
+        base_prefix = "_".join(name_parts)
+
     max_time = args.time
 
     out_dir_path = Path(DEFAULT_OUT_DIR).resolve()
     out_dir_path.mkdir(parents=True, exist_ok=True)
 
-    parts = target_dir_path.parts
-    if len(parts) >= 2:
-        name_parts = parts[-2:]
-    else:
-        name_parts = parts[-1:]
-    base_prefix = "_".join(name_parts)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     json_name = f"{base_prefix}_result_{timestamp}.json"
     json_path = out_dir_path / json_name
     csv_path = json_path.with_suffix(".csv")
 
     print(f"🚀 Benchmark Start")
-    print(f"   Target Dir: {target_dir_str}")
+    print(f"   Target:     {args.target}")  # 表示を変更
     print(f"   Max Time:   {max_time}s")
-    print(f"   Mem Limit:  {mem_display}")  # 追加
+    print(f"   Mem Limit:  {mem_display}")
     print(f"   Output:     {json_path} -> {csv_path}")
     print("-" * 50)
 
-    # 現在の環境変数をコピーし、タイムアウトとメモリ制限をセット
     env = os.environ.copy()
     env["BENCHMARK_TIMEOUT"] = str(args.time)
 
-    # 計算済みのバイト数を文字列として環境変数にセット
     if args.mem_limit:
         env["BENCHMARK_MEM_LIMIT"] = str(mem_limit_bytes)
 
@@ -156,13 +176,15 @@ def main():
         cmd_test = [
             "pytest",
             "tests/test_solver_benchmark_cli.py",
-            f"--benchmark-dir={target_dir_str}",
+            f"--benchmark-dir={target_dir_str}",  # 親ディレクトリまたはディレクトリ自体を渡す
             f"--benchmark-max-time={max_time}",
             f"--benchmark-json={json_path}",
             "-v",
         ]
 
-        # env=env を渡すことで、子プロセス(pytest)に環境変数が引き継がれる
+        # 【変更点3】 ファイル指定時のフィルタオプションを追加
+        cmd_test.extend(pytest_extra_args)
+
         subprocess.run(cmd_test, check=True, env=env)
 
         summarize_results(json_path)
