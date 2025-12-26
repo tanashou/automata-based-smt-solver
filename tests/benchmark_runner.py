@@ -1,3 +1,4 @@
+import os
 import time
 from multiprocessing import Process, Queue
 
@@ -6,7 +7,23 @@ import pytest
 
 from absmt.solver import Solver
 
-MAX_MEMORY_BYTES = 6 * 1024 * 1024 * 1024  # 6 GB
+
+def get_memory_limit():
+    # 環境変数 BENCHMARK_MEM_LIMIT があれば採用、なければ物理メモリの80%
+    # 1. 環境変数をチェック (CLIから渡される想定)
+    env_limit = os.getenv("BENCHMARK_MEM_LIMIT")
+    if env_limit:
+        try:
+            return int(env_limit)
+        except ValueError:
+            pass  # 数値変換できない場合は無視して自動設定へ
+
+    # 2. 指定がなければマシンの物理メモリの 80% を自動設定
+    total_mem = psutil.virtual_memory().total
+    return int(total_mem * 0.8)
+
+
+MAX_MEMORY_BYTES = get_memory_limit()
 
 
 # solver_worker は変更なし
