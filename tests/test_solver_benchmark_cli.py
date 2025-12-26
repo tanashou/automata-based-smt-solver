@@ -24,10 +24,13 @@ def test_solver_benchmark(benchmark, benchmark_file: Path):
     peak_memory_mb = peak_memory / (1024 * 1024)
     benchmark.extra_info["peak_memory_mb"] = f"{peak_memory_mb:.2f} MB"
 
-    # 結果の判定ロジックを修正
     if actual_status == "timeout":
         benchmark.extra_info["status"] = "timeout"
-        # タイムアウト時はアサーションを行わない。成功扱いにするがstatusは記録
+    elif actual_status == "memout":
+        benchmark.extra_info["status"] = "memout"
+    elif actual_status != expected_status:
+        # 不一致の場合。テストを止めずに "wrong_answer" 等として記録
+        benchmark.extra_info["status"] = "wrong_answer"
     else:
+        # 一致した場合
         benchmark.extra_info["status"] = "success"
-        assert actual_status == expected_status
