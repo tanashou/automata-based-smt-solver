@@ -4,6 +4,61 @@ import sys
 from pathlib import Path
 import os
 from datetime import datetime
+import json
+from collections import Counter
+
+
+def summarize_results(json_path):
+    if not Path(json_path).exists():
+        print(f"\n⚠️ Warning: JSON file not found at {json_path}")
+        return
+
+    with open(json_path, "r") as f:
+        data = json.load(f)
+
+    stats = Counter()
+
+    # JSONからステータスを集計
+    for bench in data.get("benchmarks", []):
+        # extra_info がない場合に備えて .get を使用
+        extra = bench.get("extra_info", {})
+        status = extra.get("status", "unknown")
+        stats[status] += 1
+
+    total = sum(stats.values())
+
+    print("\n" + "=" * 20 + " SUMMARY " + "=" * 20)
+    print(f"Total Tests: {total}")
+
+    # Success (緑)
+    if stats["success"] > 0:
+        print(f"\033[92mSuccess:      {stats['success']}\033[0m")
+    else:
+        print(f"Success:      0")
+
+    # Wrong Answer (赤 + 太字)
+    if stats["wrong_answer"] > 0:
+        print(f"\033[91;1mWrong Answer: {stats['wrong_answer']}\033[0m")
+    else:
+        print(f"Wrong Answer: 0")
+
+    # Memout (黄色)
+    if stats["memout"] > 0:
+        print(f"\033[93mMemout:       {stats['memout']}\033[0m")
+    else:
+        print(f"Memout:       0")
+
+    # Timeout (黄色)
+    if stats["timeout"] > 0:
+        print(f"\033[93mTimeout:      {stats['timeout']}\033[0m")
+    else:
+        print(f"Timeout:      0")
+
+    # Unknown (その他)
+    if stats["unknown"] > 0:
+        print(f"Unknown:      {stats['unknown']}")
+
+    print("=" * 49 + "\n")
 
 
 def main():
@@ -75,6 +130,8 @@ def main():
         ]
 
         subprocess.run(cmd_test, check=True, env=env)
+
+        summarize_results(json_path)
 
         # --- 4. CSV 変換 ---
         print("\n🔄 Converting to CSV...")
