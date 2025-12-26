@@ -82,6 +82,7 @@ def run_in_subprocess(path_str: str, timeout: float = 60.0):
 
     status, result = result_queue.get()
     if status == "error":
-        raise result
+        # エラーメッセージを actual_status として返す
+        return None, f"error: {result}", peak_memory_bytes
 
     return result[0], result[1], peak_memory_bytes
