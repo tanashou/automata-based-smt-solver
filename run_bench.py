@@ -17,6 +17,7 @@ def summarize_results(json_path):
         data = json.load(f)
 
     stats = Counter()
+    status_files = {"wrong_answer": [], "memout": [], "timeout": [], "unknown": []}
 
     # JSONからステータスを集計
     for bench in data.get("benchmarks", []):
@@ -24,6 +25,11 @@ def summarize_results(json_path):
         extra = bench.get("extra_info", {})
         status = extra.get("status", "unknown")
         stats[status] += 1
+
+        # success以外のステータスの場合、ファイル名を記録
+        param = bench.get("param", "unknown")
+        if status != "success" and status in status_files:
+            status_files[status].append(param)
 
     total = sum(stats.values())
 
@@ -35,16 +41,24 @@ def summarize_results(json_path):
 
     # Wrong Answer (赤 + 太字)
     print(f"\033[91;1mWrong Answer: {stats['wrong_answer']}\033[0m")
+    for file in status_files["wrong_answer"]:
+        print(f"  - {file}")
 
     # Memout (黄色)
     print(f"\033[93mMemout:       {stats['memout']}\033[0m")
+    for file in status_files["memout"]:
+        print(f"  - {file}")
 
     # Timeout (黄色)
     print(f"\033[93mTimeout:      {stats['timeout']}\033[0m")
+    for file in status_files["timeout"]:
+        print(f"  - {file}")
 
     # Unknown (その他)
     if stats["unknown"] > 0:
         print(f"Unknown:      {stats['unknown']}")
+        for file in status_files["unknown"]:
+            print(f"  - {file}")
 
     print("=" * 49 + "\n")
 
