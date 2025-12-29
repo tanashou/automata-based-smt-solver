@@ -274,7 +274,13 @@ class FormulaAutomataBuilder(DagWalker):
             # 推定状態数を計算
             estimated = 1
             for nfa in cluster:
-                estimated *= nfa.num_states()
+                if nfa.formula_data is not None:
+                    estimated *= nfa.num_states()
+                else:
+                    # 演算結果のNFAはOTFの可能性が高い。
+                    # ここで nfa.num_states() で展開してしまうと遅延評価の意味がなくなる
+                    # 大きな固定値を与えて、「小さいもの同士」の結合を優先させるよう
+                    estimated *= 10000
 
             # サイズ≥2の場合は内部構造を構築(どの順番でもいい)
             internal_structure = None
