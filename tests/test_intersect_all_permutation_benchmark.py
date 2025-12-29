@@ -345,7 +345,7 @@ def prepare_automata_list(
 
 def run_intersect_all_with_structure(
     automata_list: list[SpotNFA], structure: TournamentStructure
-) -> tuple[SpotNFA | None, float, float, dict[str, int]]:
+) -> tuple[SpotNFA | None, float, float]:
     """Run intersect_all with a specific tournament structure.
 
     Args:
@@ -353,9 +353,8 @@ def run_intersect_all_with_structure(
         structure: Tournament structure specifying the order of intersections
 
     Returns:
-        Tuple of (result_nfa, peak_memory_mb, elapsed_time_sec, state_counts)
-        where result_nfa can be None if the intersection is empty,
-        and state_counts is a dict mapping structure representations to state counts
+        Tuple of (result_nfa, peak_memory_mb, elapsed_time_sec)
+        where result_nfa can be None if the intersection is empty
 
     Note:
         Uses tracemalloc to measure peak memory usage during the operation.
@@ -363,13 +362,6 @@ def run_intersect_all_with_structure(
         collection occurs before the operation completes.
 
     """
-    # Dictionary to store state counts for each intermediate result
-    state_counts: dict[str, int] = {}
-
-    # Record initial automaton sizes
-    for i, nfa in enumerate(automata_list):
-        state_counts[str(i)] = nfa.num_states()
-
     # Start memory tracing to capture peak memory
     tracemalloc.start()
 
@@ -378,7 +370,6 @@ def run_intersect_all_with_structure(
         result = SpotNFA.intersect_all(
             *automata_list,
             tournament_structure=structure,
-            state_counts=state_counts,
         )
         elapsed_time = time.perf_counter() - start_time
 
@@ -390,7 +381,7 @@ def run_intersect_all_with_structure(
         # Always stop tracing to free resources
         tracemalloc.stop()
 
-    return result, peak_memory_mb, elapsed_time, state_counts
+    return result, peak_memory_mb, elapsed_time
 
 
 def run_benchmark_for_file(
@@ -441,7 +432,7 @@ def run_benchmark_for_file(
     total = len(all_structures)
 
     for idx, structure in enumerate(all_structures, 1):
-        _, peak_memory, elapsed_time, state_counts = run_intersect_all_with_structure(
+        _, peak_memory, elapsed_time = run_intersect_all_with_structure(
             automata_list, structure
         )
         results_data.append(
@@ -449,7 +440,6 @@ def run_benchmark_for_file(
                 "structure": format_tournament_structure(structure),
                 "time_sec": elapsed_time,
                 "memory_mb": peak_memory,
-                "state_counts": str(state_counts),
             }
         )
 
@@ -532,9 +522,7 @@ def _save_results_to_csv(
     output_file = _get_unique_file_path(base_output_file)
 
     with output_file.open("w", newline="") as f:
-        writer = csv.DictWriter(
-            f, fieldnames=["structure", "time_sec", "memory_mb", "state_counts"]
-        )
+        writer = csv.DictWriter(f, fieldnames=["structure", "time_sec", "memory_mb"])
         writer.writeheader()
         writer.writerows(results_data)
 
