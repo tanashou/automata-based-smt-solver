@@ -1,0 +1,9 @@
+../../QF_LIA/prime-cone/prime_cone_sat_2.smt2
+../../QF_LIA/prime-cone/prime_cone_sat_3.smt2
+../../QF_LIA/prime-cone/prime_cone_sat_4.smt2
+../../QF_LIA/prime-cone/prime_cone_sat_5.smt2
+../../QF_LIA/prime-cone/prime_cone_sat_6.smt2
+../../QF_LIA/prime-cone/prime_cone_unsat_3.smt2
+../../QF_LIA/prime-cone/prime_cone_unsat_4.smt2
+../../QF_LIA/prime-cone/prime_cone_unsat_5.smt2
+../../QF_LIA/prime-cone/prime_cone_unsat_6.smt2

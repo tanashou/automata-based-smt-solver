@@ -1,0 +1,5 @@
+../../QF_LIA/CAV_2009_benchmarks/coef-size/smt/size-10/problem__001.smt2
+../../QF_LIA/CAV_2009_benchmarks/smt/10-vars/problem_2__003.smt2
+../../QF_LIA/CAV_2009_benchmarks/smt/10-vars/problem__001.smt2
+../../QF_LIA/CAV_2009_benchmarks/smt/10-vars/problem__003.smt2
+../../QF_LIA/CAV_2009_benchmarks/smt/10-vars/problem__004.smt2

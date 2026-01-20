@@ -1,0 +1,7 @@
+../../QF_LIA/cut_lemmas/10-vars/cut_lemma_01_001.smt2
+../../QF_LIA/cut_lemmas/10-vars/cut_lemma_02_001.smt2
+../../QF_LIA/cut_lemmas/10-vars/cut_lemma_02_003.smt2
+../../QF_LIA/cut_lemmas/10-vars/cut_lemma_02_005.smt2
+../../QF_LIA/cut_lemmas/10-vars/cut_lemma_02_008.smt2
+../../QF_LIA/cut_lemmas/10-vars/cut_lemma_02_009.smt2
+../../QF_LIA/cut_lemmas/10-vars/cut_lemma_02_010.smt2

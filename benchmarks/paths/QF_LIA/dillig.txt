@@ -1,0 +1,4 @@
+../../QF_LIA/dillig/10-15.smt2
+../../QF_LIA/dillig/10-3.smt2
+../../QF_LIA/dillig/10-4.smt2
+../../QF_LIA/dillig/10-9.smt2

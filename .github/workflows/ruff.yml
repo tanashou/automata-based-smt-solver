@@ -1,0 +1,37 @@
+name: Ruff
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python with conda
+        uses: ./.github/actions/setup-python-with-uv
+
+      - name: Lint
+        run: ruff check --output-format=github .
+        shell: bash -el {0}
+
+  format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python with conda
+        uses: ./.github/actions/setup-python-with-uv
+
+      - name: Format
+        run: ruff format . --check --diff
+        shell: bash -el {0}

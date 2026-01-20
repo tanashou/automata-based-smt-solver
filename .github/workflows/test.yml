@@ -1,0 +1,26 @@
+name: Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python with conda
+        uses: ./.github/actions/setup-python-with-uv
+
+      - name: Run Pytest if directory exists
+        run: |
+          if [ -d "./tests/" ]; then
+            pytest --benchmark-skip
+          fi
+        shell: bash -el {0}
