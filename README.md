@@ -62,6 +62,8 @@ Benchmark files are collected from here:
 - [QF_LIA Benchmarks Download Link](https://zenodo.org/records/16740866/files/QF_LIA.tar.zst?download=1)
 - [LIA Benchmarks Download Link](https://zenodo.org/records/16740866/files/LIA.tar.zst?download=1)
 
+For detailed information about the datasets, please refer to [benchmarks/README.md](./benchmarks/README.md).
+
 #### Command
 ```bash
 python run_bench.py <TARGET> [--time <SECONDS>] [--mem-limit <MEMORY_LIMIT>]
