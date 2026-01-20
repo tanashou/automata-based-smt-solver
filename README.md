@@ -59,8 +59,8 @@ This script demonstrates:
 A utility script `run_bench.py` is available to automate solver benchmarking. It runs tests on a specified directory, handles timeouts, and exports the results to CSV.
 
 Benchmark files are collected from here:
-- [QF_LIA Benchmarks](https://zenodo.org/records/16740866/files/QF_LIA.tar.zst?download=1)
-- [LIA Benchmarks](https://zenodo.org/records/16740866/files/LIA.tar.zst?download=1)
+- [QF_LIA Benchmarks Download Link](https://zenodo.org/records/16740866/files/QF_LIA.tar.zst?download=1)
+- [LIA Benchmarks Download Link](https://zenodo.org/records/16740866/files/LIA.tar.zst?download=1)
 
 #### Command
 ```bash
@@ -77,7 +77,7 @@ Results (JSON and CSV) are automatically saved in the `benchmark_result/` direct
 
 Naming Format: <Directory_Name>_result_<YYYYMMDD_HHMMSS>.csv
 
-Example: If you run `python run_bench.py --dir ./benchmarks/LIA/tptp`, the output will be: `./benchmark_result/LIA_tptp_result_20251223_153000.csv`
+Example: If you run `python run_bench.py ./benchmarks/LIA/tptp`, the output will be: `./benchmark_result/LIA_tptp_result_20251223_153000.csv`
 ## License
 This project is licensed under the GNU General Public License v3.0 (GPLv3).
 
