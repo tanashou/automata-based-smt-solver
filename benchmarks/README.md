@@ -24,7 +24,7 @@ Although the total number of benchmarks in the LIA category is limited, specific
 ### 2. QF_LIA Category (Baseline Check)
 Since the QF_LIA category is extremely large, a subset was extracted based on the following criteria for the purpose of basic operational verification (sanity check) of the tool:
 
-* **File Size:** Relatively small instances (e.g., `[XX]` KB or less).
+* **File Size:** Relatively small instances.
 * **Structure:** Selected from families with basic logical structures.
 
 ---
@@ -37,5 +37,5 @@ To align with the current specifications and implementation status of `absmt`, f
 * **Instances containing incremental descriptions:**
     * Files containing multiple `check-sat` commands within a single file. Currently, only **Non-incremental** execution is supported.
 
-### License
+### License of Benchmarks
 The benchmarks are distributed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).
