@@ -16,6 +16,8 @@ It utilizes the [Spot](https://spot.lre.epita.fr/) library for efficient automat
 - **Boolean Variables:** It **does not** support formulas containing Boolean variables (e.g., `(declare-fun b () Bool)`). Only Integer variables (`Int`) are supported.
 - **Model Generation:** Currently, it only outputs the satisfiability result (`sat`/`unsat`) and **does not** generate a specific assignment (model) for variables.
 
+## Setup
+
 You can set up the environment using either **VSCode Dev Container** (recommended) or by building the **Docker image** manually.
 
 ### Option 1: VSCode Dev Container (Recommended)
