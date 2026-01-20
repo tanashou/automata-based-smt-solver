@@ -96,3 +96,4 @@ line-ending = "auto"
 "tests/**" = ["ANN001", "ANN201", "INP001", "S101", "SLF001", "ERA001", "PLR2004"]
 "scripts/**" = ["ALL"]
 "run_bench.py" = ["ALL"]
+"example.py" = ["ANN201", "D400", "D401", "INP001", "S101", "SLF001", "ERA001", "T201", "BLE001"]
